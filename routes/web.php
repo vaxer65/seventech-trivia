@@ -53,3 +53,8 @@ Route::post('/admin/reiniciar', [AdminController::class, 'reiniciarJuego'])->nam
 // Rutas del Simulador de Carrera
 Route::post('/admin/simular-equipos', [AdminController::class, 'generarEquiposPrueba'])->name('admin.simular.equipos');
 Route::post('/admin/simular-avance', [AdminController::class, 'simularAvanceCarrera'])->name('admin.simular.avance');
+
+// Rutas para Editing Manual de Contenido en Tiempo Real
+Route::post('/admin/pregunta/{id}/editar', [AdminController::class, 'actualizarPregunta'])->name('admin.pregunta.editar');
+Route::post('/admin/pregunta/{id}/eliminar', [AdminController::class, 'eliminarPregunta'])->name('admin.pregunta.eliminar');
+Route::post('/admin/modulo/{id}/eliminar', [AdminController::class, 'eliminarModulo'])->name('admin.modulo.eliminar');

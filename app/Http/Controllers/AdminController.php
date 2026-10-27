@@ -21,7 +21,16 @@ class AdminController extends Controller
         $config = ConfiguracionEvento::first();
         $modulos = Modulo::withCount('preguntas')->get();
         $niveles = Nivel::orderBy('orden_dificultad', 'asc')->get();
-        $preguntas = Pregunta::with(['modulo', 'nivel'])->latest()->get();
+
+        // Ordenadas primero por Módulo, luego por Etapa (1 -> 2 -> 3 -> Desempate) y orden de creación
+        $preguntas = Pregunta::select('preguntas.*')
+            ->join('niveles', 'preguntas.nivel_id', '=', 'niveles.id')
+            ->with(['modulo', 'nivel'])
+            ->orderBy('preguntas.modulo_id', 'asc')
+            ->orderBy('niveles.orden_dificultad', 'asc')
+            ->orderBy('preguntas.id', 'asc')
+            ->get();
+
         $equipos = Equipo::with('integrantes')->orderBy('puntaje_total', 'desc')->orderBy('tiempo_acumulado_ms', 'asc')->get();
 
         return view('admin.index', compact('autorizado', 'config', 'modulos', 'niveles', 'preguntas', 'equipos'));
@@ -224,5 +233,40 @@ class AdminController extends Controller
         }
 
         return back()->with('ok', '¡Avance simulado! Mira cómo se movieron los robots en /espectador.');
+    }
+    // Editar cualquier pregunta existente en vivo
+    public function actualizarPregunta(Request $request, $id)
+    {
+        if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        $pregunta = Pregunta::findOrFail($id);
+        $pregunta->update($request->only([
+            'modulo_id', 'nivel_id', 'enunciado',
+            'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'respuesta_correcta'
+        ]));
+
+        return back()->with('ok', 'Pregunta actualizada correctamente en la base de datos.');
+    }
+
+    // Eliminar una pregunta del banco
+    public function eliminarPregunta(Request $request, $id)
+    {
+        if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        Pregunta::findOrFail($id)->delete();
+        return back()->with('ok', 'Pregunta eliminada del banco.');
+    }
+
+    // Eliminar un módulo completo
+    public function eliminarModulo(Request $request, $id)
+    {
+        if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        if (Modulo::count() <= 1) {
+            return back()->with('ok', 'Debe existir al menos 1 módulo en el sistema.');
+        }
+
+        Modulo::findOrFail($id)->delete();
+        return back()->with('ok', 'Módulo eliminado.');
     }
 }
