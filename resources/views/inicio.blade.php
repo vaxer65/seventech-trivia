@@ -74,6 +74,32 @@
             </a>
 
         </div>
+            <!-- SALÓN DE LA FAMA PÚBLICO (SIN NOMBRES PRIVADOS DE INTEGRANTES) -->
+        @if(isset($historial) && $historial->count() > 0)
+            <div class="pt-6 text-left">
+                <p class="font-orbitron text-xs uppercase text-[#00E5FF] tracking-[0.2em] mb-3 text-center">// SALÓN DE LA FAMA • EDICIONES ANTERIORES //</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach($historial as $h)
+                        <div class="neon-card p-4 rounded-xl">
+                            <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                                <h3 class="font-bold text-lg text-white">{{ $h->nombre_edicion }}</h3>
+                                <span class="font-orbitron text-[10px] text-slate-400">{{ $h->created_at->format('d/m/Y') }}</span>
+                            </div>
+                            <div class="space-y-1 text-xs">
+                                @foreach($h->podio_top3 ?? [] as $g)
+                                    <div class="flex justify-between items-center py-1 px-2 rounded bg-[#07101E]/70">
+                                        <span class="font-bold text-white">
+                                            {{ $g['posicion'] == 1 ? '🥇' : ($g['posicion'] == 2 ? '🥈' : '🥉') }} {{ $g['nombre_equipo'] }}
+                                        </span>
+                                        <span class="font-orbitron text-[#00E5FF]">{{ $g['puntaje_total'] }} PTS • {{ $g['tiempo_segundos'] }}s</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     </main>
 
     <footer class="text-center text-xs text-slate-500 py-4">

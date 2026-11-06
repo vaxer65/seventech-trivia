@@ -6,7 +6,7 @@
     <title>Seven Tech - Panel de Administración</title>
     @include('partials.cyberpunk-head')
 </head>
-<body class="min-h-screen p-4 md:p-6">
+<body class="circuit-bg min-h-screen p-4 md:p-6">
 
     @if(!$autorizado)
         <!-- PANTALLA DE LOGIN ADMIN -->
@@ -32,13 +32,27 @@
     @else
         <!-- PANEL DE CONTROL COMPLETO -->
         <header class="max-w-7xl mx-auto flex flex-wrap justify-between items-center card rounded-2xl p-4 mb-6">
-        <div class="flex items-center gap-3">
-            <img src="/favicon.svg" alt="Seven Tech" class="w-11 h-11 rounded-xl">
-            <div>
-                <h1 class="text-xl font-black text-[#00E5FF]">CENTRO DE MANDO SEVEN TECH</h1>
-                <p class="text-xs text-slate-300">Estado actual: <b class="uppercase text-amber-400">{{ $config->estado_juego }}</b></p>
+            <div class="flex items-center gap-3">
+                <a href="/" title="Ir al Portal Principal">
+                    <img src="/favicon.svg" alt="Seven Tech" class="w-11 h-11 rounded-xl">
+                </a>
+                <div>
+                    <h1 class="text-xl font-black text-[#00E5FF]">CENTRO DE MANDO SEVEN TECH</h1>
+                    <p class="text-xs text-slate-300">Estado actual: <b class="uppercase text-amber-400">{{ $config->estado_juego }}</b></p>
+                </div>
             </div>
-        </div>
+            <div class="flex items-center gap-3 mt-2 sm:mt-0">
+                <a href="/espectador" target="_blank" class="px-3.5 py-2 rounded-xl bg-cyan-500/20 border border-[#00E5FF] text-[#00E5FF] text-xs font-bold">
+                    🖥️ Abrir Pantalla Espectador
+                </a>
+                <a href="/jugar" target="_blank" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-xs font-bold">
+                    🎮 Abrir Vista Concursante
+                </a>
+                <form method="POST" action="{{ route('admin.logout') }}">
+                    @csrf
+                    <button class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">Salir</button>
+                </form>
+            </div>
         </header>
 
         @if(session('ok'))
@@ -57,7 +71,7 @@
                     @csrf
                     <div>
                         <label class="text-xs font-bold text-slate-300">Estado de la Trivia</label>
-                        <select name="estado_juego" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2.5 text-sm">
+                        <select name="estado_juego" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white">
                             <option value="registro" {{ $config->estado_juego == 'registro' ? 'selected' : '' }}>🟢 Registro Abierto (En espera)</option>
                             <option value="en_curso" {{ $config->estado_juego == 'en_curso' ? 'selected' : '' }}>🚀 EN CURSO (¡Corriendo Carrera!)</option>
                             <option value="pausado" {{ $config->estado_juego == 'pausado' ? 'selected' : '' }}>⏸️ Pausado</option>
@@ -67,7 +81,7 @@
 
                     <div>
                         <label class="text-xs font-bold text-slate-300">Módulo / Categoría Activa</label>
-                        <select name="modulo_activo_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2.5 text-sm">
+                        <select name="modulo_activo_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white">
                             @foreach($modulos as $mod)
                                 <option value="{{ $mod->id }}" {{ $config->modulo_activo_id == $mod->id ? 'selected' : '' }}>
                                     {{ $mod->nombre }} ({{ $mod->preguntas_count }} pregs)
@@ -76,14 +90,18 @@
                         </select>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-3 gap-2">
                         <div>
-                            <label class="text-xs text-slate-400">Máx. Integrantes</label>
-                            <input type="number" name="max_integrantes_equipo" value="{{ $config->max_integrantes_equipo }}" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-sm">
+                            <label class="text-[11px] text-slate-400">Máx. Integrantes</label>
+                            <input type="number" name="max_integrantes_equipo" value="{{ $config->max_integrantes_equipo }}" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-2.5 py-2 text-sm text-white">
                         </div>
                         <div>
-                            <label class="text-xs text-slate-400">Máx. Equipos</label>
-                            <input type="number" name="max_equipos_permitidos" value="{{ $config->max_equipos_permitidos }}" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-sm">
+                            <label class="text-[11px] text-slate-400">Máx. Equipos</label>
+                            <input type="number" name="max_equipos_permitidos" value="{{ $config->max_equipos_permitidos }}" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-2.5 py-2 text-sm text-white">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-[#00E5FF] font-bold">Trivia (Minutos)</label>
+                            <input type="number" name="tiempo_total_minutos" min="1" max="180" value="{{ $config->tiempo_total_minutos ?? 15 }}" class="w-full bg-[#07101E] border border-[#00E5FF] rounded-xl px-2.5 py-2 text-sm text-[#00E5FF] font-bold">
                         </div>
                     </div>
 
@@ -114,6 +132,19 @@
                     </form>
                 </div>
 
+                <!-- Archivar en Historial de Eventos antes de reiniciar -->
+                <div class="pt-3 border-t border-slate-800">
+                    <h3 class="text-xs font-bold uppercase text-emerald-400 mb-2">🏛️ Guardar en Historial de Eventos</h3>
+                    <form method="POST" action="{{ route('admin.historial.guardar') }}" class="space-y-2">
+                        @csrf
+                        <input type="text" name="nombre_edicion" placeholder="Ej: 1er Torneo Seven Tech - Nov 2026"
+                               class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        <button type="submit" class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#07101E] font-black text-xs uppercase">
+                            🏆 Archivar Ganadores y Resultados
+                        </button>
+                    </form>
+                </div>
+
                 <!-- Reiniciar Juego -->
                 <div class="pt-3 border-t border-slate-800">
                     <form method="POST" action="{{ route('admin.reiniciar') }}" onsubmit="return confirm('¿Seguro que deseas reiniciar los puntajes de la partida?');">
@@ -123,21 +154,6 @@
                         </label>
                         <button type="submit" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs">
                             🔄 Reiniciar Partida
-                        </button>
-                    </form>
-                </div>
-                <div class="pt-3 border-t border-slate-800 space-y-2">
-                    <h3 class="text-xs font-bold uppercase text-[#00E5FF]">🧪 Simulador de Evento (Pruebas)</h3>
-                    <form method="POST" action="{{ route('admin.simular.equipos') }}">
-                        @csrf
-                        <button type="submit" class="w-full py-2 rounded-xl bg-indigo-500/20 border border-indigo-400 text-indigo-200 font-bold text-xs hover:bg-indigo-500/30">
-                            🤖 1. Generar 5 Equipos de Prueba
-                        </button>
-                    </form>
-                    <form method="POST" action="{{ route('admin.simular.avance') }}">
-                        @csrf
-                        <button type="submit" class="w-full py-2 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-200 font-bold text-xs hover:bg-amber-500/30">
-                            🎲 2. Simular Avance de Carrera (+1 Pregunta)
                         </button>
                     </form>
                 </div>
@@ -154,15 +170,15 @@
                             <div class="grid grid-cols-3 gap-2 text-xs">
                                 <div>
                                     <span class="text-[10px] text-slate-400">Preguntas</span>
-                                    <input type="number" name="cantidad_preguntas" value="{{ $niv->cantidad_preguntas }}" class="w-full bg-[#0F2342] rounded px-2 py-1">
+                                    <input type="number" name="cantidad_preguntas" value="{{ $niv->cantidad_preguntas }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
                                 </div>
                                 <div>
                                     <span class="text-[10px] text-slate-400">Puntos c/u</span>
-                                    <input type="number" name="puntos_por_acierto" value="{{ $niv->puntos_por_acierto }}" class="w-full bg-[#0F2342] rounded px-2 py-1">
+                                    <input type="number" name="puntos_por_acierto" value="{{ $niv->puntos_por_acierto }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
                                 </div>
                                 <div>
                                     <span class="text-[10px] text-slate-400">Segundos</span>
-                                    <input type="number" name="tiempo_limite_seg" value="{{ $niv->tiempo_limite_seg }}" class="w-full bg-[#0F2342] rounded px-2 py-1">
+                                    <input type="number" name="tiempo_limite_seg" value="{{ $niv->tiempo_limite_seg }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
                                 </div>
                             </div>
                             <button class="w-full py-1.5 rounded-lg bg-cyan-500/20 text-[#00E5FF] font-bold text-xs">Actualizar Etapa</button>
@@ -175,8 +191,8 @@
                     <h3 class="text-xs font-bold uppercase text-[#00E5FF] mb-2">➕ Agregar Nuevo Módulo/Categoría</h3>
                     <form method="POST" action="{{ route('admin.modulo') }}" class="space-y-2">
                         @csrf
-                        <input type="text" name="nombre" required placeholder="Nombre del módulo (Ej: Robótica e IoT)" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs">
-                        <input type="text" name="descripcion" placeholder="Descripción corta" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        <input type="text" name="nombre" required placeholder="Nombre del módulo (Ej: Robótica e IoT)" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        <input type="text" name="descripcion" placeholder="Descripción corta" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
                         <button class="w-full py-2 rounded-xl bg-emerald-500 text-[#07101E] font-black text-xs uppercase">Crear Módulo</button>
                     </form>
                 </div>
@@ -189,7 +205,7 @@
                     @csrf
                     <div>
                         <label class="text-slate-300 font-bold">Módulo</label>
-                        <select name="modulo_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2">
+                        <select name="modulo_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
                             @foreach($modulos as $m)
                                 <option value="{{ $m->id }}">{{ $m->nombre }}</option>
                             @endforeach
@@ -197,7 +213,7 @@
                     </div>
                     <div>
                         <label class="text-slate-300 font-bold">Etapa / Nivel de Dificultad</label>
-                        <select name="nivel_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2">
+                        <select name="nivel_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
                             @foreach($niveles as $n)
                                 <option value="{{ $n->id }}">{{ $n->nombre }}</option>
                             @endforeach
@@ -205,12 +221,12 @@
                     </div>
                     <div>
                         <label class="text-slate-300 font-bold">Enunciado de la Pregunta</label>
-                        <textarea name="enunciado" required rows="2" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2"></textarea>
+                        <textarea name="enunciado" required rows="2" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white"></textarea>
                     </div>
-                    <input type="text" name="opcion_a" required placeholder="Opción A" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2">
-                    <input type="text" name="opcion_b" required placeholder="Opción B" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2">
-                    <input type="text" name="opcion_c" required placeholder="Opción C" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2">
-                    <input type="text" name="opcion_d" required placeholder="Opción D" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2">
+                    <input type="text" name="opcion_a" required placeholder="Opción A" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
+                    <input type="text" name="opcion_b" required placeholder="Opción B" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
+                    <input type="text" name="opcion_c" required placeholder="Opción C" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
+                    <input type="text" name="opcion_d" required placeholder="Opción D" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
                     <div>
                         <label class="text-emerald-400 font-bold">Respuesta Correcta (Secreta)</label>
                         <select name="respuesta_correcta" class="w-full mt-1 bg-[#07101E] border border-emerald-500 rounded-xl px-3 py-2 font-bold text-emerald-300">
@@ -227,7 +243,63 @@
             </section>
 
         </main>
-        <!-- 4. GESTOR COMPLETO DEL BANCO DE PREGUNTAS (ORDENADO POR MÓDULO Y ETAPA 1, 2, 3, DESEMPATE) -->
+
+        <!-- 3.5 AUDITORÍA DE EQUIPOS E INTEGRANTES REALES (EXCLUSIVO ADMIN - OCULTO EN ESPECTADOR) -->
+        <section class="max-w-7xl mx-auto mt-6 card rounded-2xl p-5">
+            <div class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-3 mb-4">
+                <div>
+                    <h2 class="text-lg font-extrabold text-[#00E5FF]">👥 Equipos Registrados y Nombres Reales ({{ $equipos->count() }})</h2>
+                    <p class="text-xs text-slate-400">Esta información es confidencial del jurado/administrador y jamás se muestra en la pantalla de espectadores.</p>
+                </div>
+            </div>
+
+            @if($equipos->isEmpty())
+                <p class="text-xs text-slate-500 py-4 text-center">Todavía no hay equipos registrados.</p>
+            @else
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[380px] overflow-y-auto pr-1">
+                    @foreach($equipos as $eq)
+                        <div class="bg-[#07101E] border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-3 h-3 rounded-full" style="background-color: {{ $eq->color_carril }};"></span>
+                                        <h3 class="font-bold text-sm text-white">{{ $eq->nombre_equipo }}</h3>
+                                    </div>
+                                    <span class="font-orbitron text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40">
+                                        🔑 PIN: {{ $eq->pin_recuperacion }}
+                                    </span>
+                                </div>
+
+                                <p class="text-[11px] font-bold text-[#00E5FF] uppercase mb-1">
+                                    Integrantes ({{ $eq->integrantes->count() }}):
+                                </p>
+                                <ul class="space-y-1 text-xs text-slate-300 mb-3">
+                                    @foreach($eq->integrantes as $idx => $int)
+                                        <li class="flex items-center gap-1.5">
+                                            <span class="text-[10px] text-slate-500">{{ $idx + 1 }}.</span>
+                                            <span>{{ $int->nombre_completo }}</span>
+                                            @if($idx === 0)
+                                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-[#00E5FF]">Capitán</span>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px]">
+                                <span class="font-orbitron text-emerald-400 font-bold">{{ $eq->puntaje_total }} PTS • Etapa {{ $eq->fase_actual }}</span>
+                                <form method="POST" action="{{ route('admin.equipo.eliminar', $eq->id) }}" onsubmit="return confirm('¿Eliminar al equipo {{ $eq->nombre_equipo }}?');">
+                                    @csrf
+                                    <button type="submit" class="text-rose-400 hover:underline font-bold">🗑️ Dar de baja</button>
+                                </form>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </section>
+
+        <!-- 4. GESTOR COMPLETO DEL BANCO DE PREGUNTAS -->
         <section class="max-w-7xl mx-auto mt-6 card rounded-2xl p-5">
             <div class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-3 mb-4 gap-3">
                 <div>
@@ -235,7 +307,6 @@
                     <p class="text-xs text-slate-400">Ordenadas por Módulo y Etapa (Fase 1 → Fase 2 → Fase 3 → Desempate).</p>
                 </div>
 
-                <!-- Filtros rápidos para encontrar preguntas al instante -->
                 <div class="flex flex-wrap items-center gap-2 text-xs">
                     <select id="filtro-modulo" onchange="filtrarPreguntasAdmin()" class="bg-[#07101E] border border-slate-700 rounded-xl px-3 py-1.5 text-white">
                         <option value="todos">📁 Todos los Módulos</option>
@@ -273,7 +344,6 @@
                                 <span class="text-white font-semibold">{{ $preg->enunciado }}</span>
                             </div>
 
-                            <!-- Ahora el texto queda fijo a la derecha y SOLO gira el ícono de la flecha -->
                             <div class="shrink-0 flex items-center gap-1.5 text-xs text-[#00E5FF] bg-[#0F2342] px-2.5 py-1 rounded-lg border border-[#00E5FF]/30">
                                 <span>Editar / Borrar</span>
                                 <span class="inline-block transition-transform duration-200 group-open:rotate-180">▼</span>
@@ -286,7 +356,7 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                                     <div>
                                         <label class="text-slate-400">Módulo</label>
-                                        <select name="modulo_id" class="w-full bg-[#0F2342] border border-slate-700 rounded-lg px-2 py-1.5">
+                                        <select name="modulo_id" class="w-full bg-[#0F2342] border border-slate-700 rounded-lg px-2 py-1.5 text-white">
                                             @foreach($modulos as $m)
                                                 <option value="{{ $m->id }}" {{ $preg->modulo_id == $m->id ? 'selected' : '' }}>{{ $m->nombre }}</option>
                                             @endforeach
@@ -294,7 +364,7 @@
                                     </div>
                                     <div>
                                         <label class="text-slate-400">Etapa</label>
-                                        <select name="nivel_id" class="w-full bg-[#0F2342] border border-slate-700 rounded-lg px-2 py-1.5">
+                                        <select name="nivel_id" class="w-full bg-[#0F2342] border border-slate-700 rounded-lg px-2 py-1.5 text-white">
                                             @foreach($niveles as $n)
                                                 <option value="{{ $n->id }}" {{ $preg->nivel_id == $n->id ? 'selected' : '' }}>{{ $n->nombre }}</option>
                                             @endforeach
@@ -305,10 +375,10 @@
                                 <textarea name="enunciado" rows="2" class="w-full bg-[#0F2342] border border-slate-700 rounded-lg px-3 py-2 text-white">{{ $preg->enunciado }}</textarea>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <input type="text" name="opcion_a" value="{{ $preg->opcion_a }}" class="bg-[#0F2342] border border-slate-700 rounded-lg px-2.5 py-1.5">
-                                    <input type="text" name="opcion_b" value="{{ $preg->opcion_b }}" class="bg-[#0F2342] border border-slate-700 rounded-lg px-2.5 py-1.5">
-                                    <input type="text" name="opcion_c" value="{{ $preg->opcion_c }}" class="bg-[#0F2342] border border-slate-700 rounded-lg px-2.5 py-1.5">
-                                    <input type="text" name="opcion_d" value="{{ $preg->opcion_d }}" class="bg-[#0F2342] border border-slate-700 rounded-lg px-2.5 py-1.5">
+                                    <input type="text" name="opcion_a" value="{{ $preg->opcion_a }}" class="bg-[#0F2342] border border-slate-700 rounded-lg px-2.5 py-1.5 text-white">
+                                    <input type="text" name="opcion_b" value="{{ $preg->opcion_b }}" class="bg-[#0F2342] border border-slate-700 rounded-lg px-2.5 py-1.5 text-white">
+                                    <input type="text" name="opcion_c" value="{{ $preg->opcion_c }}" class="bg-[#0F2342] border border-slate-700 rounded-lg px-2.5 py-1.5 text-white">
+                                    <input type="text" name="opcion_d" value="{{ $preg->opcion_d }}" class="bg-[#0F2342] border border-slate-700 rounded-lg px-2.5 py-1.5 text-white">
                                 </div>
 
                                 <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
@@ -350,6 +420,157 @@
                     });
                 }
             </script>
+        </section>
+
+        <!-- 5. HISTORIAL DE EVENTOS PASADOS (SALÓN DE LA FAMA) -->
+        <section class="max-w-7xl mx-auto mt-6 card rounded-2xl p-5">
+            <h2 class="text-lg font-extrabold text-[#00E5FF] border-b border-slate-800 pb-2 mb-4">
+                🏛️ 5. Historial de Eventos y Ganadores ({{ $historial->count() }})
+            </h2>
+            @if($historial->isEmpty())
+                <p class="text-xs text-slate-400">Aún no se han archivado ediciones en el historial.</p>
+            @else
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach($historial as $h)
+                        <div class="bg-[#07101E] border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-start gap-2 mb-2">
+                                    <div>
+                                        <h3 class="font-bold text-base text-white">{{ $h->nombre_edicion }}</h3>
+                                        <p class="font-orbitron text-[10px] text-[#00E5FF]">{{ $h->modulo_jugado }} • {{ $h->total_equipos }} Equipos • {{ $h->created_at->format('d/m/Y H:i') }}</p>
+                                    </div>
+                                    <form method="POST" action="{{ route('admin.historial.eliminar', $h->id) }}" onsubmit="return confirm('¿Borrar este evento del historial?');">
+                                        @csrf
+                                        <button class="text-xs text-rose-400 hover:underline">🗑️</button>
+                                    </form>
+                                </div>
+                                <div class="space-y-1.5 mt-3">
+                                    @foreach($h->podio_top3 ?? [] as $ganador)
+                                        <div class="p-2 rounded-lg bg-[#0F2342]/70 border border-slate-800 text-xs flex justify-between items-center">
+                                            <div>
+                                                <span class="font-orbitron font-bold text-amber-400">#{{ $ganador['posicion'] }} {{ $ganador['nombre_equipo'] }}</span>
+                                                <p class="text-[11px] text-slate-300">👥 {{ implode(', ', $ganador['integrantes'] ?? []) }}</p>
+                                            </div>
+                                            <span class="font-orbitron font-bold text-emerald-400">{{ $ganador['puntaje_total'] }} PTS ({{ $ganador['tiempo_segundos'] }}s)</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </section>
+
+        <!-- 6. MODO ENSAYO / SIMULADOR AUTOMÁTICO DE FLUJO COMPLETO -->
+        <section class="max-w-7xl mx-auto mt-6 mb-10">
+            <details class="card rounded-2xl p-4 border border-dashed border-slate-700 group">
+                <summary class="cursor-pointer flex flex-wrap items-center justify-between gap-2 list-none">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🧪</span>
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-300 group-open:text-[#00E5FF] transition">
+                                6. Zona de Pruebas y Simulador de Carrera en Vivo (Click para desplegar)
+                            </h2>
+                            <p class="text-[11px] text-slate-500">
+                                Oculto por seguridad para no confundir al operador durante el evento real. Úsalo para ensayar todo el flujo.
+                            </p>
+                        </div>
+                    </div>
+                    <span class="font-orbitron text-[10px] px-2.5 py-1 rounded bg-slate-800 text-slate-400 group-open:text-[#00E5FF]">
+                        ▼ MOSTRAR / OCULTAR SIMULADOR
+                    </span>
+                </summary>
+
+                <div class="mt-4 pt-4 border-t border-slate-800 space-y-4">
+                    <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 flex items-center justify-between flex-wrap gap-2">
+                        <span>💡 <b>Tip de ensayo:</b> Abre <b>/espectador</b> en otra pestaña o proyector y presiona el botón de <b>Piloto Automático</b> para ver todo el evento de principio a fin.</span>
+                        <span id="estado-piloto-texto" class="font-orbitron font-bold text-[#00E5FF]"></span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <button type="button" id="btn-piloto-auto" onclick="iniciarSimulacionCompletaEnVivo()"
+                                class="py-3 px-4 rounded-xl bg-gradient-to-r from-[#00E5FF] to-emerald-400 text-[#07101E] font-black text-xs uppercase tracking-wider hover:opacity-90 transition">
+                            🎬 1. Piloto Automático (Simular Todo)
+                        </button>
+
+                        <form method="POST" action="{{ route('admin.simular.equipos') }}">
+                            @csrf
+                            <button type="submit" class="w-full h-full py-3 px-4 rounded-xl bg-indigo-500/20 border border-indigo-400 text-indigo-200 font-bold text-xs hover:bg-indigo-500/30">
+                                🤖 2. Solo Generar 5 Equipos
+                            </button>
+                        </form>
+
+                        <form method="POST" action="{{ route('admin.simular.avance') }}">
+                            @csrf
+                            <button type="submit" class="w-full h-full py-3 px-4 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-200 font-bold text-xs hover:bg-amber-500/30">
+                                🎲 3. Avanzar +1 Pregunta
+                            </button>
+                        </form>
+
+                        <form method="POST" action="{{ route('admin.reiniciar') }}" onsubmit="return confirm('¿Limpiar todos los equipos de prueba y dejar el sistema en Registro listo para el evento real?');">
+                            @csrf
+                            <input type="hidden" name="borrar_equipos" value="1">
+                            <button type="submit" class="w-full h-full py-3 px-4 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-300 font-bold text-xs hover:bg-rose-500/30">
+                                🧹 4. Limpiar Simulación (Dejar Cero)
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <script>
+                    let simulacionActiva = false;
+
+                    async function iniciarSimulacionCompletaEnVivo() {
+                        if (simulacionActiva) return;
+                        simulacionActiva = true;
+
+                        const btn = document.getElementById('btn-piloto-auto');
+                        const status = document.getElementById('estado-piloto-texto');
+                        const csrf = '{{ csrf_token() }}';
+
+                        btn.disabled = true;
+                        btn.textContent = '⏳ SIMULANDO CARRERA EN VIVO...';
+
+                        try {
+                            status.textContent = 'Fase 1: Registrando 5 equipos...';
+                            await fetch("{{ route('admin.simular.equipos') }}", {
+                                method: 'POST',
+                                headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' }
+                            });
+
+                            await new Promise(r => setTimeout(r, 2000));
+
+                            let paso = 1;
+                            let continuar = true;
+
+                            while (continuar && paso <= 18) {
+                                status.textContent = `Corriendo en vivo: Turno #${paso} de 15... (Mira /espectador)`;
+                                const res = await fetch("{{ route('admin.simular.avance') }}", {
+                                    method: 'POST',
+                                    headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' }
+                                });
+                                const data = await res.json();
+
+                                if (!data.alguno_avanzo || data.estado_juego === 'finalizado') {
+                                    continuar = false;
+                                } else {
+                                    paso++;
+                                    await new Promise(r => setTimeout(r, 2200));
+                                }
+                            }
+
+                            status.textContent = '🏆 ¡Carrera simulada completada! Podio activado en /espectador.';
+                            setTimeout(() => window.location.reload(), 1500);
+                        } catch (e) {
+                            console.error(e);
+                            status.textContent = 'Error en simulación.';
+                            simulacionActiva = false;
+                            btn.disabled = false;
+                        }
+                    }
+                </script>
+            </details>
         </section>
     @endif
 

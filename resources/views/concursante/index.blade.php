@@ -73,18 +73,16 @@
         </div>
         <div id="info-equipo-header" class="{{ $equipo ? '' : 'hidden' }} text-right">
             <p id="header-nombre-equipo" class="text-sm font-bold text-white">{{ $equipo->nombre_equipo ?? '' }}</p>
-            <div class="flex items-center justify-end gap-2 mt-0.5">
-                <span class="font-orbitron text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40" title="Anota este PIN por si se apaga tu celular">
-                    🔑 PIN: <b id="header-pin-equipo">{{ $equipo->pin_recuperacion ?? '----' }}</b>
-                </span>
-                <span id="header-puntos-equipo" class="font-orbitron text-xs font-bold text-emerald-400">{{ $equipo->puntaje_total ?? 0 }} PTS</span>
-                <form method="POST" action="{{ route('concursante.salir') }}">
-                    @csrf
-                    <button type="submit" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 hover:bg-rose-500/30 text-slate-300 border border-slate-700">
-                        Salir
-                    </button>
-                </form>
+            <div id="info-equipo-header" class="hidden flex items-center gap-2">
+            <div class="text-center bg-[#07101E] px-2.5 py-1 rounded-lg border border-slate-700">
+                <span class="font-orbitron block text-[8px] text-slate-400 uppercase">Torneo</span>
+                <span id="reloj-global-movil" class="font-orbitron text-xs font-bold text-amber-400">--:--</span>
             </div>
+            <div class="text-right bg-[#07101E] px-3 py-1 rounded-lg border border-[#00E5FF]/40">
+                <p id="header-nombre-equipo" class="text-xs font-bold text-white leading-tight"></p>
+                <p id="header-puntaje" class="font-orbitron text-xs text-[#00E5FF] font-bold">0 PTS</p>
+            </div>
+        </div>
         </div>
     </header>
 
@@ -123,10 +121,11 @@
                             + Añadir integrante
                         </button>
                     </div>
+                    <p class="text-[11px] text-slate-400 mb-2">⚠️ Ingresa el <b>Nombre y Apellido real</b> de cada participante (son privados y solo visibles para el jurado/administrador).</p>
                     <div id="lista-integrantes" class="space-y-2">
-                        <input type="text" name="integrantes[]" required placeholder="Nombre del Integrante 1 (Líder) *"
+                        <input type="text" name="integrantes[]" required placeholder="Nombre y Apellido del Capitán (Ej: Valentín Valle) *"
                                class="w-full bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
-                        <input type="text" name="integrantes[]" required placeholder="Nombre del Integrante 2 *"
+                        <input type="text" name="integrantes[]" required placeholder="Nombre y Apellido del Integrante 2 *"
                                class="w-full bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
                     </div>
                 </div>
@@ -261,7 +260,7 @@
                 const div = document.createElement('div');
                 div.className = 'flex gap-2';
                 div.innerHTML = `
-                    <input type="text" name="integrantes[]" required placeholder="Nombre del Integrante ${total + 1}"
+                    <input type="text" name="integrantes[]" required placeholder="Nombre y Apellido del Integrante ${total + 1} *"
                            class="w-full bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
                     <button type="button" onclick="this.parentElement.remove()" class="px-3 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold">✕</button>
                 `;
@@ -288,7 +287,8 @@
 
                 const data = await res.json();
                 if (!res.ok) {
-                    alerta.textContent = data.message || data.error || 'Error al registrar el equipo.';
+                    const primerError = data.errors ? Object.values(data.errors)[0][0] : (data.error || data.message);
+                    alerta.textContent = primerError || 'Error al registrar el equipo.';
                     alerta.classList.remove('hidden');
                     return;
                 }
@@ -370,6 +370,16 @@
             try {
                 const res = await fetch('/api/estado-juego');
                 const data = await res.json();
+                const elRelojMovil = document.getElementById('reloj-global-movil');
+                if (elRelojMovil) {
+                    if (data.segundos_globales !== null && data.segundos_globales !== undefined) {
+                        const m = Math.floor(data.segundos_globales / 60).toString().padStart(2, '0');
+                        const s = Math.floor(data.segundos_globales % 60).toString().padStart(2, '0');
+                        elRelojMovil.textContent = `${m}:${s}`;
+                    } else {
+                        elRelojMovil.textContent = (data.estado_juego || '--').toUpperCase();
+                    }
+                }
                 if (!data.autenticado) return;
 
                 document.getElementById('header-puntos-equipo').textContent = data.equipo.puntaje_total + ' PTS';

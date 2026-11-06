@@ -6,11 +6,9 @@ use App\Http\Controllers\EspectadorController;
 use App\Http\Controllers\AdminController;
 
 Route::get('/', function () {
-    return view('inicio');
+    $historial = \App\Models\HistorialEvento::latest()->take(6)->get();
+    return view('inicio', compact('historial'));
 })->name('inicio');
-Route::post('/api/recuperar-equipo', [ConcursanteController::class, 'recuperarEquipo'])
-    ->middleware('throttle:30,1')
-    ->name('concursante.recuperar');
 
 // ==========================================
 // 1. ROL CONCURSANTE (Optimizado para Wi-Fi compartido en Auditorio)
@@ -58,3 +56,6 @@ Route::post('/admin/simular-avance', [AdminController::class, 'simularAvanceCarr
 Route::post('/admin/pregunta/{id}/editar', [AdminController::class, 'actualizarPregunta'])->name('admin.pregunta.editar');
 Route::post('/admin/pregunta/{id}/eliminar', [AdminController::class, 'eliminarPregunta'])->name('admin.pregunta.eliminar');
 Route::post('/admin/modulo/{id}/eliminar', [AdminController::class, 'eliminarModulo'])->name('admin.modulo.eliminar');
+Route::post('/admin/equipo/{id}/eliminar', [AdminController::class, 'eliminarEquipo'])->name('admin.equipo.eliminar');
+Route::post('/admin/historial/guardar', [AdminController::class, 'guardarHistorialEvento'])->name('admin.historial.guardar');
+Route::post('/admin/historial/{id}/eliminar', [AdminController::class, 'eliminarHistorialEvento'])->name('admin.historial.eliminar');

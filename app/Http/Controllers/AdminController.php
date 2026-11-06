@@ -9,6 +9,7 @@ use App\Models\Nivel;
 use App\Models\Pregunta;
 use App\Models\Equipo;
 use App\Models\RespuestaEquipo;
+use App\Models\HistorialEvento;
 
 class AdminController extends Controller
 {
@@ -33,7 +34,9 @@ class AdminController extends Controller
 
         $equipos = Equipo::with('integrantes')->orderBy('puntaje_total', 'desc')->orderBy('tiempo_acumulado_ms', 'asc')->get();
 
-        return view('admin.index', compact('autorizado', 'config', 'modulos', 'niveles', 'preguntas', 'equipos'));
+        $historial = HistorialEvento::latest()->get();
+
+        return view('admin.index', compact('autorizado', 'config', 'modulos', 'niveles', 'preguntas', 'equipos', 'historial'));
     }
 
     public function login(Request $request)
@@ -51,22 +54,38 @@ class AdminController extends Controller
         return redirect()->route('admin.index');
     }
 
-    // Cambiar estado del juego (registro, en_curso, pausado, finalizado) o módulo activo
+    // Cambiar estado del juego, tiempo global (minutos) o módulo activo
     public function actualizarConfiguracion(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
         $config = ConfiguracionEvento::first();
-        $config->update($request->only([
-            'estado_juego',
-            'modulo_activo_id',
-            'max_integrantes_equipo',
-            'max_equipos_permitidos'
-        ]));
+        $estadoAnterior = $config->estado_juego;
+        $nuevoEstado = $request->estado_juego;
+        $minutosTotales = max(1, (int) ($request->tiempo_total_minutos ?? $config->tiempo_total_minutos));
 
-        return back()->with('ok', 'Configuración del evento actualizada en vivo.');
+        $datosActualizar = [
+            'estado_juego'           => $nuevoEstado,
+            'modulo_activo_id'       => $request->modulo_activo_id,
+            'max_integrantes_equipo' => $request->max_integrantes_equipo,
+            'max_equipos_permitidos' => $request->max_equipos_permitidos,
+            'tiempo_total_minutos'   => $minutosTotales,
+        ];
+
+        // Si el evento pasa a 'en_curso' desde 'registro', arrancamos el reloj global y sorteamos preguntas nuevas
+        if ($nuevoEstado === 'en_curso' && $estadoAnterior === 'registro') {
+            $datosActualizar['fin_evento_at'] = now()->addMinutes($minutosTotales);
+            $datosActualizar['semilla_partida'] = \Illuminate\Support\Str::random(16);
+        } elseif ($nuevoEstado === 'en_curso' && !$config->fin_evento_at) {
+            $datosActualizar['fin_evento_at'] = now()->addMinutes($minutosTotales);
+        } elseif ($nuevoEstado === 'registro') {
+            $datosActualizar['fin_evento_at'] = null;
+        }
+
+        $config->update($datosActualizar);
+
+        return back()->with('ok', 'Configuración y tiempos del evento actualizados en vivo.');
     }
-
     // Modificar cantidad de preguntas, puntos o tiempo de cualquier Etapa/Nivel (Escalabilidad)
     public function actualizarNivel(Request $request, $id)
     {
@@ -139,7 +158,7 @@ class AdminController extends Controller
         return back()->with('ok', '¡Muerte Súbita activada para los equipos seleccionados!');
     }
 
-    // Reiniciar puntajes o limpiar equipos para una nueva partida
+   // Reiniciar puntajes y sortear un nuevo grupo aleatorio de preguntas para la siguiente partida
     public function reiniciarJuego(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
@@ -159,44 +178,71 @@ class AdminController extends Controller
             ]);
         }
 
-        ConfiguracionEvento::first()->update(['estado_juego' => 'registro']);
-        return back()->with('ok', 'Sistema reiniciado y listo para empezar.');
+        ConfiguracionEvento::first()->update([
+            'estado_juego'    => 'registro',
+            'fin_evento_at'   => null,
+            // Nueva semilla aleatoria para que en la nueva partida salgan 5 preguntas distintas del banco
+            'semilla_partida' => \Illuminate\Support\Str::random(16),
+        ]);
+
+        return back()->with('ok', 'Sistema reiniciado y nuevas preguntas aleatorias sorteadas.');
     }
-    // Generar equipos de prueba para ver la carrera llena
+    // Generar equipos de prueba con nombres reales para ensayar el flujo completo
     public function generarEquiposPrueba(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
-        $nombresBots = ['CyberTitans UEB', 'Linuxeros Guaranda', 'NullPointers', 'Quantum Coders', 'RedHat Squad'];
-        $colores = ['#10B981', '#F59E0B', '#A855F7', '#EC4899', '#38BDF8'];
+        $equiposDemo = [
+            ['nombre' => 'CyberTitans UEB',    'color' => '#10B981', 'miembros' => ['Mateo Silva', 'Camila Paredes']],
+            ['nombre' => 'Linuxeros Guaranda', 'color' => '#00E5FF', 'miembros' => ['Andrés Gavilánez', 'Sofía Lara']],
+            ['nombre' => 'NullPointers',       'color' => '#A855F7', 'miembros' => ['Diego Velasco', 'Valeria Ortiz']],
+            ['nombre' => 'Quantum Coders',     'color' => '#F59E0B', 'miembros' => ['Sebastián Mora', 'Daniela Paz']],
+            ['nombre' => 'RedHat Squad',       'color' => '#EC4899', 'miembros' => ['Alejandro Cruz', 'Fernanda Ríos']],
+        ];
 
-        foreach ($nombresBots as $i => $nombre) {
-            if (!Equipo::where('nombre_equipo', $nombre)->exists()) {
+        foreach ($equiposDemo as $item) {
+            if (!Equipo::where('nombre_equipo', $item['nombre'])->exists()) {
                 $eq = Equipo::create([
-                    'nombre_equipo' => $nombre,
-                    'token_sesion'  => \Illuminate\Support\Str::random(60),
-                    'color_carril'  => $colores[$i % count($colores)],
-                    'fase_actual'   => 1,
+                    'nombre_equipo'    => $item['nombre'],
+                    'token_sesion'     => \Illuminate\Support\Str::random(60),
+                    'pin_recuperacion' => str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT),
+                    'color_carril'     => $item['color'],
+                    'fase_actual'      => 1,
                 ]);
-                \App\Models\Integrante::create([
-                    'equipo_id'       => $eq->id,
-                    'nombre_completo' => 'Bot Capitán ' . ($i + 1),
-                ]);
+                foreach ($item['miembros'] as $nombreReal) {
+                    \App\Models\Integrante::create([
+                        'equipo_id'       => $eq->id,
+                        'nombre_completo' => $nombreReal,
+                    ]);
+                }
             }
         }
 
-        return back()->with('ok', '¡Equipos de prueba agregados a la pista! Ábrelos en /espectador.');
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
+        return back()->with('ok', '¡5 equipos de prueba con integrantes registrados en la línea de salida!');
     }
 
-    // Simular que todos los equipos avanzan 1 pregunta (para probar la carrera en vivo)
+    // Simular que todos los equipos avanzan 1 pregunta en vivo
     public function simularAvanceCarrera(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
+        $config = ConfiguracionEvento::first();
+        if ($config->estado_juego === 'registro') {
+            $config->update([
+                'estado_juego'  => 'en_curso',
+                'fin_evento_at' => now()->addMinutes($config->tiempo_total_minutos ?? 15),
+            ]);
+        }
+
         $niveles = Nivel::where('es_desempate', false)->orderBy('orden_dificultad', 'asc')->get();
         $equipos = Equipo::all();
+        $algunoAvanzo = false;
 
         foreach ($equipos as $equipo) {
+            $respondioTurno = false;
             foreach ($niveles as $nivel) {
                 $contestadas = RespuestaEquipo::where('equipo_id', $equipo->id)->where('nivel_id', $nivel->id)->count();
                 if ($contestadas < $nivel->cantidad_preguntas) {
@@ -204,8 +250,8 @@ class AdminController extends Controller
                     $pregunta = Pregunta::where('nivel_id', $nivel->id)->whereNotIn('id', $respondidasIds)->first();
 
                     if ($pregunta) {
-                        $acierta = (rand(1, 100) <= 70); // 70% probabilidad de acertar
-                        $tiempoMs = rand(2500, 14000);
+                        $acierta = (rand(1, 100) <= 72);
+                        $tiempoMs = rand(2200, 13500);
                         $puntos = $acierta ? $nivel->puntos_por_acierto : 0;
 
                         RespuestaEquipo::create([
@@ -226,13 +272,32 @@ class AdminController extends Controller
                             $equipo->increment('aciertos_totales');
                             $equipo->increment('puntaje_total', $puntos);
                         }
+                        $algunoAvanzo = true;
+                        $respondioTurno = true;
                     }
                     break;
                 }
             }
+
+            if (!$respondioTurno && !$equipo->finalizo_carrera) {
+                $equipo->update(['finalizo_carrera' => true]);
+            }
         }
 
-        return back()->with('ok', '¡Avance simulado! Mira cómo se movieron los robots en /espectador.');
+        // Si todos terminaron todas las preguntas en la simulación, pasamos a 'finalizado' para mostrar el Podio
+        if (!$algunoAvanzo && $equipos->count() > 0) {
+            $config->update(['estado_juego' => 'finalizado']);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'ok'            => true,
+                'alguno_avanzo' => $algunoAvanzo,
+                'estado_juego'  => $config->fresh()->estado_juego,
+            ]);
+        }
+
+        return back()->with('ok', '¡Avance simulado en vivo! Revisa la pantalla de Espectador.');
     }
     // Editar cualquier pregunta existente en vivo
     public function actualizarPregunta(Request $request, $id)
@@ -268,5 +333,60 @@ class AdminController extends Controller
 
         Modulo::findOrFail($id)->delete();
         return back()->with('ok', 'Módulo eliminado.');
+    }
+    // Eliminar un equipo específico desde el panel de administración
+    public function eliminarEquipo(Request $request, $id)
+    {
+        if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        Equipo::findOrFail($id)->delete();
+        return back()->with('ok', 'Equipo eliminado correctamente.');
+    }
+    // Guardar los resultados actuales en el Salón de la Fama / Historial de Eventos
+    public function guardarHistorialEvento(Request $request)
+    {
+        if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        $config = ConfiguracionEvento::with('moduloActivo')->first();
+        $equipos = Equipo::with('integrantes')
+            ->orderBy('puntaje_total', 'desc')
+            ->orderBy('aciertos_totales', 'desc')
+            ->orderBy('tiempo_acumulado_ms', 'asc')
+            ->get();
+
+    if ($equipos->isEmpty()) {
+        return back()->with('ok', 'No hay equipos registrados para guardar en el historial.');
+    }
+
+    $nombreEdicion = trim($request->nombre_edicion ?: ($config->nombre_evento . ' - ' . now()->format('d/m/Y H:i')));
+
+    $resultados = $equipos->values()->map(function ($eq, $idx) {
+        return [
+            'posicion'        => $idx + 1,
+            'nombre_equipo'   => $eq->nombre_equipo,
+            'puntaje_total'   => $eq->puntaje_total,
+            'aciertos_totales'=> $eq->aciertos_totales,
+            'tiempo_segundos' => round($eq->tiempo_acumulado_ms / 1000, 2),
+            // Se guarda para el Admin, pero en la vista pública solo se muestra el nombre del equipo
+            'integrantes'     => $eq->integrantes->pluck('nombre_completo')->toArray(),
+          ];
+        })->toArray();
+
+        HistorialEvento::create([
+            'nombre_edicion'       => $nombreEdicion,
+            'modulo_jugado'        => $config->moduloActivo->nombre ?? 'General Tech',
+            'total_equipos'        => count($resultados),
+            'podio_top3'           => array_slice($resultados, 0, 3),
+            'resultados_completos' => $resultados,
+        ]);
+
+        return back()->with('ok', '¡Resultados archivados para siempre en el Historial de Eventos!');
+    }
+
+    public function eliminarHistorialEvento(Request $request, $id)
+    {   
+        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        HistorialEvento::findOrFail($id)->delete();
+        return back()->with('ok', 'Registro eliminado del historial.');
     }
 }

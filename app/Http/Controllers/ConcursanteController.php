@@ -23,7 +23,7 @@ class ConcursanteController extends Controller
         return view('concursante.index', compact('config', 'equipo'));
     }
 
-    // Registro blindado de equipo (Nombre único + mín 2 y máx 5 integrantes)
+    // Registro blindado: Nombre de equipo único + Nombres y Apellidos reales irrepetibles
     public function registrarEquipo(Request $request)
     {
         $config = ConfiguracionEvento::first();
@@ -36,39 +36,63 @@ class ConcursanteController extends Controller
             return response()->json(['error' => 'Se alcanzó el límite máximo de equipos permitidos.'], 403);
         }
 
-        // Filtramos casillas vacías directamente dentro del request
+        // Limpiamos espacios dobles y casillas vacías
+        $integrantesLimpios = array_values(array_filter(array_map(function ($val) {
+            return preg_replace('/\s+/', ' ', strip_tags(trim((string) $val)));
+        }, (array) $request->input('integrantes', [])), fn($v) => $v !== ''));
+
         $request->merge([
-            'integrantes' => array_values(array_filter((array) $request->input('integrantes', []), function ($valor) {
-                return trim((string) $valor) !== '';
-            }))
+            'nombre_equipo' => preg_replace('/\s+/', ' ', strip_tags(trim((string) $request->nombre_equipo))),
+            'integrantes'   => $integrantesLimpios,
         ]);
 
         $request->validate([
-            'nombre_equipo' => 'required|string|max:40|unique:equipos,nombre_equipo',
+            'nombre_equipo' => 'required|string|min:2|max:40|unique:equipos,nombre_equipo',
             'integrantes'   => 'required|array|min:2|max:' . $config->max_integrantes_equipo,
-            'integrantes.*' => 'required|string|max:60',
+            // Exige mínimo Nombre y Apellido (al menos dos palabras con letras)
+            'integrantes.*' => ['required', 'string', 'min:5', 'max:60', 'regex:/^\S+\s+\S+.*$/u'],
         ], [
-            'nombre_equipo.unique' => '¡Ese nombre de equipo ya está registrado! Elige otro.',
-            'integrantes.min'      => 'El equipo debe tener como mínimo 2 integrantes para participar.',
+            'nombre_equipo.unique' => '¡Ese nombre de equipo ya está en uso! Elige otro.',
+            'integrantes.min'      => 'El equipo debe tener como mínimo 2 integrantes.',
             'integrantes.max'      => 'El máximo permitido es de ' . $config->max_integrantes_equipo . ' integrantes.',
+            'integrantes.*.regex'  => 'Ingresa el Nombre y Apellido real de cada integrante (mínimo nombre y un apellido).',
+            'integrantes.*.min'    => 'Cada integrante debe registrar su nombre y apellido real.',
         ]);
+
+        // 1. Verificar que no hayan escrito dos veces a la misma persona dentro del mismo equipo
+        $normalizados = array_map(fn($n) => mb_strtolower($n, 'UTF-8'), $integrantesLimpios);
+        if (count($normalizados) !== count(array_unique($normalizados))) {
+            return response()->json([
+                'error' => 'No puedes repetir el mismo nombre de integrante dentro de tu equipo.'
+            ], 422);
+        }
+
+        // 2. Verificar que ningún integrante esté ya inscrito en otro equipo diferente
+        foreach ($integrantesLimpios as $nombreReal) {
+            $yaExiste = Integrante::whereRaw('LOWER(nombre_completo) = ?', [mb_strtolower($nombreReal, 'UTF-8')])->first();
+            if ($yaExiste) {
+                return response()->json([
+                    'error' => 'El participante "' . $nombreReal . '" ya se encuentra registrado en otro equipo.'
+                ], 422);
+            }
+        }
 
         $coloresPista = ['#00E5FF', '#10B981', '#F59E0B', '#38BDF8', '#A855F7', '#EC4899', '#22D3EE'];
         $token = Str::random(60);
-
         $pin = str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
 
         $equipo = Equipo::create([
-            'nombre_equipo'    => strip_tags(trim($request->nombre_equipo)),
+            'nombre_equipo'    => $request->nombre_equipo,
             'token_sesion'     => $token,
             'pin_recuperacion' => $pin,
             'color_carril'     => $coloresPista[Equipo::count() % count($coloresPista)],
             'fase_actual'      => 1,
         ]);
-        foreach ($request->integrantes as $nombre) {
+
+        foreach ($integrantesLimpios as $nombreReal) {
             Integrante::create([
                 'equipo_id'       => $equipo->id,
-                'nombre_completo' => strip_tags(trim($nombre)),
+                'nombre_completo' => ucwords(mb_strtolower($nombreReal, 'UTF-8')),
             ]);
         }
 
@@ -79,8 +103,7 @@ class ConcursanteController extends Controller
             'equipo'  => $equipo->load('integrantes')
         ]);
     }
-
-    // Obtener el estado actual y la siguiente pregunta (SIN respuesta correcta)
+// Obtener el estado actual y la siguiente pregunta (SIN respuesta correcta)
     public function obtenerEstadoYPregunta(Request $request)
     {
         $token = $request->session()->get('equipo_token');
@@ -92,13 +115,19 @@ class ConcursanteController extends Controller
 
         $config = ConfiguracionEvento::first();
 
-        // Si el evento está en espera o pausado
+        // Verificar si se agotó el tiempo global de toda la trivia
+        if ($config->estado_juego === 'en_curso' && $config->fin_evento_at && now()->greaterThanOrEqualTo($config->fin_evento_at)) {
+            $config->update(['estado_juego' => 'finalizado']);
+        }
+
+        // Si el evento está en espera, pausado o finalizado
         if (in_array($config->estado_juego, ['registro', 'pausado', 'finalizado'])) {
             return response()->json([
-                'autenticado'  => true,
-                'estado_juego' => $config->estado_juego,
-                'equipo'       => $equipo,
-                'pregunta'     => null,
+                'autenticado'               => true,
+                'estado_juego'              => $config->estado_juego,
+                'segundos_globales'         => $config->segundos_globales_restantes,
+                'equipo'                    => $equipo,
+                'pregunta'                  => null,
             ]);
         }
 
@@ -106,17 +135,31 @@ class ConcursanteController extends Controller
         if ($config->estado_juego === 'desempate') {
             if (!$equipo->en_desempate) {
                 return response()->json([
-                    'autenticado'  => true,
-                    'estado_juego' => 'esperando_desempate',
-                    'equipo'       => $equipo,
+                    'autenticado'       => true,
+                    'estado_juego'      => 'esperando_desempate',
+                    'segundos_globales' => null,
+                    'equipo'            => $equipo,
                 ]);
             }
 
             $nivelDesempate = Nivel::where('es_desempate', true)->first();
-            return $this->entregarPreguntaDeNivel($equipo, $nivelDesempate, $config);
+            $contestadasDesempate = RespuestaEquipo::where('equipo_id', $equipo->id)
+                ->where('nivel_id', $nivelDesempate->id)
+                ->count();
+
+            if ($contestadasDesempate >= $nivelDesempate->cantidad_preguntas) {
+                return response()->json([
+                    'autenticado'  => true,
+                    'estado_juego' => 'carrera_completada',
+                    'equipo'       => $equipo,
+                ]);
+            }
+
+            return $this->entregarPreguntaDeNivel($equipo, $nivelDesempate, $config, $contestadasDesempate + 1);
         }
 
         // MODO CARRERA NORMAL: Recorremos los niveles en orden de dificultad (1 -> 2 -> 3)
+        // Cada fase toma su límite configurado (por defecto 5 preguntas de las 100 disponibles)
         $niveles = Nivel::where('es_desempate', false)->orderBy('orden_dificultad', 'asc')->get();
 
         foreach ($niveles as $nivel) {
@@ -125,7 +168,6 @@ class ConcursanteController extends Controller
                 ->count();
 
             if ($contestadasEnNivel < $nivel->cantidad_preguntas) {
-                // Actualizamos la etapa actual en la que corre el equipo
                 if ($equipo->fase_actual !== $nivel->orden_dificultad) {
                     $equipo->update(['fase_actual' => $nivel->orden_dificultad]);
                 }
@@ -134,15 +176,15 @@ class ConcursanteController extends Controller
             }
         }
 
-        // Si ya completó todas las etapas de la carrera
         if (!$equipo->finalizo_carrera) {
             $equipo->update(['finalizo_carrera' => true]);
         }
 
         return response()->json([
-            'autenticado'  => true,
-            'estado_juego' => 'carrera_completada',
-            'equipo'       => $equipo,
+            'autenticado'       => true,
+            'estado_juego'      => 'carrera_completada',
+            'segundos_globales' => $config->segundos_globales_restantes,
+            'equipo'            => $equipo,
         ]);
     }
 
@@ -160,24 +202,29 @@ class ConcursanteController extends Controller
             $query->where('modulo_id', $config->modulo_activo_id);
         }
 
-        // Orden determinista por equipo para que si refresca la página vea la misma pregunta actual
-        $pregunta = $query->orderByRaw('CRC32(CONCAT(id, ?))', [$equipo->id])->first();
+        // SELECCIÓN ALEATORIA COMPARTIDA:
+        // Usa 'semilla_partida' para escoger al azar dentro del banco de 50-100 preguntas,
+        // pero garantizando que TODOS los equipos reciban exactamente las mismas preguntas en esa partida.
+        $semilla = $config->semilla_partida ?? 'seventech2026';
+        $pregunta = $query->orderByRaw('CRC32(CONCAT(id, ?))', [$semilla])->first();
 
         if (!$pregunta) {
             return response()->json([
-                'autenticado'  => true,
-                'estado_juego' => 'carrera_completada',
-                'equipo'       => $equipo,
+                'autenticado'       => true,
+                'estado_juego'      => 'carrera_completada',
+                'segundos_globales' => $config->segundos_globales_restantes,
+                'equipo'            => $equipo,
             ]);
         }
 
         return response()->json([
-            'autenticado'  => true,
-            'estado_juego' => $config->estado_juego,
-            'equipo'       => $equipo,
-            'nivel'        => $nivel,
-            'progreso_fase'=> $numeroPreguntaNivel . ' / ' . $nivel->cantidad_preguntas,
-            'pregunta'     => $pregunta, // Recuerda: el modelo Pregunta oculta 'respuesta_correcta'
+            'autenticado'       => true,
+            'estado_juego'      => $config->estado_juego,
+            'segundos_globales' => $config->segundos_globales_restantes,
+            'equipo'            => $equipo,
+            'nivel'             => $nivel,
+            'progreso_fase'     => $numeroPreguntaNivel . ' / ' . $nivel->cantidad_preguntas,
+            'pregunta'          => $pregunta,
         ]);
     }
 
