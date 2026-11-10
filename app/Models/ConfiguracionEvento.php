@@ -12,6 +12,7 @@ class ConfiguracionEvento extends Model
 
     protected $casts = [
         'fin_evento_at' => 'datetime',
+        'pausado_at'    => 'datetime',
     ];
 
     protected $appends = ['segundos_globales_restantes'];

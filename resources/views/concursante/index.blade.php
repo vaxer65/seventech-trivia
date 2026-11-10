@@ -29,6 +29,11 @@
         </button>
     </div>
 
+    <!-- BANNER DE ESTADO DE CONEXIÓN (U5) -->
+    <div id="banner-sin-conexion" class="hidden fixed top-0 inset-x-0 z-40 bg-rose-600/95 text-white font-orbitron text-xs font-bold text-center py-2.5 px-4 shadow-lg">
+        📡 SIN CONEXIÓN AL SERVIDOR • RECONECTANDO AUTOMÁTICAMENTE...
+    </div>
+
     <!-- CABECERA DEL CONCURSANTE -->
     <header class="w-full max-w-lg mx-auto neon-border rounded-2xl p-3.5 flex items-center justify-between bg-[#0F2342]/90">
         <a href="/" title="Volver al Portal Principal" class="flex items-center gap-3 hover:opacity-90 transition">
@@ -63,11 +68,11 @@
         <section id="vista-registro" class="hidden neon-border rounded-2xl p-5 bg-[#0F2342]/90 space-y-4">
             <div class="grid grid-cols-2 gap-2 bg-[#07101E] p-1 rounded-xl border border-slate-800">
                 <button type="button" id="tab-nuevo" onclick="cambiarTab('nuevo')"
-                        class="py-2 rounded-lg font-orbitron text-xs font-bold bg-[#00E5FF] text-[#07101E] transition">
+                        class="py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-[#00E5FF] text-[#07101E] transition">
                     🚀 NUEVO EQUIPO
                 </button>
                 <button type="button" id="tab-pin" onclick="cambiarTab('pin')"
-                        class="py-2 rounded-lg font-orbitron text-xs font-bold text-slate-400 hover:text-white transition">
+                        class="py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition">
                     🔑 USAR PIN
                 </button>
             </div>
@@ -121,8 +126,8 @@
                     <input type="text" name="pin_recuperacion" required maxlength="4" placeholder="Ej: 4829"
                            class="w-full mt-1 bg-[#07101E] border border-amber-400/60 rounded-xl px-3.5 py-2.5 font-orbitron text-lg tracking-widest text-amber-300 text-center outline-none">
                 </div>
-                <button type="submit"
-                        class="w-full py-3.5 rounded-xl bg-amber-400 text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider">
+                <button type="submit" id="btn-recuperar"
+                        class="w-full py-3.5 rounded-xl bg-amber-400 text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider disabled:opacity-50">
                     🔄 RECUPERAR MI CARRERA
                 </button>
             </form>
@@ -151,10 +156,10 @@
 
             <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
                 <button type="button" onclick="cerrarSesionEquipo()"
-                        class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-orbitron text-[11px] border border-slate-700 transition">
+                        class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-orbitron text-xs border border-slate-700 transition">
                     🔄 Cambiar de Equipo / Ir al Registro
                 </button>
-                <a href="/" class="px-4 py-2 rounded-xl bg-[#07101E] hover:border-[#00E5FF] text-[#00E5FF] font-orbitron text-[11px] border border-slate-800 transition">
+                <a href="/" class="px-4 py-3 rounded-xl bg-[#07101E] hover:border-[#00E5FF] text-[#00E5FF] font-orbitron text-xs border border-slate-800 transition">
                     🏠 Portal Principal
                 </a>
             </div>
@@ -277,11 +282,11 @@
             document.getElementById('form-registro').classList.toggle('hidden', !esNuevo);
             document.getElementById('form-recuperar').classList.toggle('hidden', esNuevo);
             document.getElementById('tab-nuevo').className = esNuevo
-                ? 'py-2 rounded-lg font-orbitron text-xs font-bold bg-[#00E5FF] text-[#07101E] transition'
-                : 'py-2 rounded-lg font-orbitron text-xs font-bold text-slate-400 hover:text-white transition';
+                ? 'py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-[#00E5FF] text-[#07101E] transition'
+                : 'py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition';
             document.getElementById('tab-pin').className = !esNuevo
-                ? 'py-2 rounded-lg font-orbitron text-xs font-bold bg-amber-400 text-[#07101E] transition'
-                : 'py-2 rounded-lg font-orbitron text-xs font-bold text-slate-400 hover:text-white transition';
+                ? 'py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-amber-400 text-[#07101E] transition'
+                : 'py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition';
             document.getElementById('alerta-error').classList.add('hidden');
         }
 
@@ -302,6 +307,10 @@
 
         document.getElementById('form-registro').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = document.getElementById('btn-registrar');
+            if (btn.disabled) return;
+            btn.disabled = true;
+
             const alerta = document.getElementById('alerta-error');
             alerta.classList.add('hidden');
 
@@ -328,11 +337,17 @@
             } catch (err) {
                 alerta.textContent = 'Error de conexión. Intenta nuevamente.';
                 alerta.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
             }
         });
 
         document.getElementById('form-recuperar').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = document.getElementById('btn-recuperar');
+            if (btn && btn.disabled) return;
+            if (btn) btn.disabled = true;
+
             const alerta = document.getElementById('alerta-error');
             alerta.classList.add('hidden');
 
@@ -356,14 +371,53 @@
             } catch (err) {
                 alerta.textContent = 'Error al conectar con el servidor.';
                 alerta.classList.remove('hidden');
+            } finally {
+                if (btn) btn.disabled = false;
             }
         });
 
+        let fallosConexionMovil = 0;
+        let syncTimerMovil = null;
+        let sincronizandoMovil = false;
+
+        function actualizarEstadoConexionMovil(conectado) {
+            const banner = document.getElementById('banner-sin-conexion');
+            if (banner) banner.classList.toggle('hidden', conectado);
+            if (!enviandoRespuesta) {
+                document.querySelectorAll('.btn-opcion').forEach(b => b.disabled = !conectado);
+            }
+        }
+
+        window.addEventListener('offline', () => actualizarEstadoConexionMovil(false));
+        window.addEventListener('online', () => {
+            fallosConexionMovil = 0;
+            actualizarEstadoConexionMovil(true);
+            sincronizarJuego();
+        });
+
         async function sincronizarJuego() {
-            if (enviandoRespuesta) return;
+            if (enviandoRespuesta || sincronizandoMovil) return;
+            sincronizandoMovil = true;
+            if (syncTimerMovil) clearTimeout(syncTimerMovil);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
 
             try {
-                const res = await fetch('/api/estado-juego');
+                const res = await fetch('/api/estado-juego', {
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (res.status === 419) { location.reload(); return; }
+                // 429 / 5xx: conservar la vista actual y reintentar en el siguiente ciclo
+                if (!res.ok) {
+                    fallosConexionMovil++;
+                    if (fallosConexionMovil >= 2) actualizarEstadoConexionMovil(false);
+                    return;
+                }
+                fallosConexionMovil = 0;
+                actualizarEstadoConexionMovil(true);
                 const data = await res.json();
 
                 if (!data.autenticado || !data.equipo) {
@@ -434,7 +488,16 @@
                     }
                 }
             } catch (e) {
+                clearTimeout(timeoutId);
+                fallosConexionMovil++;
+                if (fallosConexionMovil >= 2 || !navigator.onLine) {
+                    actualizarEstadoConexionMovil(false);
+                }
                 console.error('Error sincronizando estado:', e);
+            } finally {
+                sincronizandoMovil = false;
+                const delay = fallosConexionMovil > 0 ? Math.min(8000, 2000 * (fallosConexionMovil + 1)) : 2000;
+                syncTimerMovil = setTimeout(sincronizarJuego, delay);
             }
         }
 
@@ -455,16 +518,25 @@
                 { letra: 'd', texto: pregunta.opcion_d },
             ];
 
+            // Se construye con textContent: opciones como "<div>" se muestran literales y no se interpretan como HTML
             const contenedor = document.getElementById('contenedor-opciones');
-            contenedor.innerHTML = opciones.map(op => `
-                <button type="button" onclick="enviarRespuesta('${op.letra}', this)"
-                        class="btn-opcion w-full text-left p-3.5 rounded-xl bg-[#07101E] hover:bg-[#00E5FF]/15 border border-slate-700 hover:border-[#00E5FF] transition flex items-center gap-3">
-                    <span class="font-orbitron text-xs font-bold w-7 h-7 rounded-lg bg-[#0F2342] border border-[#00E5FF]/50 text-[#00E5FF] flex items-center justify-center uppercase shrink-0">
-                        ${op.letra}
-                    </span>
-                    <span class="text-sm sm:text-base font-semibold text-white">${op.texto}</span>
-                </button>
-            `).join('');
+            contenedor.replaceChildren(...opciones.map(op => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn-opcion w-full text-left p-3.5 rounded-xl bg-[#07101E] hover:bg-[#00E5FF]/15 border border-slate-700 hover:border-[#00E5FF] transition flex items-center gap-3';
+                btn.addEventListener('click', () => enviarRespuesta(op.letra, btn));
+
+                const letra = document.createElement('span');
+                letra.className = 'font-orbitron text-xs font-bold w-7 h-7 rounded-lg bg-[#0F2342] border border-[#00E5FF]/50 text-[#00E5FF] flex items-center justify-center uppercase shrink-0';
+                letra.textContent = op.letra;
+
+                const texto = document.createElement('span');
+                texto.className = 'text-sm sm:text-base font-semibold text-white';
+                texto.textContent = op.texto;
+
+                btn.append(letra, texto);
+                return btn;
+            }));
 
             iniciarCronometroPregunta(tiempoLimiteActual);
         }
@@ -496,7 +568,6 @@
             enviandoRespuesta = true;
             clearInterval(timerInterval);
 
-            const tiempoMs = Math.max(150, Date.now() - inicioPreguntaTimestamp);
             document.querySelectorAll('.btn-opcion').forEach(b => b.disabled = true);
             if (btnElemento) {
                 btnElemento.classList.add('border-[#00E5FF]', 'bg-[#00E5FF]/20');
@@ -506,22 +577,45 @@
                 const res = await fetch('/api/enviar-respuesta', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    // El tiempo lo mide el servidor desde la entrega de la pregunta
                     body: JSON.stringify({
                         pregunta_id: preguntaActualId,
-                        opcion_elegida: letraElegida === 'tiempo_agotado' ? null : letraElegida,
-                        tiempo_respuesta_ms: tiempoMs
+                        opcion_elegida: letraElegida === 'tiempo_agotado' ? null : letraElegida
                     })
                 });
-                const resultado = await res.json();
 
                 const fb = document.getElementById('feedback-respuesta');
                 fb.classList.remove('hidden');
-                if (resultado.es_correcta) {
+
+                // Sesión/CSRF vencidos: recargar (la sesión del equipo se recupera con el PIN si hiciera falta)
+                if (res.status === 419) {
+                    mostrarAvisoNeutral(fb, '🔄 SESIÓN EXPIRADA • RECARGANDO...');
+                    setTimeout(() => location.reload(), 1200);
+                    return;
+                }
+
+                // 409 (pregunta no vigente / ronda inactiva), 429 o 5xx: NUNCA mostrar "incorrecta"
+                if (!res.ok) {
+                    mostrarAvisoNeutral(fb, res.status === 429
+                        ? '⏳ DEMASIADAS SOLICITUDES • REINTENTANDO...'
+                        : '⚠️ SINCRONIZANDO CON EL SERVIDOR...');
+                    setTimeout(() => {
+                        preguntaActualId = null; // fuerza re-render de la pregunta vigente
+                        enviandoRespuesta = false;
+                        sincronizarJuego();
+                    }, 1500);
+                    return;
+                }
+
+                const resultado = await res.json();
+                if (resultado.duplicada) {
+                    mostrarAvisoNeutral(fb, '✔️ RESPUESTA YA REGISTRADA • AVANZANDO...');
+                } else if (resultado.es_correcta) {
                     fb.className = 'p-3 rounded-xl text-center font-orbitron text-xs font-bold bg-emerald-500/20 border border-emerald-400 text-emerald-300';
                     fb.textContent = `✅ ¡CORRECTO! +${resultado.puntos_sumados} PUNTOS`;
                 } else {
                     fb.className = 'p-3 rounded-xl text-center font-orbitron text-xs font-bold bg-rose-500/20 border border-rose-500 text-rose-300';
-                    fb.textContent = letraElegida === 'tiempo_agotado'
+                    fb.textContent = (letraElegida === 'tiempo_agotado' || resultado.fuera_de_tiempo)
                         ? '⏰ ¡TIEMPO AGOTADO! AVANZANDO A LA SIGUIENTE...'
                         : '❌ RESPUESTA INCORRECTA • AVANZANDO...';
                 }
@@ -532,9 +626,21 @@
                     sincronizarJuego();
                 }, 900);
             } catch (e) {
-                enviandoRespuesta = false;
-                sincronizarJuego();
+                // Error de red: no se sabe si llegó; se resincroniza (si llegó, el servidor responde "ya registrada")
+                const fb = document.getElementById('feedback-respuesta');
+                fb.classList.remove('hidden');
+                mostrarAvisoNeutral(fb, '📡 SIN CONEXIÓN • REINTENTANDO...');
+                setTimeout(() => {
+                    preguntaActualId = null;
+                    enviandoRespuesta = false;
+                    sincronizarJuego();
+                }, 2000);
             }
+        }
+
+        function mostrarAvisoNeutral(fb, texto) {
+            fb.className = 'p-3 rounded-xl text-center font-orbitron text-xs font-bold bg-amber-500/20 border border-amber-400 text-amber-200';
+            fb.textContent = texto;
         }
 
         document.addEventListener('visibilitychange', () => {
@@ -548,7 +654,6 @@
         }
 
         sincronizarJuego();
-        setInterval(sincronizarJuego, 2000);
     </script>
 </body>
 </html>

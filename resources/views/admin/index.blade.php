@@ -462,7 +462,8 @@
             @endif
         </section>
 
-        <!-- 6. MODO ENSAYO / SIMULADOR AUTOMÁTICO DE FLUJO COMPLETO -->
+        <!-- 6. MODO ENSAYO / SIMULADOR AUTOMÁTICO DE FLUJO COMPLETO (solo entorno local) -->
+        @if(app()->isLocal())
         <section class="max-w-7xl mx-auto mt-6 mb-10">
             <details class="card rounded-2xl p-4 border border-dashed border-slate-700 group">
                 <summary class="cursor-pointer flex flex-wrap items-center justify-between gap-2 list-none">
@@ -572,6 +573,7 @@
                 </script>
             </details>
         </section>
+        @endif
     @endif
 
 </body>

@@ -9,12 +9,13 @@ use App\Models\Nivel;
 use App\Models\Pregunta;
 use App\Models\Equipo;
 use App\Models\RespuestaEquipo;
+use App\Models\Entrega;
 use App\Models\HistorialEvento;
+use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
-    // Clave maestra de acceso rápido para el panel Admin (además de sesión)
-    private string $claveAdmin = 'seventech2026';
+    // La clave de admin se valida contra el hash de ADMIN_PASSWORD_HASH (config/app.php); nunca en el código
 
     public function index(Request $request)
     {
@@ -41,7 +42,10 @@ class AdminController extends Controller
 
     public function login(Request $request)
     {
-        if ($request->password === $this->claveAdmin) {
+        $hash = (string) config('app.admin_password_hash');
+
+        if ($hash !== '' && Hash::check((string) $request->input('password'), $hash)) {
+            $request->session()->regenerate();
             $request->session()->put('es_admin_seventech', true);
             return redirect()->route('admin.index');
         }
@@ -60,26 +64,45 @@ class AdminController extends Controller
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
         $config = ConfiguracionEvento::first();
+
+        $validated = $request->validate([
+            'estado_juego'           => 'required|in:registro,en_curso,pausado,desempate,finalizado',
+            'modulo_activo_id'       => 'nullable|exists:modulos,id',
+            'max_integrantes_equipo' => 'required|integer|between:2,10',
+            'max_equipos_permitidos' => 'required|integer|between:1,200',
+            'tiempo_total_minutos'   => 'nullable|integer|between:1,180',
+        ]);
+
         $estadoAnterior = $config->estado_juego;
-        $nuevoEstado = $request->estado_juego;
-        $minutosTotales = max(1, (int) ($request->tiempo_total_minutos ?? $config->tiempo_total_minutos));
+        $nuevoEstado = $validated['estado_juego'];
+        $minutosTotales = (int) ($validated['tiempo_total_minutos'] ?? $config->tiempo_total_minutos ?? 15);
 
         $datosActualizar = [
             'estado_juego'           => $nuevoEstado,
-            'modulo_activo_id'       => $request->modulo_activo_id,
-            'max_integrantes_equipo' => $request->max_integrantes_equipo,
-            'max_equipos_permitidos' => $request->max_equipos_permitidos,
+            'modulo_activo_id'       => $validated['modulo_activo_id'] ?? null,
+            'max_integrantes_equipo' => (int) $validated['max_integrantes_equipo'],
+            'max_equipos_permitidos' => (int) $validated['max_equipos_permitidos'],
             'tiempo_total_minutos'   => $minutosTotales,
         ];
 
         // Si el evento pasa a 'en_curso' desde 'registro', arrancamos el reloj global y sorteamos preguntas nuevas
         if ($nuevoEstado === 'en_curso' && $estadoAnterior === 'registro') {
             $datosActualizar['fin_evento_at'] = now()->addMinutes($minutosTotales);
+            $datosActualizar['pausado_at'] = null;
             $datosActualizar['semilla_partida'] = \Illuminate\Support\Str::random(16);
+        } elseif ($nuevoEstado === 'en_curso' && $estadoAnterior === 'pausado' && $config->fin_evento_at && $config->pausado_at) {
+            // S3: Al reanudar desde pausa, compensamos los segundos que estuvo pausado
+            $segundosEnPausa = max(0, (int) $config->pausado_at->diffInSeconds(now(), false));
+            $datosActualizar['fin_evento_at'] = $config->fin_evento_at->copy()->addSeconds($segundosEnPausa);
+            $datosActualizar['pausado_at'] = null;
         } elseif ($nuevoEstado === 'en_curso' && !$config->fin_evento_at) {
             $datosActualizar['fin_evento_at'] = now()->addMinutes($minutosTotales);
+            $datosActualizar['pausado_at'] = null;
+        } elseif ($nuevoEstado === 'pausado' && $estadoAnterior !== 'pausado') {
+            $datosActualizar['pausado_at'] = now();
         } elseif ($nuevoEstado === 'registro') {
             $datosActualizar['fin_evento_at'] = null;
+            $datosActualizar['pausado_at'] = null;
         }
 
         $config->update($datosActualizar);
@@ -91,8 +114,15 @@ class AdminController extends Controller
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
+        $validated = $request->validate([
+            'nombre'             => 'required|string|max:100',
+            'cantidad_preguntas' => 'required|integer|between:1,50',
+            'puntos_por_acierto' => 'required|integer|between:1,10000',
+            'tiempo_limite_seg'  => 'required|integer|between:5,300',
+        ]);
+
         $nivel = Nivel::findOrFail($id);
-        $nivel->update($request->only(['nombre', 'cantidad_preguntas', 'puntos_por_acierto', 'tiempo_limite_seg']));
+        $nivel->update($validated);
 
         return back()->with('ok', 'Etapa actualizada correctamente.');
     }
@@ -117,7 +147,7 @@ class AdminController extends Controller
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
-        $request->validate([
+        $validated = $request->validate([
             'modulo_id'          => 'required|exists:modulos,id',
             'nivel_id'           => 'required|exists:niveles,id',
             'enunciado'          => 'required|string',
@@ -128,7 +158,7 @@ class AdminController extends Controller
             'respuesta_correcta' => 'required|in:a,b,c,d',
         ]);
 
-        Pregunta::create($request->all());
+        Pregunta::create($validated);
         return back()->with('ok', 'Pregunta agregada al banco exitosamente.');
     }
 
@@ -136,6 +166,11 @@ class AdminController extends Controller
     public function activarDesempate(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        $request->validate([
+            'equipos_desempate'   => 'nullable|array',
+            'equipos_desempate.*' => 'integer|exists:equipos,id',
+        ]);
 
         Equipo::query()->update(['en_desempate' => false]);
 
@@ -164,6 +199,7 @@ class AdminController extends Controller
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
         RespuestaEquipo::truncate();
+        Entrega::truncate();
         if ($request->boolean('borrar_equipos')) {
             Equipo::query()->delete();
         } else {
@@ -181,6 +217,7 @@ class AdminController extends Controller
         ConfiguracionEvento::first()->update([
             'estado_juego'    => 'registro',
             'fin_evento_at'   => null,
+            'pausado_at'      => null,
             // Nueva semilla aleatoria para que en la nueva partida salgan 5 preguntas distintas del banco
             'semilla_partida' => \Illuminate\Support\Str::random(16),
         ]);
@@ -191,6 +228,7 @@ class AdminController extends Controller
     public function generarEquiposPrueba(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
+        abort_unless(app()->isLocal(), 404); // Simulador solo en entorno local
 
         $equiposDemo = [
             ['nombre' => 'CyberTitans UEB',    'color' => '#10B981', 'miembros' => ['Mateo Silva', 'Camila Paredes']],
@@ -228,6 +266,7 @@ class AdminController extends Controller
     public function simularAvanceCarrera(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
+        abort_unless(app()->isLocal(), 404); // Simulador solo en entorno local
 
         $config = ConfiguracionEvento::first();
         if ($config->estado_juego === 'registro') {
@@ -304,11 +343,19 @@ class AdminController extends Controller
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
+        $validated = $request->validate([
+            'modulo_id'          => 'sometimes|required|exists:modulos,id',
+            'nivel_id'           => 'sometimes|required|exists:niveles,id',
+            'enunciado'          => 'required|string',
+            'opcion_a'           => 'required|string',
+            'opcion_b'           => 'required|string',
+            'opcion_c'           => 'required|string',
+            'opcion_d'           => 'required|string',
+            'respuesta_correcta' => 'required|in:a,b,c,d',
+        ]);
+
         $pregunta = Pregunta::findOrFail($id);
-        $pregunta->update($request->only([
-            'modulo_id', 'nivel_id', 'enunciado',
-            'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'respuesta_correcta'
-        ]));
+        $pregunta->update($validated);
 
         return back()->with('ok', 'Pregunta actualizada correctamente en la base de datos.');
     }

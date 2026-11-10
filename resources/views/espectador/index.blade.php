@@ -21,6 +21,11 @@
 </head>
 <body class="circuit-bg min-h-screen p-4 md:p-6">
 
+    <!-- BANNER DE RECONEXIÓN EN PANTALLA GIGANTE (U3) -->
+    <div id="banner-conexion-espectador" class="hidden fixed top-0 inset-x-0 z-50 bg-rose-600/95 text-white font-orbitron text-sm md:text-base font-bold text-center py-2.5 px-4 shadow-lg">
+        📡 RECONECTANDO CON EL SERVIDOR DE TELEMETRÍA EN VIVO...
+    </div>
+
     <!-- CABECERA HUD DE TRANSMISIÓN EN VIVO -->
     <header class="max-w-7xl mx-auto rounded-xl p-4 mb-6 flex flex-wrap items-center justify-between neon-border backdrop-blur-md">
         <div class="flex items-center gap-4">
@@ -29,28 +34,28 @@
             </a>
             <div>
                 <div class="flex items-center gap-3">
-                    <a href="/"><h1 class="cyber-title text-2xl md:text-3xl">SEVEN TECH</h1></a>
-                    <span id="badge-estado" class="px-3 py-1 text-[11px] font-bold uppercase rounded bg-cyan-500/20 text-[#00E5FF] border border-[#00E5FF]">
+                    <a href="/"><h1 class="cyber-title text-2xl md:text-4xl">SEVEN TECH</h1></a>
+                    <span id="badge-estado" class="px-3 py-1 text-xs md:text-sm font-bold uppercase rounded bg-cyan-500/20 text-[#00E5FF] border border-[#00E5FF]">
                         CARGANDO...
                     </span>
                 </div>
-                <p id="modulo-actual" class="font-orbitron text-xs text-slate-300 mt-1">Módulo: Comunidad Tecnológica</p>
+                <p id="modulo-actual" class="font-orbitron text-sm md:text-base text-slate-300 mt-1">Módulo: Comunidad Tecnológica</p>
             </div>
         </div>
 
         <!-- TELEMETRÍA EN VIVO + RELOJ GLOBAL DEL TORNEO -->
         <div class="flex items-center gap-5 sm:gap-7 mt-3 sm:mt-0">
             <div class="text-center bg-[#07101E] px-4 py-1.5 rounded-xl border border-[#00E5FF]/40">
-                <p class="font-orbitron text-[9px] text-slate-400 uppercase tracking-wider">⏱️ Tiempo Torneo</p>
-                <p id="reloj-global-espectador" class="font-orbitron text-xl md:text-2xl font-bold text-[#00E5FF]">--:--</p>
+                <p class="font-orbitron text-xs text-slate-400 uppercase tracking-wider">⏱️ Tiempo Torneo</p>
+                <p id="reloj-global-espectador" class="font-orbitron text-2xl md:text-3xl font-bold text-[#00E5FF]">--:--</p>
             </div>
             <div class="text-right">
-                <p class="font-orbitron text-[10px] text-slate-400 uppercase">Equipos</p>
+                <p class="font-orbitron text-xs text-slate-400 uppercase">Equipos</p>
                 <p id="total-equipos" class="font-orbitron text-2xl md:text-3xl font-bold text-white">0</p>
             </div>
             <div class="h-10 w-px bg-slate-700 hidden sm:block"></div>
             <div class="text-right hidden sm:block">
-                <p class="font-orbitron text-[10px] text-slate-400 uppercase">Puntero Actual</p>
+                <p class="font-orbitron text-xs text-slate-400 uppercase">Puntero Actual</p>
                 <p id="lider-actual" class="text-xl md:text-2xl font-bold text-amber-400">Esperando salida...</p>
             </div>
         </div>
@@ -64,6 +69,9 @@
             </span>
             <h2 class="text-2xl md:text-3xl font-bold text-white">¡ESCANEA EL QR CON TU MÓVIL PARA REGISTRAR TU EQUIPO!</h2>
             <p class="text-slate-300 text-base">O ingresa directamente desde tu navegador a: <b id="url-jugar-texto" class="font-orbitron text-[#00E5FF] underline"></b></p>
+            <p id="aviso-qr-localhost" class="hidden text-xs font-orbitron text-amber-300 bg-amber-500/15 border border-amber-400/50 rounded-lg px-3 py-1.5 mt-1">
+                ⚠️ Estás abriendo esta pantalla en <b>localhost</b>: los celulares no podrán entrar. Inicia con <code>php artisan serve --host=0.0.0.0 --port=8000</code> y abre esta vista usando la IP Wi-Fi de tu PC (ej. <code>http://192.168.1.X:8000/espectador</code>) o configura <code>APP_URL</code>.
+            </p>
         </div>
         <div class="flex items-center gap-4 bg-[#07101E] p-3 rounded-xl border border-[#00E5FF]">
             <div id="qrcode" class="bg-white p-2 rounded-lg"></div>
@@ -96,27 +104,27 @@
             </div>
 
             <!-- Cabecera de Etapas con colores neón -->
-            <div class="grid grid-cols-4 text-center font-orbitron text-[11px] font-bold uppercase mb-4 bg-[#07101E] p-3 rounded-xl border border-slate-800 shadow-inner">
+            <div class="grid grid-cols-4 text-center font-orbitron text-xs md:text-sm font-bold uppercase mb-4 bg-[#07101E] p-3 rounded-xl border border-slate-800 shadow-inner">
                 <div class="text-emerald-400 border-r border-slate-800 flex flex-col items-center">
                     <span>🟢 ETAPA 1</span>
-                    <span class="text-[9px] text-slate-400 font-normal">CALENTAMIENTO</span>
+                    <span class="text-xs text-slate-300 font-normal">CALENTAMIENTO</span>
                 </div>
                 <div class="text-[#00E5FF] border-r border-slate-800 flex flex-col items-center">
                     <span>🔵 ETAPA 2</span>
-                    <span class="text-[9px] text-slate-400 font-normal">VEL. CRUCERO</span>
+                    <span class="text-xs text-slate-300 font-normal">VEL. CRUCERO</span>
                 </div>
                 <div class="text-amber-400 border-r border-slate-800 flex flex-col items-center">
                     <span>🟠 ETAPA 3</span>
-                    <span class="text-[9px] text-slate-400 font-normal">RECTA PRO</span>
+                    <span class="text-xs text-slate-300 font-normal">RECTA PRO</span>
                 </div>
                 <div class="text-rose-400 flex flex-col items-center">
                     <span>🏆 META FINAL</span>
-                    <span class="text-[9px] text-slate-400 font-normal">BANDERA A CUADROS</span>
+                    <span class="text-xs text-slate-300 font-normal">BANDERA A CUADROS</span>
                 </div>
             </div>
 
-            <!-- Carriles -->
-            <div id="pista-carriles" class="space-y-4 flex-1 overflow-y-auto pr-1" style="max-height: 60vh;">
+            <!-- Carriles (U2: mayor aprovechamiento vertical en pantallas de auditorio) -->
+            <div id="pista-carriles" class="space-y-3 flex-1 overflow-y-auto pr-1" style="max-height: 70vh;">
                 <div class="text-center py-12 text-slate-400 text-lg">
                     Esperando a que los equipos escaneen el QR o entren a <b>/jugar</b>...
                 </div>
@@ -125,20 +133,28 @@
 
         <!-- COLUMNA DERECHA (1/3): TABLA DE POSICIONES EN VIVO -->
         <section class="rounded-xl p-5 neon-border flex flex-col">
-            <h2 class="text-xl font-bold text-white mb-1 flex items-center justify-between">
+            <h2 class="text-xl md:text-2xl font-bold text-white mb-1 flex items-center justify-between">
                 <span>⚡ CLASIFICACIÓN GENERAL</span>
-                <span class="font-orbitron text-[10px] text-[#00E5FF] animate-pulse">● LIVE</span>
+                <span id="indicador-live" class="font-orbitron text-xs text-[#00E5FF] animate-pulse">● LIVE</span>
             </h2>
-            <p class="font-orbitron text-[10px] text-slate-400 mb-4">En empate de puntos, gana quien tenga menor tiempo.</p>
+            <p class="font-orbitron text-xs text-slate-300 mb-4">En empate de puntos, gana quien tenga menor tiempo.</p>
 
-            <div id="tabla-posiciones" class="space-y-2.5 overflow-y-auto flex-1" style="max-height: 62vh;"></div>
+            <div id="tabla-posiciones" class="space-y-2.5 overflow-y-auto flex-1" style="max-height: 72vh;"></div>
         </section>
 
     </main>
 
     <script>
-        const urlJugar = window.location.origin + '/jugar';
+        const appUrlConfig = @json(rtrim((string) config('app.url'), '/'));
+        const esHostLocal = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+        const baseOrigen = (!esHostLocal || !appUrlConfig || appUrlConfig.includes('localhost') || appUrlConfig.includes('127.0.0.1'))
+            ? window.location.origin
+            : appUrlConfig;
+        const urlJugar = baseOrigen + '/jugar';
         document.getElementById('url-jugar-texto').textContent = urlJugar;
+        if (urlJugar.includes('localhost') || urlJugar.includes('127.0.0.1')) {
+            document.getElementById('aviso-qr-localhost')?.classList.remove('hidden');
+        }
         new QRCode(document.getElementById("qrcode"), {
             text: urlJugar,
             width: 96,
@@ -175,7 +191,7 @@
 
             return `
             <div class="p-5 rounded-2xl border ${configPuesto.bg} ${configPuesto.escala} transition flex flex-col items-center justify-center">
-                <span class="font-orbitron text-[10px] font-bold tracking-widest uppercase px-3 py-0.5 rounded-full bg-[#07101E] mb-3" style="color: ${configPuesto.color}; border: 1px solid ${configPuesto.color};">
+                <span class="font-orbitron text-xs md:text-sm font-bold tracking-widest uppercase px-3 py-1 rounded-full bg-[#07101E] mb-3" style="color: ${configPuesto.color}; border: 1px solid ${configPuesto.color};">
                     ${configPuesto.titulo}
                 </span>
                 <div class="flex items-center justify-center gap-2 sm:gap-3 my-1 w-full">
@@ -186,11 +202,11 @@
                         <polygon points="28,34 17,22 25,16 34,27"/><polygon points="33,18 26,7 34,3 39,13"/>
                     </svg>
                     <div class="text-center px-1">
-                        <h3 class="text-2xl sm:text-3xl font-bold uppercase tracking-wide text-white leading-tight">"${equipo.nombre_equipo}"</h3>
-                        <p class="font-orbitron text-xs sm:text-sm font-semibold uppercase tracking-widest mt-1.5" style="color: ${configPuesto.color};">
+                        <h3 class="text-2xl sm:text-4xl font-bold uppercase tracking-wide text-white leading-tight" data-nombre-equipo="${equipo.id}"></h3>
+                        <p class="font-orbitron text-base sm:text-lg font-bold uppercase tracking-widest mt-1.5" style="color: ${configPuesto.color};">
                             ${equipo.puntaje_total} PTS • ${equipo.tiempo_segundos}S
                         </p>
-                        <p class="font-orbitron text-[10px] text-slate-400 uppercase mt-1">${equipo.aciertos_totales} ACIERTOS</p>
+                        <p class="font-orbitron text-xs sm:text-sm text-slate-300 uppercase mt-1">${equipo.aciertos_totales} ACIERTOS</p>
                     </div>
                     <svg viewBox="0 0 60 120" class="w-10 h-20 sm:w-12 sm:h-24 shrink-0" style="fill: ${configPuesto.color}; transform: scaleX(-1);">
                         <path d="M48,108 C22,92 12,64 18,28 C20,18 25,10 32,4 L36,9 C28,18 24,32 24,50 C24,72 34,92 52,103 Z"/>
@@ -202,9 +218,58 @@
             </div>`;
         }
 
+        // Los nombres de equipo vienen del público: se insertan SIEMPRE con textContent, nunca como HTML
+        function pintarNombres(contenedor, equipos, formato = n => n) {
+            const porId = new Map(equipos.map(eq => [String(eq.id), eq.nombre_equipo]));
+            contenedor.querySelectorAll('[data-nombre-equipo]').forEach(el => {
+                el.textContent = formato(porId.get(el.dataset.nombreEquipo) ?? '');
+            });
+        }
+
+        let fallosConexionEspectador = 0;
+        let syncTimerEspectador = null;
+        let actualizandoEspectador = false;
+
+        function actualizarEstadoConexionEspectador(conectado) {
+            const banner = document.getElementById('banner-conexion-espectador');
+            if (banner) banner.classList.toggle('hidden', conectado);
+            const live = document.getElementById('indicador-live');
+            if (live) {
+                live.textContent = conectado ? '● LIVE' : '⚠️ RECONECTANDO...';
+                live.className = conectado
+                    ? 'font-orbitron text-xs text-[#00E5FF] animate-pulse'
+                    : 'font-orbitron text-xs text-rose-400 animate-pulse';
+            }
+        }
+
+        window.addEventListener('offline', () => actualizarEstadoConexionEspectador(false));
+        window.addEventListener('online', () => {
+            fallosConexionEspectador = 0;
+            actualizarEstadoConexionEspectador(true);
+            actualizarCarrera();
+        });
+
         async function actualizarCarrera() {
+            if (actualizandoEspectador) return;
+            actualizandoEspectador = true;
+            if (syncTimerEspectador) clearTimeout(syncTimerEspectador);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
             try {
-                const res = await fetch('/api/carrera-en-vivo');
+                const res = await fetch('/api/carrera-en-vivo', {
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (!res.ok) {
+                    fallosConexionEspectador++;
+                    if (fallosConexionEspectador >= 2) actualizarEstadoConexionEspectador(false);
+                    return;
+                }
+                fallosConexionEspectador = 0;
+                actualizarEstadoConexionEspectador(true);
                 const data = await res.json();
 
                 const estadoRaw = data.evento.estado_juego;
@@ -237,6 +302,7 @@
                     if (top3[0]) htmlPodio += renderizarInsigniaLaurel(top3[0], 1);
                     if (top3[2]) htmlPodio += renderizarInsigniaLaurel(top3[2], 3);
                     contenedorLaureles.innerHTML = htmlPodio;
+                    pintarNombres(contenedorLaureles, data.equipos, n => `"${n}"`);
 
                     if (!confetiLanzado && typeof confetti === 'function') {
                         confetiLanzado = true;
@@ -250,8 +316,8 @@
                 const badge = document.getElementById('badge-estado');
                 badge.textContent = estado === 'DESEMPATE' ? '🔥 MUERTE SÚBITA' : estado.replace('_', ' ');
                 badge.className = estado === 'DESEMPATE'
-                    ? 'font-orbitron px-3 py-1 text-[11px] font-bold uppercase rounded bg-rose-600 text-white animate-pulse'
-                    : 'font-orbitron px-3 py-1 text-[11px] font-bold uppercase rounded bg-cyan-500/20 text-[#00E5FF] border border-[#00E5FF]';
+                    ? 'font-orbitron px-3 py-1 text-xs md:text-sm font-bold uppercase rounded bg-rose-600 text-white animate-pulse'
+                    : 'font-orbitron px-3 py-1 text-xs md:text-sm font-bold uppercase rounded bg-cyan-500/20 text-[#00E5FF] border border-[#00E5FF]';
 
                 if (data.evento.modulo_activo) {
                     document.getElementById('modulo-actual').textContent = 'Categoría: ' + data.evento.modulo_activo.nombre;
@@ -278,16 +344,16 @@
                     <div class="bg-[#07101E]/95 border ${esLider ? 'border-amber-400 shadow-[0_0_18px_rgba(251,191,36,0.2)]' : 'border-slate-800'} rounded-xl p-3.5 relative overflow-hidden transition">
                         <div class="flex flex-wrap justify-between items-center mb-2.5 z-10 relative gap-2">
                             <div class="flex items-center gap-2.5">
-                                <span class="font-orbitron font-bold text-xs px-2.5 py-0.5 rounded ${esLider ? 'bg-amber-400 text-[#07101E]' : 'bg-slate-800 text-[#00E5FF]'}">#${eq.posicion}</span>
-                                <span class="font-bold text-lg text-white tracking-wide">${eq.nombre_equipo}</span>
-                                ${esLider ? '<span class="font-orbitron text-amber-400 font-bold text-[10px] px-2 py-0.5 rounded bg-amber-500/10 border border-amber-400/40">👑 LÍDER</span>' : ''}
-                                ${enRacha ? '<span class="font-orbitron text-orange-400 font-bold text-[10px]">🔥 RACHA</span>' : ''}
+                                <span class="font-orbitron font-bold text-sm md:text-base px-2.5 py-0.5 rounded ${esLider ? 'bg-amber-400 text-[#07101E]' : 'bg-slate-800 text-[#00E5FF]'}">#${eq.posicion}</span>
+                                <span class="font-bold text-xl md:text-2xl text-white tracking-wide" data-nombre-equipo="${eq.id}"></span>
+                                ${esLider ? '<span class="font-orbitron text-amber-400 font-bold text-xs px-2 py-0.5 rounded bg-amber-500/10 border border-amber-400/40">👑 LÍDER</span>' : ''}
+                                ${enRacha ? '<span class="font-orbitron text-orange-400 font-bold text-xs">🔥 RACHA</span>' : ''}
                             </div>
                             <div class="flex items-center gap-3">
-                                <span class="font-orbitron text-[10px] px-2.5 py-0.5 rounded bg-[#0F2342] text-[#00E5FF] border border-[#00E5FF]/30">
+                                <span class="font-orbitron text-xs md:text-sm font-bold px-2.5 py-0.5 rounded bg-[#0F2342] text-[#00E5FF] border border-[#00E5FF]/30">
                                     ${etiquetaFase} • ${eq.preguntas_contestadas}/${eq.total_preguntas}
                                 </span>
-                                <span class="font-orbitron font-bold text-emerald-400 text-sm">${eq.puntaje_total} PTS</span>
+                                <span class="font-orbitron font-bold text-emerald-400 text-lg md:text-xl">${eq.puntaje_total} PTS</span>
                             </div>
                         </div>
 
@@ -318,26 +384,36 @@
                     return `
                     <div class="flex items-center justify-between p-3.5 rounded-xl bg-[#07101E]/90 border ${idx === 0 && eq.puntaje_total > 0 ? 'border-amber-400/70' : (eq.en_desempate ? 'border-rose-500' : 'border-slate-800')}">
                         <div class="flex items-center gap-3">
-                            <span class="font-orbitron text-lg font-bold w-8 text-center text-[#00E5FF]">${medalla}</span>
+                            <span class="font-orbitron text-xl md:text-2xl font-bold w-9 text-center text-[#00E5FF]">${medalla}</span>
                             <div>
-                                <p class="font-bold text-base text-white leading-tight">${eq.nombre_equipo}</p>
-                                <p class="font-orbitron text-[10px] text-slate-400 mt-0.5">✅ ${eq.aciertos_totales} ACIERTOS • ⏱️ ${eq.tiempo_segundos}S</p>
+                                <p class="font-bold text-lg md:text-xl text-white leading-tight" data-nombre-equipo="${eq.id}"></p>
+                                <p class="font-orbitron text-xs md:text-sm text-slate-300 mt-0.5">✅ ${eq.aciertos_totales} ACIERTOS • ⏱️ ${eq.tiempo_segundos}S</p>
                             </div>
                         </div>
                         <div class="text-right">
-                            <span class="font-orbitron text-lg font-bold text-[#00E5FF]">${eq.puntaje_total}</span>
-                            <span class="font-orbitron block text-[9px] text-slate-400 uppercase">PUNTOS</span>
+                            <span class="font-orbitron text-xl md:text-2xl font-bold text-[#00E5FF]">${eq.puntaje_total}</span>
+                            <span class="font-orbitron block text-xs text-slate-300 uppercase">PUNTOS</span>
                         </div>
                     </div>`;
                 }).join('');
 
+                pintarNombres(pista, data.equipos);
+                pintarNombres(tabla, data.equipos);
             } catch (e) {
+                clearTimeout(timeoutId);
+                fallosConexionEspectador++;
+                if (fallosConexionEspectador >= 2 || !navigator.onLine) {
+                    actualizarEstadoConexionEspectador(false);
+                }
                 console.error('Error sincronizando carrera:', e);
+            } finally {
+                actualizandoEspectador = false;
+                const delay = fallosConexionEspectador > 0 ? Math.min(6000, 1500 * (fallosConexionEspectador + 1)) : 1500;
+                syncTimerEspectador = setTimeout(actualizarCarrera, delay);
             }
         }
 
         actualizarCarrera();
-        setInterval(actualizarCarrera, 1500);
     </script>
 </body>
 </html>

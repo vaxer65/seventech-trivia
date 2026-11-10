@@ -68,6 +68,13 @@ return [
     'timezone' => 'UTC',
 
     /*
+    | Hash bcrypt de la clave del panel /admin (php artisan tinker -> Hash::make('...')).
+    | Si está vacío, nadie puede iniciar sesión como admin.
+    */
+
+    'admin_password_hash' => env('ADMIN_PASSWORD_HASH', ''),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------

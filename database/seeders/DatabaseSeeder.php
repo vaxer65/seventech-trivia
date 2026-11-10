@@ -15,11 +15,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Usuario Administrador
+        // 1. Usuario Administrador (sin contraseña fija: se toma de ADMIN_SEED_PASSWORD o se genera aleatoria)
         User::create([
             'name' => 'Admin Seven Tech',
             'email' => 'admin@seventech.com',
-            'password' => Hash::make('seventech2026'),
+            'password' => Hash::make(env('ADMIN_SEED_PASSWORD') ?: Str::random(32)),
         ]);
 
         // 2. Módulos Escalables
