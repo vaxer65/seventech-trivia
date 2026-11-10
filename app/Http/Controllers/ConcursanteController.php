@@ -49,7 +49,6 @@ class ConcursanteController extends Controller
         $request->validate([
             'nombre_equipo' => 'required|string|min:2|max:40|unique:equipos,nombre_equipo',
             'integrantes'   => 'required|array|min:2|max:' . $config->max_integrantes_equipo,
-            // Exige mínimo Nombre y Apellido (al menos dos palabras con letras)
             'integrantes.*' => ['required', 'string', 'min:5', 'max:60', 'regex:/^\S+\s+\S+.*$/u'],
         ], [
             'nombre_equipo.unique' => '¡Ese nombre de equipo ya está en uso! Elige otro.',
@@ -103,7 +102,8 @@ class ConcursanteController extends Controller
             'equipo'  => $equipo->load('integrantes')
         ]);
     }
-// Obtener el estado actual y la siguiente pregunta (SIN respuesta correcta)
+
+    // Obtener el estado actual y la siguiente pregunta (SIN respuesta correcta)
     public function obtenerEstadoYPregunta(Request $request)
     {
         $token = $request->session()->get('equipo_token');
@@ -123,11 +123,11 @@ class ConcursanteController extends Controller
         // Si el evento está en espera, pausado o finalizado
         if (in_array($config->estado_juego, ['registro', 'pausado', 'finalizado'])) {
             return response()->json([
-                'autenticado'               => true,
-                'estado_juego'              => $config->estado_juego,
-                'segundos_globales'         => $config->segundos_globales_restantes,
-                'equipo'                    => $equipo,
-                'pregunta'                  => null,
+                'autenticado'       => true,
+                'estado_juego'      => $config->estado_juego,
+                'segundos_globales' => $config->segundos_globales_restantes,
+                'equipo'            => $equipo,
+                'pregunta'          => null,
             ]);
         }
 
@@ -159,7 +159,6 @@ class ConcursanteController extends Controller
         }
 
         // MODO CARRERA NORMAL: Recorremos los niveles en orden de dificultad (1 -> 2 -> 3)
-        // Cada fase toma su límite configurado (por defecto 5 preguntas de las 100 disponibles)
         $niveles = Nivel::where('es_desempate', false)->orderBy('orden_dificultad', 'asc')->get();
 
         foreach ($niveles as $nivel) {
@@ -202,9 +201,6 @@ class ConcursanteController extends Controller
             $query->where('modulo_id', $config->modulo_activo_id);
         }
 
-        // SELECCIÓN ALEATORIA COMPARTIDA:
-        // Usa 'semilla_partida' para escoger al azar dentro del banco de 50-100 preguntas,
-        // pero garantizando que TODOS los equipos reciban exactamente las mismas preguntas en esa partida.
         $semilla = $config->semilla_partida ?? 'seventech2026';
         $pregunta = $query->orderByRaw('CRC32(CONCAT(id, ?))', [$semilla])->first();
 
@@ -228,7 +224,7 @@ class ConcursanteController extends Controller
         ]);
     }
 
-    // Recibir respuesta, calificar en secreto y avanzar siempre
+    // Recibir respuesta, calificar en secreto y avanzar SIEMPRE a la siguiente pregunta
     public function enviarRespuesta(Request $request)
     {
         $token = $request->session()->get('equipo_token');
@@ -238,27 +234,43 @@ class ConcursanteController extends Controller
             return response()->json(['error' => 'Sesión no válida'], 401);
         }
 
-        $request->validate([
-            'pregunta_id'         => 'required|exists:preguntas,id',
-            'opcion_elegida'      => 'nullable|in:a,b,c,d',
-            'tiempo_respuesta_ms' => 'required|integer|min:100|max:120000',
+        // Aceptar tanto tiempo_respuesta_ms como tiempo_ms
+        $tiempoRecibido = $request->input('tiempo_respuesta_ms', $request->input('tiempo_ms', 5000));
+        $request->merge([
+            'tiempo_respuesta_ms' => max(100, min(120000, (int) $tiempoRecibido)),
         ]);
 
-        // Candado Anti-Sabotaje: Verificar si ya fue respondida
+        $request->validate([
+            'pregunta_id'         => 'required|exists:preguntas,id',
+            'opcion_elegida'      => 'nullable|string',
+            'tiempo_respuesta_ms' => 'required|integer',
+        ]);
+
+        // Candado Anti-Sabotaje: Si ya fue respondida, devolver ok para que el frontend avance
         $yaRespondio = RespuestaEquipo::where('equipo_id', $equipo->id)
             ->where('pregunta_id', $request->pregunta_id)
             ->exists();
 
         if ($yaRespondio) {
-            return response()->json(['error' => 'Esta pregunta ya fue procesada.'], 422);
+            return response()->json([
+                'procesado'      => true,
+                'es_correcta'    => false,
+                'puntos_sumados' => 0,
+                'puntaje_total'  => $equipo->puntaje_total,
+            ]);
         }
 
         $pregunta = Pregunta::with('nivel')->findOrFail($request->pregunta_id);
-        $opcion = $request->opcion_elegida ? strtolower($request->opcion_elegida) : null;
+        $nivel = $pregunta->nivel;
 
-        // Calificación interna en el servidor
-        $esCorrecta = ($opcion !== null && $opcion === strtolower($pregunta->respuesta_correcta));
-        $puntosGanados = $esCorrecta ? $pregunta->nivel->puntos_por_acierto : 0;
+        $opcionRaw = strtolower(trim((string) $request->opcion_elegida));
+        $opcion = in_array($opcionRaw, ['a', 'b', 'c', 'd']) ? $opcionRaw : null;
+
+        // Obtener respuesta_correcta real de la BD (ignorando $hidden)
+        $respuestaCorrectaReal = strtolower(trim((string) $pregunta->getRawOriginal('respuesta_correcta')));
+        $esCorrecta = ($opcion !== null && $opcion === $respuestaCorrectaReal);
+
+        $puntosGanados = $esCorrecta ? $nivel->puntos_por_acierto : 0;
 
         RespuestaEquipo::create([
             'equipo_id'           => $equipo->id,
@@ -270,7 +282,7 @@ class ConcursanteController extends Controller
             'tiempo_respuesta_ms' => $request->tiempo_respuesta_ms,
         ]);
 
-        // El equipo SIEMPRE avanza en preguntas_contestadas aunque falle, pero solo suma puntos si acierta
+        // El equipo SIEMPRE avanza en preguntas_contestadas aunque falle
         $equipo->increment('preguntas_contestadas');
         $equipo->increment('tiempo_acumulado_ms', $request->tiempo_respuesta_ms);
 
@@ -280,16 +292,24 @@ class ConcursanteController extends Controller
         }
 
         return response()->json([
-            'procesado' => true,
-            'mensaje'   => 'Respuesta registrada. ¡Avanzando a la siguiente etapa!',
+            'procesado'      => true,
+            'es_correcta'    => $esCorrecta,
+            'puntos_sumados' => $puntosGanados,
+            'puntaje_total'  => $equipo->fresh()->puntaje_total,
+            'mensaje'        => 'Respuesta registrada.',
         ]);
     }
-    // Permitir cerrar sesión del equipo actual para registrar otro en pruebas
+
+    // Permitir cerrar sesión del equipo actual y regresar al inicio/registro
     public function salirEquipo(Request $request)
     {
         $request->session()->forget('equipo_token');
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
         return redirect()->route('concursante.index');
     }
+
     // Recuperar sesión de equipo en caso de desconexión o cambio de celular
     public function recuperarEquipo(Request $request)
     {

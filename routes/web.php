@@ -14,19 +14,28 @@ Route::get('/', function () {
 // 1. ROL CONCURSANTE (Optimizado para Wi-Fi compartido en Auditorio)
 // ==========================================
 Route::get('/jugar', [ConcursanteController::class, 'index'])->name('concursante.index');
-Route::post('/jugar/salir', [ConcursanteController::class, 'salirEquipo'])->name('concursante.salir');
+Route::post('/jugar/salir', [ConcursanteController::class, 'salirEquipo'])->name('concursante.salir.form');
+Route::post('/api/salir-equipo', [ConcursanteController::class, 'salirEquipo'])->name('concursante.salir');
 
 // Soporta múltiples equipos registrándose y respondiendo desde la misma red Wi-Fi
 Route::post('/api/registrar-equipo', [ConcursanteController::class, 'registrarEquipo'])
     ->middleware('throttle:300,1')
     ->name('concursante.registrar');
 
+Route::post('/api/recuperar-sesion', [ConcursanteController::class, 'recuperarEquipo'])
+    ->middleware('throttle:300,1')
+    ->name('concursante.recuperar');
+
 Route::get('/api/estado-juego', [ConcursanteController::class, 'obtenerEstadoYPregunta'])
     ->name('concursante.estado');
 
+// Ambas rutas activas para responder sin fallos
 Route::post('/api/enviar-respuesta', [ConcursanteController::class, 'enviarRespuesta'])
     ->middleware('throttle:600,1')
     ->name('concursante.responder');
+
+Route::post('/api/responder', [ConcursanteController::class, 'enviarRespuesta'])
+    ->middleware('throttle:600,1');
 
 // ==========================================
 // 2. ROL ESPECTADOR (Pantalla Gigante Carrera 2D)
@@ -52,7 +61,7 @@ Route::post('/admin/reiniciar', [AdminController::class, 'reiniciarJuego'])->nam
 Route::post('/admin/simular-equipos', [AdminController::class, 'generarEquiposPrueba'])->name('admin.simular.equipos');
 Route::post('/admin/simular-avance', [AdminController::class, 'simularAvanceCarrera'])->name('admin.simular.avance');
 
-// Rutas para Editing Manual de Contenido en Tiempo Real
+// Rutas para Edición Manual de Contenido en Tiempo Real
 Route::post('/admin/pregunta/{id}/editar', [AdminController::class, 'actualizarPregunta'])->name('admin.pregunta.editar');
 Route::post('/admin/pregunta/{id}/eliminar', [AdminController::class, 'eliminarPregunta'])->name('admin.pregunta.eliminar');
 Route::post('/admin/modulo/{id}/eliminar', [AdminController::class, 'eliminarModulo'])->name('admin.modulo.eliminar');
