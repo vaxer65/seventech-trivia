@@ -40,12 +40,14 @@ Route::post('/api/enviar-respuesta', [ConcursanteController::class, 'enviarRespu
 // ==========================================
 Route::get('/espectador', [EspectadorController::class, 'index'])->name('espectador.index');
 Route::get('/api/carrera-en-vivo', [EspectadorController::class, 'datosCarreraEnVivo'])
+    ->withoutMiddleware('web')
     ->name('espectador.datos');
 
 // ==========================================
 // 3. ROL ADMINISTRADOR (Sin bloqueo de tiempo real)
 // ==========================================
 Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
+Route::get('/admin/login', fn () => redirect('/admin'));
 Route::post('/admin/login', [AdminController::class, 'login'])->middleware('throttle:admin-login')->name('admin.login');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
 

@@ -1,0 +1,27 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 1. SEGURIDAD CRÍTICA: Bloquear acceso web a archivos ocultos (.env, .git, etc.) y archivos del sistema
+    RewriteRule (^|/)\.(?!well-known) - [F,L]
+    RewriteRule ^(artisan|composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml|vite\.config\.js|README\.md)$ - [F,L,NC]
+    RewriteRule ^(app|bootstrap|config|database|docs|node_modules|resources|routes|storage|tests|vendor)(/|$) - [F,L,NC]
+
+    # 2. Redirigir todo el tráfico de forma transparente hacia la carpeta /public
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L,QSA]
+</IfModule>
+
+# Impedir listado de directorios
+Options -Indexes
+
+# Doble candado para archivos .env y sensibles en Apache 2.4+
+<FilesMatch "^(\.env.*|composer\.(json|lock)|artisan|phpunit\.xml)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+

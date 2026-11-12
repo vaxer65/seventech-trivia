@@ -26,7 +26,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
 
             <!-- 1. CONCURSANTE -->
-            <a href="{{ route('concursante.index') }}" class="neon-card p-6 rounded-2xl hover:border-[#00E5FF] hover:-translate-y-1.5 transition duration-300 flex flex-col justify-between group">
+            <a href="/jugar" class="neon-card p-6 rounded-2xl hover:border-[#00E5FF] hover:-translate-y-1.5 transition duration-300 flex flex-col justify-between group">
                 <div>
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-4xl">🎮</span>
@@ -42,7 +42,7 @@
             </a>
 
             <!-- 2. ESPECTADOR -->
-            <a href="{{ route('espectador.index') }}" class="neon-card p-6 rounded-2xl hover:border-emerald-400 hover:-translate-y-1.5 transition duration-300 flex flex-col justify-between group">
+            <a href="/espectador" class="neon-card p-6 rounded-2xl hover:border-emerald-400 hover:-translate-y-1.5 transition duration-300 flex flex-col justify-between group">
                 <div>
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-4xl">🖥️</span>
@@ -58,7 +58,7 @@
             </a>
 
             <!-- 3. ADMINISTRADOR -->
-            <a href="{{ route('admin.index') }}" class="neon-card p-6 rounded-2xl hover:border-amber-400 hover:-translate-y-1.5 transition duration-300 flex flex-col justify-between group">
+            <a href="/admin" class="neon-card p-6 rounded-2xl hover:border-amber-400 hover:-translate-y-1.5 transition duration-300 flex flex-col justify-between group">
                 <div>
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-4xl">🔐</span>

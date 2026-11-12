@@ -42,12 +42,24 @@ class AdminController extends Controller
 
     public function login(Request $request)
     {
-        $hash = (string) config('app.admin_password_hash');
+        $hash = trim((string) config('app.admin_password_hash'), " \t\n\r\0\x0B'\"");
+        $password = (string) $request->input('password');
 
-        if ($hash !== '' && Hash::check((string) $request->input('password'), $hash)) {
+        $valido = false;
+        if ($hash !== '') {
+            try {
+                $valido = str_starts_with($hash, '$2')
+                    ? Hash::check($password, $hash)
+                    : hash_equals($hash, $password);
+            } catch (\Throwable $e) {
+                $valido = false;
+            }
+        }
+
+        if ($valido) {
             $request->session()->regenerate();
             $request->session()->put('es_admin_seventech', true);
-            return redirect()->route('admin.index');
+            return redirect('/admin');
         }
         return back()->withErrors(['password' => 'Contraseña de administrador incorrecta.']);
     }
@@ -55,7 +67,7 @@ class AdminController extends Controller
     public function logout(Request $request)
     {
         $request->session()->forget('es_admin_seventech');
-        return redirect()->route('admin.index');
+        return redirect('/admin');
     }
 
     // Cambiar estado del juego, tiempo global (minutos) o módulo activo

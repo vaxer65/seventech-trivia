@@ -379,8 +379,12 @@
         let fallosConexionMovil = 0;
         let syncTimerMovil = null;
         let sincronizandoMovil = false;
+        let descargandoMovil = false;
+
+        window.addEventListener('beforeunload', () => { descargandoMovil = true; });
 
         function actualizarEstadoConexionMovil(conectado) {
+            if (descargandoMovil) return;
             const banner = document.getElementById('banner-sin-conexion');
             if (banner) banner.classList.toggle('hidden', conectado);
             if (!enviandoRespuesta) {
@@ -396,16 +400,17 @@
         });
 
         async function sincronizarJuego() {
-            if (enviandoRespuesta || sincronizandoMovil) return;
+            if (enviandoRespuesta || sincronizandoMovil || descargandoMovil) return;
             sincronizandoMovil = true;
             if (syncTimerMovil) clearTimeout(syncTimerMovil);
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
             try {
                 const res = await fetch('/api/estado-juego', {
                     headers: { 'Accept': 'application/json' },
+                    cache: 'no-store',
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
@@ -413,7 +418,7 @@
                 // 429 / 5xx: conservar la vista actual y reintentar en el siguiente ciclo
                 if (!res.ok) {
                     fallosConexionMovil++;
-                    if (fallosConexionMovil >= 2) actualizarEstadoConexionMovil(false);
+                    if (fallosConexionMovil >= 5) actualizarEstadoConexionMovil(false);
                     return;
                 }
                 fallosConexionMovil = 0;
@@ -489,15 +494,18 @@
                 }
             } catch (e) {
                 clearTimeout(timeoutId);
+                if (descargandoMovil) return;
                 fallosConexionMovil++;
-                if (fallosConexionMovil >= 2 || !navigator.onLine) {
+                if (fallosConexionMovil >= 5 || !navigator.onLine) {
                     actualizarEstadoConexionMovil(false);
                 }
                 console.error('Error sincronizando estado:', e);
             } finally {
                 sincronizandoMovil = false;
-                const delay = fallosConexionMovil > 0 ? Math.min(8000, 2000 * (fallosConexionMovil + 1)) : 2000;
-                syncTimerMovil = setTimeout(sincronizarJuego, delay);
+                if (!descargandoMovil) {
+                    const delay = fallosConexionMovil > 0 ? Math.min(8000, 2000 * (fallosConexionMovil + 1)) : 2000;
+                    syncTimerMovil = setTimeout(sincronizarJuego, delay);
+                }
             }
         }
 

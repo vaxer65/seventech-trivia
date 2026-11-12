@@ -20,7 +20,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('admin.login') }}" class="space-y-4">
+            <form method="POST" action="/admin/login" class="space-y-4">
                 @csrf
                 <input type="password" name="password" required placeholder="Contraseña de administrador"
                        class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00E5FF]">
@@ -48,7 +48,7 @@
                 <a href="/jugar" target="_blank" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-xs font-bold">
                     🎮 Abrir Vista Concursante
                 </a>
-                <form method="POST" action="{{ route('admin.logout') }}">
+                <form method="POST" action="/admin/logout">
                     @csrf
                     <button class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">Salir</button>
                 </form>
@@ -67,7 +67,7 @@
             <section class="card rounded-2xl p-5 space-y-5">
                 <h2 class="text-base font-extrabold text-[#00E5FF] border-b border-slate-800 pb-2">1. Control de Carrera en Vivo</h2>
 
-                <form method="POST" action="{{ route('admin.config') }}" class="space-y-3">
+                <form method="POST" action="/admin/configuracion" class="space-y-3">
                     @csrf
                     <div>
                         <label class="text-xs font-bold text-slate-300">Estado de la Trivia</label>
@@ -113,7 +113,7 @@
                 <!-- Botón de Muerte Súbita (Desempate) -->
                 <div class="pt-3 border-t border-slate-800">
                     <h3 class="text-xs font-bold uppercase text-rose-400 mb-2">🔥 Sistema de Desempate</h3>
-                    <form method="POST" action="{{ route('admin.desempate') }}">
+                    <form method="POST" action="/admin/desempate">
                         @csrf
                         <p class="text-xs text-slate-400 mb-2">Selecciona equipos específicos abajo o actívalo directo para que compitan los mejores empatados:</p>
                         <div class="max-h-28 overflow-y-auto space-y-1 mb-3 bg-[#07101E] p-2 rounded-xl border border-slate-800">
@@ -135,7 +135,7 @@
                 <!-- Archivar en Historial de Eventos antes de reiniciar -->
                 <div class="pt-3 border-t border-slate-800">
                     <h3 class="text-xs font-bold uppercase text-emerald-400 mb-2">🏛️ Guardar en Historial de Eventos</h3>
-                    <form method="POST" action="{{ route('admin.historial.guardar') }}" class="space-y-2">
+                    <form method="POST" action="/admin/historial/guardar" class="space-y-2">
                         @csrf
                         <input type="text" name="nombre_edicion" placeholder="Ej: 1er Torneo Seven Tech - Nov 2026"
                                class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
@@ -147,7 +147,7 @@
 
                 <!-- Reiniciar Juego -->
                 <div class="pt-3 border-t border-slate-800">
-                    <form method="POST" action="{{ route('admin.reiniciar') }}" onsubmit="return confirm('¿Seguro que deseas reiniciar los puntajes de la partida?');">
+                    <form method="POST" action="/admin/reiniciar" onsubmit="return confirm('¿Seguro que deseas reiniciar los puntajes de la partida?');">
                         @csrf
                         <label class="flex items-center gap-2 text-xs text-slate-300 mb-2">
                             <input type="checkbox" name="borrar_equipos" value="1"> Eliminar también todos los equipos registrados
@@ -164,7 +164,7 @@
                 <h2 class="text-base font-extrabold text-[#00E5FF] border-b border-slate-800 pb-2">2. Configurar Etapas de la Carrera</h2>
                 <div class="space-y-3">
                     @foreach($niveles as $niv)
-                        <form method="POST" action="{{ route('admin.nivel', $niv->id) }}" class="bg-[#07101E] p-3 rounded-xl border border-slate-800 space-y-2">
+                        <form method="POST" action="/admin/nivel/{{ $niv->id }}" class="bg-[#07101E] p-3 rounded-xl border border-slate-800 space-y-2">
                             @csrf
                             <input type="text" name="nombre" value="{{ $niv->nombre }}" class="w-full bg-transparent font-bold text-xs text-[#00E5FF] border-b border-slate-800 pb-1">
                             <div class="grid grid-cols-3 gap-2 text-xs">
@@ -189,7 +189,7 @@
                 <!-- Crear Nuevo Módulo -->
                 <div class="pt-3 border-t border-slate-800">
                     <h3 class="text-xs font-bold uppercase text-[#00E5FF] mb-2">➕ Agregar Nuevo Módulo/Categoría</h3>
-                    <form method="POST" action="{{ route('admin.modulo') }}" class="space-y-2">
+                    <form method="POST" action="/admin/modulo" class="space-y-2">
                         @csrf
                         <input type="text" name="nombre" required placeholder="Nombre del módulo (Ej: Robótica e IoT)" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
                         <input type="text" name="descripcion" placeholder="Descripción corta" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
@@ -201,7 +201,7 @@
             <!-- 3. AGREGAR NUEVAS PREGUNTAS AL BANCO -->
             <section class="card rounded-2xl p-5 space-y-4">
                 <h2 class="text-base font-extrabold text-[#00E5FF] border-b border-slate-800 pb-2">3. Añadir Pregunta al Banco</h2>
-                <form method="POST" action="{{ route('admin.pregunta') }}" class="space-y-2.5 text-xs">
+                <form method="POST" action="/admin/pregunta" class="space-y-2.5 text-xs">
                     @csrf
                     <div>
                         <label class="text-slate-300 font-bold">Módulo</label>
@@ -288,7 +288,7 @@
 
                             <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px]">
                                 <span class="font-orbitron text-emerald-400 font-bold">{{ $eq->puntaje_total }} PTS • Etapa {{ $eq->fase_actual }}</span>
-                                <form method="POST" action="{{ route('admin.equipo.eliminar', $eq->id) }}" onsubmit="return confirm('¿Eliminar al equipo {{ $eq->nombre_equipo }}?');">
+                                <form method="POST" action="/admin/equipo/{{ $eq->id }}/eliminar" onsubmit="return confirm('¿Eliminar al equipo {{ $eq->nombre_equipo }}?');">
                                     @csrf
                                     <button type="submit" class="text-rose-400 hover:underline font-bold">🗑️ Dar de baja</button>
                                 </form>
@@ -351,7 +351,7 @@
                         </summary>
 
                         <div class="mt-3 pt-3 border-t border-slate-800">
-                            <form method="POST" action="{{ route('admin.pregunta.editar', $preg->id) }}" class="space-y-2 text-xs">
+                            <form method="POST" action="/admin/pregunta/{{ $preg->id }}/editar" class="space-y-2 text-xs">
                                 @csrf
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                                     <div>
@@ -398,7 +398,7 @@
                                 </div>
                             </form>
 
-                            <form method="POST" action="{{ route('admin.pregunta.eliminar', $preg->id) }}" class="mt-2 text-right" onsubmit="return confirm('¿Eliminar esta pregunta definitivamente?');">
+                            <form method="POST" action="/admin/pregunta/{{ $preg->id }}/eliminar" class="mt-2 text-right" onsubmit="return confirm('¿Eliminar esta pregunta definitivamente?');">
                                 @csrf
                                 <button type="submit" class="px-3 py-1 rounded-lg bg-rose-500/20 border border-rose-500 text-rose-300 text-xs font-bold hover:bg-rose-500/30">
                                     🗑️ Eliminar Pregunta
@@ -439,7 +439,7 @@
                                         <h3 class="font-bold text-base text-white">{{ $h->nombre_edicion }}</h3>
                                         <p class="font-orbitron text-[10px] text-[#00E5FF]">{{ $h->modulo_jugado }} • {{ $h->total_equipos }} Equipos • {{ $h->created_at->format('d/m/Y H:i') }}</p>
                                     </div>
-                                    <form method="POST" action="{{ route('admin.historial.eliminar', $h->id) }}" onsubmit="return confirm('¿Borrar este evento del historial?');">
+                                    <form method="POST" action="/admin/historial/{{ $h->id }}/eliminar" onsubmit="return confirm('¿Borrar este evento del historial?');">
                                         @csrf
                                         <button class="text-xs text-rose-400 hover:underline">🗑️</button>
                                     </form>
@@ -495,21 +495,21 @@
                             🎬 1. Piloto Automático (Simular Todo)
                         </button>
 
-                        <form method="POST" action="{{ route('admin.simular.equipos') }}">
+                        <form method="POST" action="/admin/simular-equipos">
                             @csrf
                             <button type="submit" class="w-full h-full py-3 px-4 rounded-xl bg-indigo-500/20 border border-indigo-400 text-indigo-200 font-bold text-xs hover:bg-indigo-500/30">
                                 🤖 2. Solo Generar 5 Equipos
                             </button>
                         </form>
 
-                        <form method="POST" action="{{ route('admin.simular.avance') }}">
+                        <form method="POST" action="/admin/simular-avance">
                             @csrf
                             <button type="submit" class="w-full h-full py-3 px-4 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-200 font-bold text-xs hover:bg-amber-500/30">
                                 🎲 3. Avanzar +1 Pregunta
                             </button>
                         </form>
 
-                        <form method="POST" action="{{ route('admin.reiniciar') }}" onsubmit="return confirm('¿Limpiar todos los equipos de prueba y dejar el sistema en Registro listo para el evento real?');">
+                        <form method="POST" action="/admin/reiniciar" onsubmit="return confirm('¿Limpiar todos los equipos de prueba y dejar el sistema en Registro listo para el evento real?');">
                             @csrf
                             <input type="hidden" name="borrar_equipos" value="1">
                             <button type="submit" class="w-full h-full py-3 px-4 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-300 font-bold text-xs hover:bg-rose-500/30">
@@ -535,7 +535,7 @@
 
                         try {
                             status.textContent = 'Fase 1: Registrando 5 equipos...';
-                            await fetch("{{ route('admin.simular.equipos') }}", {
+                            await fetch("/admin/simular-equipos", {
                                 method: 'POST',
                                 headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' }
                             });
@@ -547,7 +547,7 @@
 
                             while (continuar && paso <= 18) {
                                 status.textContent = `Corriendo en vivo: Turno #${paso} de 15... (Mira /espectador)`;
-                                const res = await fetch("{{ route('admin.simular.avance') }}", {
+                                const res = await fetch("/admin/simular-avance", {
                                     method: 'POST',
                                     headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' }
                                 });

@@ -229,8 +229,12 @@
         let fallosConexionEspectador = 0;
         let syncTimerEspectador = null;
         let actualizandoEspectador = false;
+        let descargandoEspectador = false;
+
+        window.addEventListener('beforeunload', () => { descargandoEspectador = true; });
 
         function actualizarEstadoConexionEspectador(conectado) {
+            if (descargandoEspectador) return;
             const banner = document.getElementById('banner-conexion-espectador');
             if (banner) banner.classList.toggle('hidden', conectado);
             const live = document.getElementById('indicador-live');
@@ -250,22 +254,23 @@
         });
 
         async function actualizarCarrera() {
-            if (actualizandoEspectador) return;
+            if (actualizandoEspectador || descargandoEspectador) return;
             actualizandoEspectador = true;
             if (syncTimerEspectador) clearTimeout(syncTimerEspectador);
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
             try {
                 const res = await fetch('/api/carrera-en-vivo', {
                     headers: { 'Accept': 'application/json' },
+                    cache: 'no-store',
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
                 if (!res.ok) {
                     fallosConexionEspectador++;
-                    if (fallosConexionEspectador >= 2) actualizarEstadoConexionEspectador(false);
+                    if (fallosConexionEspectador >= 6) actualizarEstadoConexionEspectador(false);
                     return;
                 }
                 fallosConexionEspectador = 0;
@@ -401,15 +406,18 @@
                 pintarNombres(tabla, data.equipos);
             } catch (e) {
                 clearTimeout(timeoutId);
+                if (descargandoEspectador) return;
                 fallosConexionEspectador++;
-                if (fallosConexionEspectador >= 2 || !navigator.onLine) {
+                if (fallosConexionEspectador >= 6 || !navigator.onLine) {
                     actualizarEstadoConexionEspectador(false);
                 }
                 console.error('Error sincronizando carrera:', e);
             } finally {
                 actualizandoEspectador = false;
-                const delay = fallosConexionEspectador > 0 ? Math.min(6000, 1500 * (fallosConexionEspectador + 1)) : 1500;
-                syncTimerEspectador = setTimeout(actualizarCarrera, delay);
+                if (!descargandoEspectador) {
+                    const delay = fallosConexionEspectador > 0 ? Math.min(6000, 2000 + (fallosConexionEspectador * 1000)) : 2000;
+                    syncTimerEspectador = setTimeout(actualizarCarrera, delay);
+                }
             }
         }
 
