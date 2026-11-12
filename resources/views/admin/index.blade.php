@@ -135,8 +135,67 @@
                         </div>
                         <div>
                             <label class="text-[11px] text-[#00E5FF] font-bold">Trivia (Minutos)</label>
-                            <input type="number" name="tiempo_total_minutos" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} min="1" max="180" value="{{ $config->tiempo_total_minutos ?? 15 }}" class="w-full bg-[#07101E] border border-[#00E5FF] rounded-xl px-2.5 py-2 text-sm text-[#00E5FF] font-bold">
+                            <input type="number" name="tiempo_total_minutos" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} min="1" max="600" value="{{ $config->tiempo_total_minutos ?? 15 }}" class="w-full bg-[#07101E] border border-[#00E5FF] rounded-xl px-2.5 py-2 text-sm text-[#00E5FF] font-bold">
                         </div>
+                    </div>
+
+                    @php
+                        $semaforoClases = match($estimacionDuracion['semaforo'] ?? 'verde') {
+                            'rojo'  => 'bg-rose-500/20 text-rose-300 border-rose-500/60',
+                            'ambar' => 'bg-amber-500/20 text-amber-300 border-amber-400/60',
+                            default => 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60',
+                        };
+                        $fmtSeg = static function (int $seg): string {
+                            $m = intdiv($seg, 60);
+                            $s = $seg % 60;
+                            return "{$m}m " . str_pad((string) $s, 2, '0', STR_PAD_LEFT) . 's';
+                        };
+                    @endphp
+
+                    <!-- Calculadora Inteligente de Duración del Torneo -->
+                    <div id="calculadora-duracion-torneo" class="p-3 rounded-xl bg-[#07101E]/90 border border-slate-700/80 space-y-2.5">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <span class="text-[11px] font-bold uppercase tracking-wide text-slate-300">⏱️ Estimador del Torneo</span>
+                            <span id="semaforo-duracion" class="px-2.5 py-0.5 rounded-full border text-[11px] font-bold {{ $semaforoClases }}">
+                                {{ $estimacionDuracion['semaforo_texto'] }}
+                            </span>
+                        </div>
+                        <p id="semaforo-duracion-detalle" class="text-[11px] text-slate-400 leading-snug">
+                            {{ $estimacionDuracion['semaforo_detalle'] }}
+                        </p>
+
+                        <div class="grid grid-cols-3 gap-1.5 text-center">
+                            <div class="bg-[#0F2342]/80 rounded-lg p-1.5 border border-slate-800">
+                                <span class="block text-[10px] text-slate-400">Ritmo Prom.</span>
+                                <strong id="calc-ritmo-promedio" class="text-xs text-slate-100">{{ $fmtSeg($estimacionDuracion['seg_promedio']) }}</strong>
+                            </div>
+                            <div class="bg-[#0F2342]/80 rounded-lg p-1.5 border border-slate-800">
+                                <span class="block text-[10px] text-slate-400">Máx. Teórico</span>
+                                <strong id="calc-tiempo-maximo" class="text-xs text-amber-300">{{ $fmtSeg($estimacionDuracion['seg_maximo']) }}</strong>
+                            </div>
+                            <div class="bg-[#0F2342]/80 rounded-lg p-1.5 border border-[#00E5FF]/40">
+                                <span class="block text-[10px] text-[#00E5FF]">Recomendado</span>
+                                <strong id="calc-tiempo-recomendado" class="text-xs text-[#00E5FF]">{{ $estimacionDuracion['recomendado_min'] }} min</strong>
+                            </div>
+                        </div>
+
+                        <div id="calc-desglose-etapas" class="space-y-1 text-[11px] text-slate-300 border-t border-slate-800/80 pt-2">
+                            @foreach($estimacionDuracion['desglose_etapas'] as $etapa)
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="truncate text-slate-400">{{ $etapa['nombre'] }} ({{ $etapa['preguntas'] }} × {{ $etapa['tiempo_limite'] }}s)</span>
+                                    <span class="font-mono text-slate-200 shrink-0">{{ $fmtSeg($etapa['seg_puros']) }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <button type="button"
+                                id="btn-aplicar-tiempo-recomendado"
+                                data-lockable="true"
+                                data-recomendado-min="{{ $estimacionDuracion['recomendado_min'] }}"
+                                {{ $partidaBloqueada ? 'disabled' : '' }}
+                                class="w-full py-2 px-3 rounded-lg bg-[#00E5FF]/15 hover:bg-[#00E5FF]/25 disabled:opacity-45 disabled:cursor-not-allowed border border-[#00E5FF]/60 text-[#00E5FF] font-bold text-[11px] transition">
+                            ✨ Aplicar tiempo recomendado ({{ $estimacionDuracion['recomendado_min'] }} min)
+                        </button>
                     </div>
 
                     <button type="submit" class="w-full py-2.5 rounded-xl bg-[#00E5FF] text-[#07101E] font-black text-xs uppercase">
@@ -201,7 +260,10 @@
                 </div>
                 <div class="space-y-3">
                     @foreach($niveles as $niv)
-                        <form method="POST" action="/admin/nivel/{{ $niv->id }}" class="form-nivel-admin bg-[#07101E] p-3 rounded-xl border border-slate-800 space-y-2">
+                        <form method="POST" action="/admin/nivel/{{ $niv->id }}"
+                              data-es-desempate="{{ $niv->es_desempate ? '1' : '0' }}"
+                              data-nivel-nombre="{{ $niv->nombre }}"
+                              class="form-nivel-admin bg-[#07101E] p-3 rounded-xl border border-slate-800 space-y-2">
                             @csrf
                             <input type="text" name="nombre" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->nombre }}" class="w-full bg-transparent font-bold text-xs text-[#00E5FF] border-b border-slate-800 pb-1">
                             <div class="grid grid-cols-3 gap-2 text-xs">
@@ -731,6 +793,102 @@
                 }
             }
 
+            function formatearSegundosCalc(totalSeg) {
+                const seg = Math.max(0, Math.round(totalSeg));
+                const m = Math.floor(seg / 60);
+                const s = (seg % 60).toString().padStart(2, '0');
+                return `${m}m ${s}s`;
+            }
+
+            function recalcularDuracionTorneo() {
+                const panel = document.getElementById('calculadora-duracion-torneo');
+                if (!panel) return;
+
+                const TRANSICION_SEG = 2;
+                let segPromedio = 0;
+                let segMaximo = 0;
+                let segColchonDesempate = 0;
+                const desglose = [];
+
+                document.querySelectorAll('.form-nivel-admin').forEach(formNivel => {
+                    const esDesempate = formNivel.dataset.esDesempate === '1';
+                    const nombre = (formNivel.querySelector('input[name="nombre"]')?.value || formNivel.dataset.nivelNombre || 'Etapa').trim();
+                    const preguntas = Math.max(0, parseInt(formNivel.querySelector('input[name="cantidad_preguntas"]')?.value || '0', 10) || 0);
+                    const segundosLimite = Math.max(0, parseInt(formNivel.querySelector('input[name="tiempo_limite_seg"]')?.value || '0', 10) || 0);
+
+                    if (esDesempate) {
+                        segColchonDesempate = Math.max(segColchonDesempate, 2 * (segundosLimite + TRANSICION_SEG));
+                        return;
+                    }
+
+                    const segPuros = preguntas * segundosLimite;
+                    const segMaxEtapa = preguntas * (segundosLimite + TRANSICION_SEG);
+                    const segPromEtapa = preguntas * ((segundosLimite * 0.60) + TRANSICION_SEG);
+
+                    segMaximo += segMaxEtapa;
+                    segPromedio += segPromEtapa;
+                    desglose.push({ nombre, preguntas, segundosLimite, segPuros });
+                });
+
+                const recomendadoMin = Math.max(1, Math.ceil((segMaximo + segColchonDesempate) / 60));
+                const inputTiempoTotal = document.querySelector('#form-configuracion input[name="tiempo_total_minutos"]');
+                const tiempoActualMin = Math.max(0, parseInt(inputTiempoTotal?.value || '0', 10) || 0);
+                const tiempoActualSeg = tiempoActualMin * 60;
+
+                const elSemaforo = document.getElementById('semaforo-duracion');
+                const elDetalle = document.getElementById('semaforo-duracion-detalle');
+                const elProm = document.getElementById('calc-ritmo-promedio');
+                const elMax = document.getElementById('calc-tiempo-maximo');
+                const elRec = document.getElementById('calc-tiempo-recomendado');
+                const elDesglose = document.getElementById('calc-desglose-etapas');
+                const btnAplicar = document.getElementById('btn-aplicar-tiempo-recomendado');
+
+                if (elProm) elProm.textContent = formatearSegundosCalc(segPromedio);
+                if (elMax) elMax.textContent = formatearSegundosCalc(segMaximo);
+                if (elRec) elRec.textContent = `${recomendadoMin} min`;
+
+                if (btnAplicar) {
+                    btnAplicar.dataset.recomendadoMin = String(recomendadoMin);
+                    btnAplicar.textContent = `✨ Aplicar tiempo recomendado (${recomendadoMin} min)`;
+                }
+
+                if (elDesglose) {
+                    const filas = desglose.map(et => {
+                        const fila = document.createElement('div');
+                        fila.className = 'flex items-center justify-between gap-2';
+
+                        const izq = document.createElement('span');
+                        izq.className = 'truncate text-slate-400';
+                        izq.textContent = `${et.nombre} (${et.preguntas} × ${et.segundosLimite}s)`;
+
+                        const der = document.createElement('span');
+                        der.className = 'font-mono text-slate-200 shrink-0';
+                        der.textContent = formatearSegundosCalc(et.segPuros);
+
+                        fila.append(izq, der);
+                        return fila;
+                    });
+                    elDesglose.replaceChildren(...filas);
+                }
+
+                if (elSemaforo && elDetalle) {
+                    elSemaforo.className = 'px-2.5 py-0.5 rounded-full border text-[11px] font-bold ';
+                    if (tiempoActualSeg < segPromedio) {
+                        elSemaforo.className += 'bg-rose-500/20 text-rose-300 border-rose-500/60';
+                        elSemaforo.textContent = '⚠️ Tiempo insuficiente';
+                        elDetalle.textContent = 'El reloj global cortará la carrera antes de que un equipo promedio termine.';
+                    } else if (tiempoActualMin < recomendadoMin) {
+                        elSemaforo.className += 'bg-amber-500/20 text-amber-300 border-amber-400/60';
+                        elSemaforo.textContent = '⚡ Tiempo ajustado';
+                        elDetalle.textContent = 'Cubre el ritmo promedio, pero equipos lentos o un desempate podrían quedar incompletos.';
+                    } else {
+                        elSemaforo.className += 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60';
+                        elSemaforo.textContent = '✅ Duración óptima';
+                        elDetalle.textContent = 'Cubre el máximo teórico de todas las etapas más margen para Muerte Súbita.';
+                    }
+                }
+            }
+
             const formConfig = document.getElementById('form-configuracion');
             if (formConfig) {
                 const guardarConfigDebounced = debounceAdmin(() => autoguardarFormulario(formConfig), 500);
@@ -738,24 +896,47 @@
                     sel.addEventListener('change', () => autoguardarFormulario(formConfig));
                 });
                 formConfig.querySelectorAll('input').forEach(inp => {
-                    inp.addEventListener('input', guardarConfigDebounced);
+                    inp.addEventListener('input', () => {
+                        if (inp.name === 'tiempo_total_minutos') {
+                            recalcularDuracionTorneo();
+                        }
+                        guardarConfigDebounced();
+                    });
                 });
                 formConfig.addEventListener('submit', e => {
                     e.preventDefault();
                     autoguardarFormulario(formConfig);
                 });
+
+                const btnAplicarRecomendado = document.getElementById('btn-aplicar-tiempo-recomendado');
+                const inputTiempoTotal = formConfig.querySelector('input[name="tiempo_total_minutos"]');
+                if (btnAplicarRecomendado && inputTiempoTotal) {
+                    btnAplicarRecomendado.addEventListener('click', () => {
+                        if (btnAplicarRecomendado.disabled || inputTiempoTotal.disabled) return;
+                        const minRec = btnAplicarRecomendado.dataset.recomendadoMin;
+                        if (!minRec) return;
+                        inputTiempoTotal.value = minRec;
+                        recalcularDuracionTorneo();
+                        autoguardarFormulario(formConfig);
+                    });
+                }
             }
 
             document.querySelectorAll('.form-nivel-admin').forEach(formNivel => {
                 const guardarNivelDebounced = debounceAdmin(() => autoguardarFormulario(formNivel), 500);
                 formNivel.querySelectorAll('input').forEach(inp => {
-                    inp.addEventListener('input', guardarNivelDebounced);
+                    inp.addEventListener('input', () => {
+                        recalcularDuracionTorneo();
+                        guardarNivelDebounced();
+                    });
                 });
                 formNivel.addEventListener('submit', e => {
                     e.preventDefault();
                     autoguardarFormulario(formNivel);
                 });
             });
+
+            recalcularDuracionTorneo();
         </script>
     @endif
 

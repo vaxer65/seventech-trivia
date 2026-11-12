@@ -80,7 +80,7 @@ En lugar de usar **WebSockets** (que requieren mantener decenas de conexiones TC
    - El banner rojo de reconexión solo se activa si ocurren **6 fallos consecutivos**, e ignora abortos intencionales durante `beforeunload`.
    - Además, la ruta `GET /api/carrera-en-vivo` se sirve con `->withoutMiddleware('web')` en [`routes/web.php`](file:///home/vaxer/seventech-trivia/routes/web.php) (endpoint JSON público sin lectura/escritura de sesión ni bloqueo de archivo de sesión).
 
-**Ventaja para despliegues académicos o en hosting compartido:** funciona en cualquier servidor PHP estándar (Apache/Nginx/cPanel) sin demonios en segundo plano ni puertos extra.
+**Arquitectura de despliegue objetivo (Bloque 8):** el despliegue final del torneo se realizará en un **servidor dedicado / VPS propio** (Nginx + PHP-FPM 8.3 + MySQL 8 + Redis), descartando hosting compartido / cPanel. La arquitectura sin demonios extra sigue facilitando además pruebas rápidas en red local (`php artisan serve --host=0.0.0.0 --port=8000`).
 
 ---
 

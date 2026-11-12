@@ -39,8 +39,79 @@ class AdminController extends Controller
         $equipos = Equipo::with('integrantes')->orderBy('puntaje_total', 'desc')->orderBy('tiempo_acumulado_ms', 'asc')->get();
 
         $historial = HistorialEvento::latest()->get();
+        $estimacionDuracion = self::calcularEstimacionDuracion($niveles, (int) ($config?->tiempo_total_minutos ?? 15));
 
-        return view('admin.index', compact('autorizado', 'config', 'modulos', 'niveles', 'preguntas', 'equipos', 'historial'));
+        return view('admin.index', compact('autorizado', 'config', 'modulos', 'niveles', 'preguntas', 'equipos', 'historial', 'estimacionDuracion'));
+    }
+
+    /**
+     * Calcula la duración estimada del torneo (ritmo promedio, máximo teórico, recomendado y semáforo).
+     */
+    public static function calcularEstimacionDuracion($niveles, int $tiempoTotalMinutos): array
+    {
+        $transicionSeg = 2;
+        $desgloseEtapas = [];
+        $segPromedio = 0.0;
+        $segMaximo = 0;
+        $segColchonDesempate = 0;
+
+        foreach ($niveles as $nivel) {
+            $preguntas = max(0, (int) $nivel->cantidad_preguntas);
+            $segundosLimite = max(0, (int) $nivel->tiempo_limite_seg);
+
+            if ($nivel->es_desempate) {
+                $segColchonDesempate = max($segColchonDesempate, 2 * ($segundosLimite + $transicionSeg));
+                continue;
+            }
+
+            $segPuros = $preguntas * $segundosLimite;
+            $segMaxEtapa = $preguntas * ($segundosLimite + $transicionSeg);
+            $segPromEtapa = $preguntas * (($segundosLimite * 0.60) + $transicionSeg);
+
+            $segMaximo += $segMaxEtapa;
+            $segPromedio += $segPromEtapa;
+
+            $desgloseEtapas[] = [
+                'id'               => $nivel->id,
+                'nombre'           => $nivel->nombre,
+                'preguntas'        => $preguntas,
+                'tiempo_limite'    => $segundosLimite,
+                'seg_puros'        => $segPuros,
+                'seg_max_etapa'    => $segMaxEtapa,
+                'seg_prom_etapa'   => (int) round($segPromEtapa),
+            ];
+        }
+
+        $recomendadoMin = max(1, (int) ceil(($segMaximo + $segColchonDesempate) / 60));
+        $tiempoActualSeg = max(0, $tiempoTotalMinutos) * 60;
+
+        if ($tiempoActualSeg < $segPromedio) {
+            $semaforo = 'rojo';
+            $semaforoTexto = '⚠️ Tiempo insuficiente';
+            $semaforoDetalle = 'El reloj global cortará la carrera antes de que un equipo promedio termine.';
+        } elseif ($tiempoTotalMinutos < $recomendadoMin) {
+            $semaforo = 'ambar';
+            $semaforoTexto = '⚡ Tiempo ajustado';
+            $semaforoDetalle = 'Cubre el ritmo promedio, pero equipos lentos o un desempate podrían quedar incompletos.';
+        } else {
+            $semaforo = 'verde';
+            $semaforoTexto = '✅ Duración óptima';
+            $semaforoDetalle = 'Cubre el máximo teórico de todas las etapas más margen para Muerte Súbita.';
+        }
+
+        return [
+            'transicion_seg'         => $transicionSeg,
+            'desglose_etapas'        => $desgloseEtapas,
+            'seg_promedio'           => (int) round($segPromedio),
+            'min_promedio'           => round($segPromedio / 60, 1),
+            'seg_maximo'             => $segMaximo,
+            'min_maximo'             => round($segMaximo / 60, 1),
+            'seg_colchon_desempate'  => $segColchonDesempate,
+            'recomendado_min'        => $recomendadoMin,
+            'semaforo'               => $semaforo,
+            'semaforo_texto'         => $semaforoTexto,
+            'semaforo_detalle'       => $semaforoDetalle,
+        ];
     }
 
     public function login(Request $request)
@@ -112,7 +183,7 @@ class AdminController extends Controller
             'modulo_activo_id'       => 'nullable|exists:modulos,id',
             'max_integrantes_equipo' => 'required|integer|between:2,10',
             'max_equipos_permitidos' => 'required|integer|between:1,200',
-            'tiempo_total_minutos'   => 'nullable|integer|between:1,180',
+            'tiempo_total_minutos'   => 'nullable|integer|min:1|max:600',
         ]);
 
         if ($this->esPartidaBloqueada($config)) {
