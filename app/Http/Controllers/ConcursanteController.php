@@ -77,6 +77,11 @@ class ConcursanteController extends Controller
         try {
             $resultado = DB::transaction(function () use ($request, $integrantesLimpios, $coloresPista, $token, $pin) {
                 $configLock = ConfiguracionEvento::lockForUpdate()->first();
+
+                if (!in_array($configLock->estado_juego, ['registro', 'en_curso'], true)) {
+                    return ['error' => 'El registro de equipos está cerrado en este momento.', 'status' => 403];
+                }
+
                 $totalActual = Equipo::count();
 
                 if ($totalActual >= $configLock->max_equipos_permitidos) {
@@ -168,29 +173,98 @@ class ConcursanteController extends Controller
         $asignacion = $this->asignacionActual($equipo, $config);
 
         if ($asignacion === null || $asignacion['completo']) {
-            // Solo en carrera normal se marca la meta (igual que antes)
+            // Solo en carrera normal se marca la meta, verificando bajo lock que no hubo reinicio en vuelo
             if ($asignacion !== null && $config->estado_juego === 'en_curso' && !$equipo->finalizo_carrera) {
-                $equipo->update(['finalizo_carrera' => true]);
+                $abortado = DB::transaction(function () use ($equipo, $config) {
+                    $configLock = ConfiguracionEvento::lockForUpdate()->first();
+                    $equipoLock = Equipo::whereKey($equipo->id)->lockForUpdate()->first();
+                    if (!$equipoLock) {
+                        return 'no_autenticado';
+                    }
+                    if (!$configLock || $configLock->estado_juego !== 'en_curso' || $configLock->semilla_partida !== $config->semilla_partida) {
+                        return 'reiniciado';
+                    }
+                    $equipoLock->update(['finalizo_carrera' => true]);
+                    return null;
+                });
+
+                if ($abortado === 'no_autenticado') {
+                    return response()->json(['autenticado' => false]);
+                }
+                if ($abortado === 'reiniciado') {
+                    $configActual = ConfiguracionEvento::first();
+                    return response()->json([
+                        'autenticado'       => true,
+                        'estado_juego'      => $configActual->estado_juego,
+                        'segundos_globales' => $configActual->segundos_globales_restantes,
+                        'equipo'            => $equipo->fresh(),
+                        'pregunta'          => null,
+                    ]);
+                }
+                $equipo->refresh();
             }
             return $this->respuestaCarreraCompletada($equipo, $config);
         }
 
         $nivel = $asignacion['nivel'];
-        if ($config->estado_juego === 'en_curso' && $equipo->fase_actual !== $nivel->orden_dificultad) {
-            $equipo->update(['fase_actual' => $nivel->orden_dificultad]);
-        }
-
         $pregunta = $asignacion['pregunta'];
         if (!$pregunta) {
             return $this->respuestaCarreraCompletada($equipo, $config);
         }
 
-        // Registrar la entrega SOLO la primera vez (recargar no reinicia el cronómetro)
-        Entrega::insertOrIgnore([
-            'equipo_id'    => $equipo->id,
-            'pregunta_id'  => $pregunta->id,
-            'entregada_at' => now()->format('Y-m-d H:i:s.v'),
-        ]);
+        $necesitaActualizarFase = ($config->estado_juego === 'en_curso' && $equipo->fase_actual !== $nivel->orden_dificultad);
+        $entregaYaExiste = (bool) $pregunta->getRawOriginal('ya_entregada');
+        $pregunta->offsetUnset('ya_entregada');
+
+        // Solo abrimos transacción con lock si debemos escribir (actualizar fase_actual o insertar primera entrega)
+        if ($necesitaActualizarFase || !$entregaYaExiste) {
+            $abortado = DB::transaction(function () use ($equipo, $config, $nivel, $pregunta, $necesitaActualizarFase) {
+                $configLock = ConfiguracionEvento::lockForUpdate()->first();
+                if (!$configLock
+                    || !in_array($configLock->estado_juego, ['en_curso', 'desempate'], true)
+                    || $configLock->semilla_partida !== $config->semilla_partida) {
+                    return 'reiniciado';
+                }
+
+                if ($necesitaActualizarFase) {
+                    $actualizados = Equipo::whereKey($equipo->id)->update(['fase_actual' => $nivel->orden_dificultad]);
+                    if ($actualizados === 0) {
+                        return 'no_autenticado';
+                    }
+                    $equipo->fase_actual = $nivel->orden_dificultad;
+                }
+
+                try {
+                    Entrega::insertOrIgnore([
+                        'equipo_id'    => $equipo->id,
+                        'pregunta_id'  => $pregunta->id,
+                        'entregada_at' => now()->format('Y-m-d H:i:s.v'),
+                    ]);
+                } catch (\Illuminate\Database\QueryException $e) {
+                    return 'no_autenticado';
+                }
+
+                return null;
+            });
+
+            if ($abortado === 'no_autenticado') {
+                return response()->json(['autenticado' => false]);
+            }
+            if ($abortado === 'reiniciado') {
+                $configActual = ConfiguracionEvento::first();
+                $equipoActual = Equipo::find($equipo->id);
+                if (!$equipoActual) {
+                    return response()->json(['autenticado' => false]);
+                }
+                return response()->json([
+                    'autenticado'       => true,
+                    'estado_juego'      => $configActual->estado_juego,
+                    'segundos_globales' => $configActual->segundos_globales_restantes,
+                    'equipo'            => $equipoActual,
+                    'pregunta'          => null,
+                ]);
+            }
+        }
 
         return response()->json([
             'autenticado'       => true,
@@ -224,45 +298,59 @@ class ConcursanteController extends Controller
         $config = ConfiguracionEvento::first();
         $this->cerrarSiVencioRelojGlobal($config);
 
-        if (!in_array($config->estado_juego, ['en_curso', 'desempate'])
+        if (!in_array($config->estado_juego, ['en_curso', 'desempate'], true)
             || ($config->estado_juego === 'desempate' && !$equipo->en_desempate)) {
             return $this->respuestaYaRespondidaOResync($equipo, $preguntaId, 'La ronda no está activa.');
         }
 
-        // T1: solo se acepta la pregunta que el servidor tiene asignada a este equipo
-        $asignacion = $this->asignacionActual($equipo, $config);
-        $pregunta = $asignacion['pregunta'] ?? null;
-
-        if (!$pregunta || $pregunta->id !== $preguntaId) {
-            return $this->respuestaYaRespondidaOResync($equipo, $preguntaId, 'Esa pregunta ya no está vigente.');
-        }
-
-        // T2: el tiempo se calcula desde la entrega registrada en el servidor
-        $entrega = Entrega::where('equipo_id', $equipo->id)->where('pregunta_id', $pregunta->id)->first();
-        if (!$entrega) {
-            return response()->json(['error' => 'Entrega no registrada.', 'resync' => true], 409);
-        }
-
-        $nivel = $asignacion['nivel'];
-        $limiteMs = max(1, (int) $nivel->tiempo_limite_seg) * 1000;
-        $transcurridoMs = max(0, now()->getTimestampMs() - $entrega->entregada_at->getTimestampMs());
-        $fueraDeTiempo = $transcurridoMs > ($limiteMs + self::GRACIA_RED_MS);
-        $tiempoMs = min($transcurridoMs, $limiteMs);
-
         $opcionRaw = strtolower(trim((string) $request->opcion_elegida));
-        $opcion = in_array($opcionRaw, ['a', 'b', 'c', 'd']) ? $opcionRaw : null;
+        $opcion = in_array($opcionRaw, ['a', 'b', 'c', 'd'], true) ? $opcionRaw : null;
 
-        // Obtener respuesta_correcta real de la BD (ignorando $hidden)
-        $respuestaCorrectaReal = strtolower(trim((string) $pregunta->getRawOriginal('respuesta_correcta')));
-        $esCorrecta = (!$fueraDeTiempo && $opcion !== null && $opcion === $respuestaCorrectaReal);
-
-        $puntosGanados = $esCorrecta ? (int) $nivel->puntos_por_acierto : 0;
-
-        // T5: registro + acumulados en una sola transacción; un duplicado concurrente no da 500
+        // T5 + Blindaje Bloque 1: verificación y registro dentro de una sola transacción con orden estricto de locks
         try {
-            DB::transaction(function () use ($equipo, $pregunta, $opcion, $esCorrecta, $puntosGanados, $tiempoMs) {
+            $resultado = DB::transaction(function () use ($equipo, $preguntaId, $opcion) {
+                // 1. Lock sobre ConfiguracionEvento primero, luego sobre Equipo
+                $configLock = ConfiguracionEvento::lockForUpdate()->first();
+                $equipoLock = Equipo::whereKey($equipo->id)->lockForUpdate()->first();
+
+                if (!$equipoLock) {
+                    return ['status' => 401, 'body' => ['error' => 'Sesión no válida']];
+                }
+
+                $this->cerrarSiVencioRelojGlobal($configLock);
+
+                if (!in_array($configLock->estado_juego, ['en_curso', 'desempate'], true)
+                    || ($configLock->estado_juego === 'desempate' && !$equipoLock->en_desempate)) {
+                    return ['resync_msg' => 'La ronda no está activa.', 'equipo' => $equipoLock];
+                }
+
+                // T1: solo se acepta la pregunta asignada bajo la semilla_partida vigente
+                $asignacion = $this->asignacionActual($equipoLock, $configLock);
+                $pregunta = $asignacion['pregunta'] ?? null;
+
+                if (!$pregunta || $pregunta->id !== $preguntaId) {
+                    return ['resync_msg' => 'Esa pregunta ya no está vigente.', 'equipo' => $equipoLock];
+                }
+
+                // T2: la entrega debe existir en la partida actual y el tiempo se mide en el servidor
+                $entrega = Entrega::where('equipo_id', $equipoLock->id)->where('pregunta_id', $pregunta->id)->first();
+                if (!$entrega) {
+                    return ['status' => 409, 'body' => ['error' => 'Entrega no registrada.', 'resync' => true]];
+                }
+
+                $nivel = $asignacion['nivel'];
+                $limiteMs = max(1, (int) $nivel->tiempo_limite_seg) * 1000;
+                $transcurridoMs = max(0, now()->getTimestampMs() - $entrega->entregada_at->getTimestampMs());
+                $fueraDeTiempo = $transcurridoMs > ($limiteMs + self::GRACIA_RED_MS);
+                $tiempoMs = min($transcurridoMs, $limiteMs);
+
+                // Obtener respuesta_correcta real de la BD (ignorando $hidden)
+                $respuestaCorrectaReal = strtolower(trim((string) $pregunta->getRawOriginal('respuesta_correcta')));
+                $esCorrecta = (!$fueraDeTiempo && $opcion !== null && $opcion === $respuestaCorrectaReal);
+                $puntosGanados = $esCorrecta ? (int) $nivel->puntos_por_acierto : 0;
+
                 RespuestaEquipo::create([
-                    'equipo_id'           => $equipo->id,
+                    'equipo_id'           => $equipoLock->id,
                     'pregunta_id'         => $pregunta->id,
                     'nivel_id'            => $pregunta->nivel_id,
                     'opcion_elegida'      => $opcion,
@@ -272,25 +360,34 @@ class ConcursanteController extends Controller
                 ]);
 
                 // El equipo SIEMPRE avanza en preguntas_contestadas aunque falle
-                Equipo::whereKey($equipo->id)->update([
+                Equipo::whereKey($equipoLock->id)->update([
                     'preguntas_contestadas' => DB::raw('preguntas_contestadas + 1'),
                     'tiempo_acumulado_ms'   => DB::raw('tiempo_acumulado_ms + ' . (int) $tiempoMs),
                     'aciertos_totales'      => DB::raw('aciertos_totales + ' . ($esCorrecta ? 1 : 0)),
                     'puntaje_total'         => DB::raw('puntaje_total + ' . (int) $puntosGanados),
                 ]);
+
+                return [
+                    'status' => 200,
+                    'body'   => [
+                        'procesado'       => true,
+                        'es_correcta'     => $esCorrecta,
+                        'fuera_de_tiempo' => $fueraDeTiempo,
+                        'puntos_sumados'  => $puntosGanados,
+                        'puntaje_total'   => $equipoLock->fresh()->puntaje_total,
+                        'mensaje'         => 'Respuesta registrada.',
+                    ],
+                ];
             });
         } catch (UniqueConstraintViolationException $e) {
             return $this->respuestaDuplicada($equipo);
         }
 
-        return response()->json([
-            'procesado'       => true,
-            'es_correcta'     => $esCorrecta,
-            'fuera_de_tiempo' => $fueraDeTiempo,
-            'puntos_sumados'  => $puntosGanados,
-            'puntaje_total'   => $equipo->fresh()->puntaje_total,
-            'mensaje'         => 'Respuesta registrada.',
-        ]);
+        if (isset($resultado['resync_msg'])) {
+            return $this->respuestaYaRespondidaOResync($resultado['equipo'], $preguntaId, $resultado['resync_msg']);
+        }
+
+        return response()->json($resultado['body'], $resultado['status']);
     }
 
     // Margen para la latencia de red cuando el celular envía justo al agotarse el tiempo
@@ -345,23 +442,28 @@ class ConcursanteController extends Controller
     // Orden pseudoaleatorio por partida, IDÉNTICO para todos los equipos (justicia deportiva)
     private function siguientePregunta(Equipo $equipo, Nivel $nivel, ConfiguracionEvento $config): ?Pregunta
     {
-        $respondidasIds = RespuestaEquipo::where('equipo_id', $equipo->id)->pluck('pregunta_id');
-
-        $query = Pregunta::where('nivel_id', $nivel->id)
-            ->where('activa', true)
-            ->whereNotIn('id', $respondidasIds);
-
-        if ($config->modulo_activo_id) {
-            $query->where('modulo_id', $config->modulo_activo_id);
-        }
-
         if (empty($config->semilla_partida) || $config->semilla_partida === 'seventech_init') {
             $config->update(['semilla_partida' => Str::random(16)]);
         }
 
         $semilla = (string) $config->semilla_partida;
 
-        return $query->orderByRaw('CRC32(CONCAT(id, ?))', [$semilla])->orderBy('id')->first();
+        $query = Pregunta::select('preguntas.*')
+            ->selectRaw('EXISTS(SELECT 1 FROM entregas WHERE entregas.equipo_id = ? AND entregas.pregunta_id = preguntas.id) as ya_entregada', [$equipo->id])
+            ->where('nivel_id', $nivel->id)
+            ->where('activa', true)
+            ->whereNotExists(function ($sub) use ($equipo) {
+                $sub->select(DB::raw(1))
+                    ->from('respuestas_equipos')
+                    ->whereColumn('respuestas_equipos.pregunta_id', 'preguntas.id')
+                    ->where('respuestas_equipos.equipo_id', $equipo->id);
+            });
+
+        if ($config->modulo_activo_id) {
+            $query->where('modulo_id', $config->modulo_activo_id);
+        }
+
+        return $query->orderByRaw('CRC32(CONCAT(preguntas.id, ?))', [$semilla])->orderBy('preguntas.id')->first();
     }
 
     private function respuestaCarreraCompletada(Equipo $equipo, ConfiguracionEvento $config)

@@ -8,10 +8,13 @@ use App\Models\Modulo;
 use App\Models\Nivel;
 use App\Models\Pregunta;
 use App\Models\Equipo;
+use App\Models\Integrante;
 use App\Models\RespuestaEquipo;
 use App\Models\Entrega;
 use App\Models\HistorialEvento;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -101,7 +104,10 @@ class AdminController extends Controller
         if ($nuevoEstado === 'en_curso' && $estadoAnterior === 'registro') {
             $datosActualizar['fin_evento_at'] = now()->addMinutes($minutosTotales);
             $datosActualizar['pausado_at'] = null;
-            $datosActualizar['semilla_partida'] = \Illuminate\Support\Str::random(16);
+            do {
+                $nuevaSemilla = Str::random(16);
+            } while ($nuevaSemilla === $config->semilla_partida);
+            $datosActualizar['semilla_partida'] = $nuevaSemilla;
         } elseif ($nuevoEstado === 'en_curso' && $estadoAnterior === 'pausado' && $config->fin_evento_at && $config->pausado_at) {
             // S3: Al reanudar desde pausa, compensamos los segundos que estuvo pausado
             $segundosEnPausa = max(0, (int) $config->pausado_at->diffInSeconds(now(), false));
@@ -205,34 +211,49 @@ class AdminController extends Controller
         return back()->with('ok', '¡Muerte Súbita activada para los equipos seleccionados!');
     }
 
-   // Reiniciar puntajes y sortear un nuevo grupo aleatorio de preguntas para la siguiente partida
+    // Reiniciar puntajes y sortear un nuevo grupo aleatorio de preguntas para la siguiente partida
     public function reiniciarJuego(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
-        RespuestaEquipo::truncate();
-        Entrega::truncate();
-        if ($request->boolean('borrar_equipos')) {
-            Equipo::query()->delete();
-        } else {
-            Equipo::query()->update([
-                'fase_actual'           => 1,
-                'preguntas_contestadas' => 0,
-                'aciertos_totales'      => 0,
-                'puntaje_total'         => 0,
-                'tiempo_acumulado_ms'   => 0,
-                'en_desempate'          => false,
-                'finalizo_carrera'      => false,
-            ]);
-        }
+        $borrarEquipos = $request->boolean('borrar_equipos');
 
-        ConfiguracionEvento::first()->update([
-            'estado_juego'    => 'registro',
-            'fin_evento_at'   => null,
-            'pausado_at'      => null,
-            // Nueva semilla aleatoria para que en la nueva partida salgan 5 preguntas distintas del banco
-            'semilla_partida' => \Illuminate\Support\Str::random(16),
-        ]);
+        DB::transaction(function () use ($borrarEquipos) {
+            // Orden estricto de locks: primero ConfiguracionEvento
+            $config = ConfiguracionEvento::lockForUpdate()->first();
+
+            do {
+                $nuevaSemilla = Str::random(16);
+            } while ($config && $nuevaSemilla === $config->semilla_partida);
+
+            if ($config) {
+                $config->update([
+                    'estado_juego'    => 'registro',
+                    'fin_evento_at'   => null,
+                    'pausado_at'      => null,
+                    'semilla_partida' => $nuevaSemilla,
+                ]);
+            }
+
+            // Borrado DML transaccional (sin TRUNCATE para evitar commit implícito en MySQL)
+            RespuestaEquipo::query()->delete();
+            Entrega::query()->delete();
+
+            if ($borrarEquipos) {
+                Integrante::query()->delete();
+                Equipo::query()->delete();
+            } else {
+                Equipo::query()->update([
+                    'fase_actual'           => 1,
+                    'preguntas_contestadas' => 0,
+                    'aciertos_totales'      => 0,
+                    'puntaje_total'         => 0,
+                    'tiempo_acumulado_ms'   => 0,
+                    'en_desempate'          => false,
+                    'finalizo_carrera'      => false,
+                ]);
+            }
+        });
 
         return back()->with('ok', 'Sistema reiniciado y nuevas preguntas aleatorias sorteadas.');
     }
