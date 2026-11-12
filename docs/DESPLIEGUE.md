@@ -43,7 +43,7 @@ Se inspeccionaron `app/`, `routes/web.php`, `routes/console.php` y `config/`:
 | **Colas (`queue:work` / Supervisor)** | **NO** | No existen clases en `app/Jobs`, ni llamadas a `dispatch()` o `ShouldQueue`. Todo se procesa en la petición HTTP. |
 | **Cron / Scheduler (`schedule:run`)** | **NO** | [`routes/console.php`](file:///home/vaxer/seventech-trivia/routes/console.php) solo tiene el comando de ejemplo `inspire`. El cierre del reloj global del torneo es perezoso (*lazy evaluation*) dentro de `obtenerEstadoYPregunta` y `enviarRespuesta`. |
 | **Enlace simbólico (`php artisan storage:link`)** | **NO** | El sistema no sube archivos ni imágenes de usuarios (`Storage::disk('public')` no se usa). El logo y el ícono del robot viven directamente en `public/favicon.svg`. |
-| **Servidor de WebSockets (Reverb / Pusher)** | **NO** | El tiempo real funciona mediante HTTP Short Polling (`fetch` cada 1.5 s en espectador y 2 s en celulares). |
+| **Servidor de WebSockets (Reverb / Pusher)** | **NO** | El tiempo real funciona mediante HTTP Short Polling (`fetch` cada 2 s tanto en espectador como en celulares, con timeout de 8 s). |
 
 ---
 
@@ -88,7 +88,9 @@ ADMIN_PASSWORD_HASH='$2y$12$REEMPLAZAR_POR_TU_HASH_BCRYPT'
 ```
 
 > **¿Por qué `SESSION_DRIVER=file` y `CACHE_STORE=file` (o `redis`) en vez de `database`?**  
-> Durante el evento, 30 celulares consultan `/api/estado-juego` cada 2 segundos y el proyector consulta `/api/carrera-en-vivo` cada 1.5 segundos. Con `file` (o `redis`), el estado de sesión y los contadores del *rate limiter* no saturan las tablas de MySQL con escrituras constantes.
+> Durante el evento, 30 celulares consultan `/api/estado-juego` cada 2 segundos y el proyector consulta `/api/carrera-en-vivo` cada 2 segundos (este último sin middleware de sesión `web` ni caché de archivo para evitar bloqueos de E/S en cPanel). Con `file` (o `redis`), el estado de sesión de los concursantes y los contadores del *rate limiter* no saturan las tablas de MySQL con escrituras constantes.
+>
+> **Formato de `ADMIN_PASSWORD_HASH`:** En `.env` debe ir siempre entre **comillas simples** (`ADMIN_PASSWORD_HASH='$2y$12$...'`) para evitar que Dotenv expanda los signos `$` del hash bcrypt como variables vacías. Además, `AdminController::login()` limpia comillas residuales y captura cualquier `RuntimeException` del hasher para evitar errores 500 si el hash estuviera mal formateado.
 
 ---
 
@@ -121,13 +123,21 @@ Comprime el proyecto en un `.zip` (incluyendo `vendor/`, pero **sin** subir tu `
      ```text
      /home/tu_usuario/seventech-trivia/public
      ```
-- **Si es el dominio principal y cPanel te obliga a usar `public_html`:**
+- **Si el dominio o subdominio apunta a la raíz del proyecto en cPanel (sin cambiar el Document Root ni usar symlink):**
+  1. El repositorio incluye un archivo [`.htaccess`](file:///home/vaxer/seventech-trivia/.htaccess) en la raíz que:
+     - Bloquea con `403 Forbidden` cualquier acceso directo a `.env`, `.git`, `composer.json`, `composer.lock`, `package.json`, `phpunit.xml`, `artisan` y archivos `.sql`/`.zip`/`.md`/`.log`.
+     - Redirige de forma transparente todas las peticiones hacia `public/`.
+- **Si es el dominio principal y prefieres usar un enlace simbólico en `public_html`:**
   1. Sube todo el proyecto a `/home/tu_usuario/seventech-trivia`.
-  2.Si tienes acceso SSH, reemplaza `public_html` por un enlace simbólico:
+  2. Si tienes acceso SSH, reemplaza `public_html` por un enlace simbólico:
      ```bash
      rm -rf ~/public_html
      ln -s ~/seventech-trivia/public ~/public_html
      ```
+
+### Notas Críticas de Proxy Inverso / HTTPS en cPanel
+- **Confianza en proxies (`trustProxies`):** [`bootstrap/app.php`](file:///home/vaxer/seventech-trivia/bootstrap/app.php) configura `$middleware->trustProxies(at: '*')` para que Laravel reconozca el esquema HTTPS detrás del proxy SSL de cPanel/Apache.
+- **Rutas relativas en formularios (`/admin`):** Todos los formularios del panel de administración ([`resources/views/admin/index.blade.php`](file:///home/vaxer/seventech-trivia/resources/views/admin/index.blade.php)) usan rutas relativas (`/admin/login`, `/admin/configuracion`, etc.) en lugar de `route()` absolutas, evitando que una redirección `http -> https` (`301/302`) convierta peticiones `POST` en `GET` y provoque el error `405 Method Not Allowed`.
 
 ### Paso 4: Configurar `.env`, Permisos y Caché
 1. En el Administrador de Archivos de cPanel (en `/home/tu_usuario/seventech-trivia`), copia `.env.example` a `.env` y edítalo con los valores de la **Sección 3**.
@@ -259,7 +269,7 @@ sudo certbot --nginx -d trivia.tudominio.com
 1. **Portal y Espectador:**
    - Abre `https://tu-dominio.com/espectador` en la pantalla gigante.
    - Verifica que el código QR se dibuja correctamente y que el texto junto al QR muestra `https://tu-dominio.com/jugar` (nunca `localhost`).
-   - En las DevTools del navegador (`F12` → Red), inspecciona `GET /api/carrera-en-vivo`: debe responder `200 OK` cada ~1.5 s y el JSON `evento` **no** debe incluir `semilla_partida`.
+   - En las DevTools del navegador (`F12` → Red), inspecciona `GET /api/carrera-en-vivo`: debe responder `200 OK` cada ~2 s y el JSON `evento` **no** debe incluir `semilla_partida`.
 2. **Panel de Administración (`/admin`):**
    - Abre `https://tu-dominio.com/admin`.
    - Comprueba que la sección **"6. Zona de Pruebas y Simulador"** **no aparece** (porque `APP_ENV=production`).

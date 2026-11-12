@@ -74,21 +74,23 @@ En lugar de usar **WebSockets** (que requieren mantener decenas de conexiones TC
 
 1. **En el celular del concursante (`/jugar`)**:
    - Una vez que termina una petición a `GET /api/estado-juego`, espera **2 segundos** (`setTimeout`) antes de lanzar la siguiente.
-   - Cada petición tiene un tiempo máximo de espera de **5 segundos** (`AbortController`). Si la red del auditorio se pone lenta, **no se acumulan peticiones encimadas**, y si falla aplica *backoff* (espera 4 s, 6 s, hasta 8 s) mostrando un banner de reconexión.
+   - Cada petición tiene un tiempo máximo de espera de **8 segundos** (`AbortController`). Si la red del auditorio se pone lenta, **no se acumulan peticiones encimadas**, aplica *backoff* ante fallos de red y solo muestra el banner de reconexión tras **5 fallos consecutivos** (~15 s), ignorando abortos intencionales al recargar o navegar (`beforeunload`).
 2. **En la pantalla gigante (`/espectador`)**:
-   - Consulta `GET /api/carrera-en-vivo` cada **1.5 segundos** tras completar la petición anterior, moviendo suavemente los robots con transiciones CSS de 700–800 ms.
+   - Consulta `GET /api/carrera-en-vivo` esperando **2 segundos** tras completar la petición anterior, con timeout de **8 segundos** (`AbortController`), moviendo suavemente los robots con transiciones CSS de 700–800 ms.
+   - El banner rojo de reconexión solo se activa si ocurren **6 fallos consecutivos**, e ignora abortos intencionales durante `beforeunload`.
+   - Además, la ruta `GET /api/carrera-en-vivo` se sirve con `->withoutMiddleware('web')` en [`routes/web.php`](file:///home/vaxer/seventech-trivia/routes/web.php) (endpoint JSON público sin lectura/escritura de sesión ni bloqueo de archivo de sesión).
 
 **Ventaja para despliegues académicos o en hosting compartido:** funciona en cualquier servidor PHP estándar (Apache/Nginx/cPanel) sin demonios en segundo plano ni puertos extra.
 
 ---
 
-## 6. Sesiones, Caché y Rate Limiting en Wi-Fi Compartido
+## 6. Sesiones, Consulta Directa sin Caché de Archivo y Rate Limiting en Wi-Fi Compartido
 
 - **Sesiones (`config/session.php`)**:
   - Cuando un equipo se registra o recupera su cuenta con su PIN de 4 dígitos, el servidor regenera el ID de sesión (`$request->session()->regenerate()`) y guarda `equipo_token` en la sesión del servidor. El navegador solo guarda la cookie encriptada `laravel_session`.
   - Así, **ningún endpoint recibe `equipo_id` desde el celular**: el servidor identifica al equipo exclusivamente por su sesión segura.
-- **Micro-Caché (`EspectadorController`)**:
-  - `GET /api/carrera-en-vivo` envuelve el cálculo de posiciones en `Cache::remember('carrera_en_vivo', 1, ...)`. Si el proyector y varios espectadores abren `/espectador` al mismo tiempo, MySQL solo ejecuta la consulta una vez por segundo.
+- **Telemetría sin bloqueo de sesión ni caché de archivo (`EspectadorController`)**:
+  - `GET /api/carrera-en-vivo` consulta MySQL directamente (< 1 ms para ≤ 30 equipos) y prescinde tanto del middleware `web` (`->withoutMiddleware('web')`) como de `Cache::remember` sobre sistema de archivos. Esto evita bloqueos de archivo (*file locks*) y respuestas vacías o errores 500 intermitentes en discos compartidos de cPanel (la caché en memoria con Redis se evaluará en el Bloque 8 para VPS).
 - **Rate Limiting por Equipo/Sesión ([`AppServiceProvider.php`](file:///home/vaxer/seventech-trivia/app/Providers/AppServiceProvider.php))**:
   - En un auditorio, todos los celulares salen a internet con la **misma dirección IP pública** del router Wi-Fi (NAT). Si el límite fuera por IP, un solo equipo bloquearía a todo el auditorio.
   - Por eso los limitadores (`juego-estado`, `juego-respuesta`, `registro`) crean cubetas **por token de equipo o ID de sesión**, dejando un techo global muy alto por IP (3000–6000 req/min).
