@@ -20,7 +20,8 @@
 - **Flujo de ramas y commits:** Trabajar sobre la rama `desarrollo` creando ramas por bloque (`bloque-X-...` desde `desarrollo`). Commits pequeños con mensajes descriptivos. Prohibido hacer `push` o `merge` a `main` sin orden explícita del usuario.
 - **Base de datos de pruebas:** Ejecutar tests **exclusivamente** contra `seventech_trivia_test` (protegido por `tests/TestCase.php`). Nunca ejecutar pruebas ni comandos destructivos contra `seventech_trivia`.
 - **Seguridad de archivos y secretos:** Prohibido borrar archivos sin listarlos antes y recibir confirmación explícita del usuario. No leer ni modificar `.env` ni subir secretos al repositorio. No modificar `composer.json` ni `composer.lock` sin aviso previo.
-- **Stack inmutable:** Mantener Laravel 13 (`PHP ^8.3`), MySQL 8, vistas Blade + Tailwind por CDN + JavaScript Vanilla con HTTP Short Polling (sin introducir React ni otros frameworks SPA).
+- **Stack inmutable:** Mantener Laravel 13 (`PHP ^8.3`), MySQL 8, Redis (en VPS dedicado), vistas Blade + Tailwind por CDN + JavaScript Vanilla con HTTP Short Polling (sin introducir React ni otros frameworks SPA).
+- **Seguridad VPS y Producción:** En `APP_ENV=production`, `AdminController::login()` exige bcrypt en `ADMIN_PASSWORD_HASH` (cero fallback en texto plano) y `TRUSTED_PROXIES` limita los proxies confiables (`127.0.0.1` por defecto). Guía operativa en `docs/DESPLIEGUE_VPS.md`.
 - **Documentación viva:** Al finalizar cada bloque, entregar reporte de archivos modificados, resultado de tests, riesgos abiertos y actualizar `docs/ESTADO.md`.
 
 

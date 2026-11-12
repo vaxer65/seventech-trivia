@@ -2,9 +2,9 @@
 
 ## 1. Estado Actual
 
-- **Rama activa:** `bloque-7-calculadora-tiempo` (creada desde `desarrollo` tras integrar `bloque-6-qr-movil`).
-- **Entorno en producción objetivo:** **Servidor dedicado / VPS propio** (Nginx + PHP-FPM 8.3 + MySQL 8 + Redis; se descarta cPanel para el despliegue final).
-- **Suite de pruebas:** **39 tests pasando (1,339 aserciones)** contra `seventech_trivia_test`:
+- **Rama activa:** `bloque-8-vps-concurrencia` (creada desde `desarrollo` tras integrar `bloque-7-calculadora-tiempo`; **Bloques 0 al 8 100% Completados**).
+- **Entorno en producción objetivo:** **Servidor dedicado / VPS propio** (Ubuntu 24.04 + Nginx + PHP-FPM 8.3 + MySQL 8 + Redis; guía en [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md); se descarta cPanel).
+- **Suite de pruebas:** **42 tests pasando (4,422 aserciones)** contra `seventech_trivia_test`:
   - `Tests\Unit\ExampleTest` (1 test)
   - `Tests\Feature\ExampleTest` (1 test)
   - `Tests\Feature\Bloque1SeguridadTest` (10 tests: ocultación de respuesta correcta, rechazo de pregunta no asignada `409`, mismo orden por `semilla_partida`, tiempo medido en servidor, idempotencia `UNIQUE(equipo_id, pregunta_id)`, sesión por cookie sin `equipo_id` en request, límite 2–5 integrantes, `rate limiting` del PIN `429`, protección de `/admin/*` incluyendo `/admin/preguntas/importar`, y regeneración de `semilla_partida`).
@@ -15,6 +15,7 @@
   - `Tests\Feature\Bloque5RachasTest` (4 tests: cálculo atómico de `racha_actual` y `racha_maxima` ante aciertos, errores, tiempo agotado y pérdida de racha `racha_perdida` desde `>= 3`; ruptura de racha al salir de pestaña; exposición de rachas reales en `/api/espectador/datos` y reinicio a `0` con `borrar_equipos = false`; y manejo amigable de `TokenMismatchException` `419` en `/admin/*`).
   - `Tests\Feature\Bloque6QrMovilTest` (5 tests: resolución automática de IP LAN en `EspectadorController` filtrando interfaces virtuales para `/jugar?registro=1`, aviso en `localhost` sin LAN, origen real en producción sin aviso, activación automática de pestaña Nuevo Equipo con `?registro=1` + controles táctiles `min-h-[48px]` / `text-base`, y conservación de disuasivos y escudo Anti-IA).
   - `Tests\Feature\Bloque7CalculadoraTiempoTest` (4 tests: renderizado SSR del estimador y semáforo Verde, cambios a Rojo y Ámbar con duraciones cortas, fórmula exacta `60% + 2s` / `100% + 2s` + colchón de 2 preguntas de Muerte Súbita con autoguardado JSON hasta `600` min, y respeto del candado `en_curso` en `#btn-aplicar-tiempo-recomendado`).
+  - `Tests\Feature\Bloque8VpsConcurrenciaTest` (3 tests: rechazo estricto de texto plano y exigencia de bcrypt en `AdminController::login()` bajo `APP_ENV=production`, simulación integral de 45 equipos concurrentes en las 3 etapas normales + Muerte Súbita verificando puntajes/rachas/cero duplicados/ranking, y cumplimiento de presupuesto `≤ 7 queries` en `/api/estado-juego` y `≤ 4 queries` en `/api/carrera-en-vivo`).
 
 ---
 
@@ -28,7 +29,7 @@
 - [x] **Bloque 5 (`bloque-5-rachas`) — Completado:** Sistema real de rachas consecutivas en base de datos (`racha_actual`, `racha_maxima` en `equipos`), cálculo atómico en servidor (`enviarRespuesta`, `reportarSalidaPantalla`, `simularAvanceCarrera` y `reiniciarJuego`), visualización en vivo en `/espectador` (`🔥 RACHA xN` y `🏅 Racha máx`), banner móvil y avisos de racha perdida en `/jugar`, y manejo amigable de `TokenMismatchException` (`419`) en `/admin/*`.
 - [x] **Bloque 6 (`bloque-6-qr-movil`) — Completado:** QR dinámico en `/espectador` apuntando a `/jugar?registro=1` con detección automática de IPv4 LAN física en servidor local (ignorando `lo`, `docker`, `virbr`, `veth`, `br-`, `tun`, `tap`, `vmnet`) y uso directo del origen real en producción; activación automática de pestaña *Nuevo Equipo* con `?registro=1`; ajustes responsive `320px+` (`min-h-[48px]`, `text-base` en inputs, `truncate` en cabecera móvil); y documentación realista del escudo Anti-IA en [`docs/STACK.md`](file:///home/vaxer/seventech-trivia/docs/STACK.md).
 - [x] **Bloque 7 (`bloque-7-calculadora-tiempo`) — Completado:** Estimador/calculadora inteligente de duración del torneo en `/admin` con cálculo SSR en `AdminController::calcularEstimacionDuracion()` y actualización instantánea (`0 ms` en evento `input`), desglose por etapa normal (render seguro vía DOM API), ritmo promedio (`60% + 2s`), máximo teórico (`100% + 2s`), tiempo recomendado con colchón de 2 preguntas de Muerte Súbita, semáforo Rojo/Ámbar/Verde, botón `#btn-aplicar-tiempo-recomendado` conectado al autoguardado y validación ampliada hasta `600` min.
-- [ ] **Bloque 8 — Pendiente:** Optimización final para alta concurrencia, caché con Redis, endurecimiento de seguridad (`trustProxies`, retiro de fallback en texto plano en login admin) y guía/preparación de despliegue en VPS.
+- [x] **Bloque 8 (`bloque-8-vps-concurrencia`) — Completado:** Hardening de `AdminController::login()` (solo bcrypt en `APP_ENV=production`), configuración dinámica de `TRUSTED_PROXIES` (`127.0.0.1` por defecto compatible con `config:cache`), ampliación de techos NAT Wi-Fi (`10000/min` y `5000/min`), plantilla `.env.example` orientada a VPS con Redis, índices de rendimiento (`equipos_ranking_idx` y `preguntas_modulo_nivel_activa_amena_idx`), prueba de carga automatizada con 45 equipos concurrentes (`Bloque8VpsConcurrenciaTest`) y guía completa de despliegue [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md).
 
 ---
 
@@ -51,17 +52,17 @@
    - **Admin:** autoguardado con notificaciones *toast*. Por defecto la configuración solo es editable en estados `registro` y `finalizado`; mientras esté `en_curso`, `pausado` o `desempate`, se bloquean módulo activo, duración global, puntos/segundos por etapa y el banco de preguntas.
 5. **Bloque 5 (Regla de Racha):**
    - La racha de aciertos consecutivos se rompe ante cualquiera de estos 3 eventos: **respuesta incorrecta**, **tiempo agotado** o **bloqueo por salir de la pestaña**.
-6. **Bloque 8 (Infraestructura Final):**
-   - Se abordará al final del proyecto; proveedor y dimensionamiento del VPS aún por definir.
+6. **Bloque 8 (Infraestructura Final en VPS Dedicado — Implementado):**
+   - Despliegue definitivo en **VPS Ubuntu 24.04 + Nginx + PHP 8.3-FPM + MySQL 8 + Redis + Certbot**, con sesiones y caché en Redis, índices de rendimiento en BD, `TRUSTED_PROXIES=127.0.0.1` y autenticación admin estrictamente por bcrypt en producción.
 
 ---
 
-## 4. Correcciones de Producción que NO Deben Revertirse
+## 4. Correcciones Críticas que NO Deben Revertirse
 
-1. **`GET /api/carrera-en-vivo` sin caché de archivo ni sesión:** mantener sin `Cache::remember` en [`EspectadorController.php`](file:///home/vaxer/seventech-trivia/app/Http/Controllers/EspectadorController.php) y con `->withoutMiddleware('web')` en [`routes/web.php`](file:///home/vaxer/seventech-trivia/routes/web.php) hasta el Bloque 8 (Redis).
-2. **`.htaccess` en la raíz del proyecto:** conservar [`.htaccess`](file:///home/vaxer/seventech-trivia/.htaccess) (protege `.env`, `.git`, `artisan`, `.sql`, `.zip` y redirige a `public/`).
-3. **Rutas relativas en `/admin` y `trustProxies`:** mantener `action="/admin/..."` relativos en [`resources/views/admin/index.blade.php`](file:///home/vaxer/seventech-trivia/resources/views/admin/index.blade.php) y `$middleware->trustProxies(at: '*')` en [`bootstrap/app.php`](file:///home/vaxer/seventech-trivia/bootstrap/app.php).
-4. **Robustez de `AdminController::login()`:** mantener limpieza de comillas (`trim(..., "'\"")`) y `try/catch` alrededor de `Hash::check`.
+1. **`GET /api/carrera-en-vivo` optimizado (`≤ 4 queries`) y sin sesión `web`:** mantener `->withoutMiddleware('web')` en [`routes/web.php`](file:///home/vaxer/seventech-trivia/routes/web.php) y el índice `equipos_ranking_idx` en `equipos`.
+2. **`.htaccess` en la raíz del proyecto:** conservar [`.htaccess`](file:///home/vaxer/seventech-trivia/.htaccess) como resguardo si algún entorno usa Apache (Nginx en VPS apunta directamente a `/public` siguiendo [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md)).
+3. **Rutas relativas en `/admin` y `TRUSTED_PROXIES`:** mantener `action="/admin/..."` relativos en [`resources/views/admin/index.blade.php`](file:///home/vaxer/seventech-trivia/resources/views/admin/index.blade.php) y resolución desde `config('app.trusted_proxies', '127.0.0.1')` en [`bootstrap/app.php`](file:///home/vaxer/seventech-trivia/bootstrap/app.php) y [`AppServiceProvider.php`](file:///home/vaxer/seventech-trivia/app/Providers/AppServiceProvider.php).
+4. **Hardening de `AdminController::login()`:** mantener limpieza de comillas (`trim(..., "'\"")`), `try/catch` alrededor de `Hash::check` y rechazo absoluto de texto plano cuando `app()->isProduction()`.
 5. **Tolerancia del Polling HTTP:** mantener intervalos de `2000 ms`, `AbortController` de `8000 ms`, umbral de **6 fallos seguidos** en espectador y **5 fallos seguidos** en móvil, e ignorar abortos durante `beforeunload`.
 6. **Reinicio atómico sin `TRUNCATE` y con `lockForUpdate()` (Bloque 1):** mantener `query()->delete()` y orden estricto de locks (`ConfiguracionEvento` → `Equipo`) en [`AdminController.php`](file:///home/vaxer/seventech-trivia/app/Http/Controllers/AdminController.php) y [`ConcursanteController.php`](file:///home/vaxer/seventech-trivia/app/Http/Controllers/ConcursanteController.php).
 7. **Sorteo uniforme `CRC32(SHA2(...))` y barajado determinista opaco de opciones (Bloque 2):** mantener en [`ConcursanteController.php`](file:///home/vaxer/seventech-trivia/app/Http/Controllers/ConcursanteController.php) y [`AdminController.php`](file:///home/vaxer/seventech-trivia/app/Http/Controllers/AdminController.php).
@@ -77,12 +78,12 @@
 
 ---
 
-## 6. Riesgos Abiertos y Deuda Técnica Identificada
+## 6. Riesgos Abiertos y Consideraciones Operativas Pre-Torneo
 
-1. **Fallback en texto plano en `AdminController::login()` (revisar en Bloque 8):**
-   - Actualmente el método `login()` permite `hash_equals` si `ADMIN_PASSWORD_HASH` no empieza con `$2`. En el Bloque 8 se evaluará exigir exclusivamente bcrypt válido.
-2. **Rotación opcional de `APP_KEY` en cPanel:**
-   - Si el servidor de producción usa la clave inicial de ejemplo, es recomendable rotarla antes del evento definitivo con `php artisan key:generate --force`.
+1. **Verificación visual y QR en red real previa al evento:**
+   - Los flujos de móvil (`320px+`), calculadora en `/admin` y carga de 45 equipos están cubiertos por las pruebas automatizadas; antes del torneo en el VPS definitivo conviene validar una vez el escaneo real del QR HTTPS desde un teléfono en el Wi-Fi del auditorio.
+2. **Configuración de producción en VPS:**
+   - Generar `APP_KEY` propio y un `ADMIN_PASSWORD_HASH` bcrypt fresco entre comillas simples (`'...'`), habilitar `SESSION_DRIVER=redis` y `CACHE_STORE=redis`, y seguir el checklist completo de [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md).
 
 ---
 
@@ -103,4 +104,4 @@ git status
 
 ## 8. Próximo Paso
 
-- **Integrar `bloque-7-calculadora-tiempo` en `desarrollo` e iniciar el Bloque 8:** optimización para alta concurrencia, caché con Redis, endurecimiento de seguridad (`trustProxies`, retiro de fallback en texto plano en login admin) y guía/preparación de despliegue en **servidor dedicado / VPS propio** (Nginx + PHP-FPM 8.3 + MySQL 8 + Redis).
+- **Proyecto completado al 100% (Bloques 0 al 8) en ramas de desarrollo.** Cuando desees liberar a producción en el VPS dedicado: revisar e integrar `bloque-8-vps-concurrencia` → `desarrollo` → `main` bajo tu autorización explícita y seguir [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md).

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -22,7 +23,26 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configurarTrustedProxies();
         $this->configurarRateLimiting();
+    }
+
+    /**
+     * Aplica proxies confiables desde config() (compatible con config:cache en VPS).
+     */
+    private function configurarTrustedProxies(): void
+    {
+        $proxiesConfig = trim((string) config('app.trusted_proxies', '127.0.0.1'));
+        if ($proxiesConfig === '*') {
+            TrustProxies::at('*');
+            return;
+        }
+        if ($proxiesConfig === '') {
+            TrustProxies::at([]);
+            return;
+        }
+        $proxies = array_values(array_filter(array_map('trim', explode(',', $proxiesConfig)), fn ($ip) => $ip !== ''));
+        TrustProxies::at($proxies);
     }
 
     /**
@@ -36,16 +56,16 @@ class AppServiceProvider extends ServiceProvider
             return $token ? 'eq:' . hash('sha256', $token) : 'ses:' . $request->session()->getId();
         };
 
-        // Consulta de estado: el celular consulta cada ~2 s (30/min) + reintentos
+        // Consulta de estado: el celular consulta cada ~2 s (30/min) + reintentos (hasta 100+ equipos por IP Wi-Fi)
         RateLimiter::for('juego-estado', fn (Request $r) => [
             Limit::perMinute(90)->by('estado:' . $clavePorEquipo($r)),
-            Limit::perMinute(6000)->by('estado-ip:' . $r->ip()),
+            Limit::perMinute(10000)->by('estado-ip:' . $r->ip()),
         ]);
 
         // Envío de respuestas: como máximo una por pregunta, con margen para reintentos
         RateLimiter::for('juego-respuesta', fn (Request $r) => [
             Limit::perMinute(40)->by('resp:' . $clavePorEquipo($r)),
-            Limit::perMinute(3000)->by('resp-ip:' . $r->ip()),
+            Limit::perMinute(5000)->by('resp-ip:' . $r->ip()),
         ]);
 
         // Registro de equipos

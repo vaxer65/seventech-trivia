@@ -45,8 +45,8 @@ Toda la información persistente vive en **MySQL** (definida en [`database/migra
 
 1. `configuracion_eventos`: guarda una única fila con el estado actual del torneo, el módulo activo (`null` por defecto para el modo multitemático *"🌐 Todos los Módulos"*), la duración global en minutos, la marca de tiempo `fin_evento_at`, `pausado_at` y la `semilla_partida`.
 2. `modulos` y `niveles`: permiten escalar las **10 categorías tecnológicas** y las 4 etapas (Etapa 1, Etapa 2, Etapa 3 y Muerte Súbita) con distintos puntos y segundos límite por pregunta.
-3. `preguntas`: banco exhaustivo de **360 preguntas originales** con 4 opciones (`a`, `b`, `c`, `d`), su `respuesta_correcta` (balanceada exactamente al 25%: 90 por letra) y la bandera booleana `es_amena` (45 preguntas amenas/curiosas de cultura geek para garantizar exactamente 1 pregunta amena por etapa normal y el resto técnicas). Soporta importación masiva CSV/JSON con deduplicación desde `/admin`.
-4. `equipos` e `integrantes`: datos del equipo, su `token_sesion` de 60 caracteres, su `pin_recuperacion` de 4 dígitos, contador de incidentes `salidas_pantalla`, rachas competitivas (`racha_actual`, `racha_maxima`) y contadores acumulados (`puntaje_total`, `aciertos_totales`, `preguntas_contestadas`, `tiempo_acumulado_ms`).
+3. `preguntas`: banco exhaustivo de **360 preguntas originales** con 4 opciones (`a`, `b`, `c`, `d`), su `respuesta_correcta` (balanceada exactamente al 25%: 90 por letra) y la bandera booleana `es_amena` (45 preguntas amenas/curiosas de cultura geek para garantizar exactamente 1 pregunta amena por etapa normal y el resto técnicas), además de índice compuesto `preguntas_modulo_nivel_activa_amena_idx` para filtrado rápido por módulo. Soporta importación masiva CSV/JSON con deduplicación desde `/admin`.
+4. `equipos` e `integrantes`: datos del equipo, su `token_sesion` de 60 caracteres, su `pin_recuperacion` de 4 dígitos, contador de incidentes `salidas_pantalla`, rachas competitivas (`racha_actual`, `racha_maxima`), contadores acumulados (`puntaje_total`, `aciertos_totales`, `preguntas_contestadas`, `tiempo_acumulado_ms`) e índice compuesto `equipos_ranking_idx` (`puntaje_total`, `aciertos_totales`, `tiempo_acumulado_ms`) para ordenar la pista y el podio en sub-milisegundos.
 5. `entregas`: registra el instante exacto con precisión de milisegundos (`TIMESTAMP(3)`) en que el servidor entregó por primera vez cada pregunta a cada equipo.
 6. `respuestas_equipos`: historial de cada respuesta enviada (o anulada por salida de pestaña con `bloqueada_por_salida = true`), con restricción única `UNIQUE(equipo_id, pregunta_id)` para que sea físicamente imposible puntuar o penalizar dos veces la misma pregunta.
 7. `historial_eventos`: guarda en columnas `JSON` el podio Top 3 y la tabla final de ediciones pasadas.
@@ -80,20 +80,24 @@ En lugar de usar **WebSockets** (que requieren mantener decenas de conexiones TC
    - El banner rojo de reconexión solo se activa si ocurren **6 fallos consecutivos**, e ignora abortos intencionales durante `beforeunload`.
    - Además, la ruta `GET /api/carrera-en-vivo` se sirve con `->withoutMiddleware('web')` en [`routes/web.php`](file:///home/vaxer/seventech-trivia/routes/web.php) (endpoint JSON público sin lectura/escritura de sesión ni bloqueo de archivo de sesión).
 
-**Arquitectura de despliegue objetivo (Bloque 8):** el despliegue final del torneo se realizará en un **servidor dedicado / VPS propio** (Nginx + PHP-FPM 8.3 + MySQL 8 + Redis), descartando hosting compartido / cPanel. La arquitectura sin demonios extra sigue facilitando además pruebas rápidas en red local (`php artisan serve --host=0.0.0.0 --port=8000`).
+**Arquitectura de despliegue objetivo (Bloque 8 completado):** el despliegue final del torneo se realiza en un **servidor dedicado / VPS propio (Ubuntu 24.04 + Nginx + PHP-FPM 8.3 + MySQL 8 + Redis)** siguiendo [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md), descartando hosting compartido / cPanel. La arquitectura sin demonios extra sigue facilitando además pruebas rápidas en red local (`php artisan serve --host=0.0.0.0 --port=8000`).
 
 ---
 
-## 6. Sesiones, Consulta Directa sin Caché de Archivo y Rate Limiting en Wi-Fi Compartido
+## 6. Sesiones, Redis, Proxies Confiables y Rate Limiting en Wi-Fi Compartido
 
-- **Sesiones (`config/session.php`)**:
+- **Sesiones y Caché (`config/session.php`, `.env.example`)**:
   - Cuando un equipo se registra o recupera su cuenta con su PIN de 4 dígitos, el servidor regenera el ID de sesión (`$request->session()->regenerate()`) y guarda `equipo_token` en la sesión del servidor. El navegador solo guarda la cookie encriptada `laravel_session`.
+  - En VPS se recomienda `SESSION_DRIVER=redis` y `CACHE_STORE=redis` (via `phpredis`), eliminando cualquier contención de disco en archivos de sesión con 45–100+ equipos simultáneos.
   - Así, **ningún endpoint recibe `equipo_id` desde el celular**: el servidor identifica al equipo exclusivamente por su sesión segura.
-- **Telemetría sin bloqueo de sesión ni caché de archivo (`EspectadorController`)**:
-  - `GET /api/carrera-en-vivo` consulta MySQL directamente (< 1 ms para ≤ 30 equipos) y prescinde tanto del middleware `web` (`->withoutMiddleware('web')`) como de `Cache::remember` sobre sistema de archivos. Esto evita bloqueos de archivo (*file locks*) y respuestas vacías o errores 500 intermitentes en discos compartidos de cPanel (la caché en memoria con Redis se evaluará en el Bloque 8 para VPS).
+- **Telemetría optimizada (`EspectadorController`)**:
+  - `GET /api/carrera-en-vivo` ejecuta ≤ 4 consultas directas a MySQL (< 1 ms respaldada por `equipos_ranking_idx`) y prescinde del middleware `web` (`->withoutMiddleware('web')`), evitando lectura/escritura innecesaria de sesión desde la pantalla gigante.
+- **Proxies confiables y Login Admin endurecido (`bootstrap/app.php`, `AdminController::login`)**:
+  - `config('app.trusted_proxies')` (`TRUSTED_PROXIES=127.0.0.1` por defecto) evita confiar en cabeceras `X-Forwarded-For` arbitrarias cuando Nginx actúa como proxy inverso local.
+  - En producción (`APP_ENV=production`), `AdminController::login()` exige estrictamente un hash bcrypt válido (`$2y$`/`$2b$`/`$2a$`) en `ADMIN_PASSWORD_HASH` mediante `Hash::check()`, rechazando cualquier contraseña en texto plano.
 - **Rate Limiting por Equipo/Sesión ([`AppServiceProvider.php`](file:///home/vaxer/seventech-trivia/app/Providers/AppServiceProvider.php))**:
   - En un auditorio, todos los celulares salen a internet con la **misma dirección IP pública** del router Wi-Fi (NAT). Si el límite fuera por IP, un solo equipo bloquearía a todo el auditorio.
-  - Por eso los limitadores (`juego-estado`, `juego-respuesta`, `registro`) crean cubetas **por token de equipo o ID de sesión**, dejando un techo global muy alto por IP (3000–6000 req/min).
+  - Por eso los limitadores (`juego-estado`, `juego-respuesta`, `registro`) crean cubetas **por token de equipo o ID de sesión**, ampliando los techos globales por IP a `10000 req/min` (`juego-estado`) y `5000 req/min` (`juego-respuesta`) para soportar 45–100+ equipos concurrentes sin falsos `429`.
   - Para el PIN de recuperación (`throttle:pin`), el límite es de **5 intentos por minuto y 20 por hora por cada nombre de equipo objetivo**, impidiendo adivinar el PIN de 4 dígitos por fuerza bruta.
 
 ---

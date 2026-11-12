@@ -75,6 +75,12 @@ return [
     'admin_password_hash' => env('ADMIN_PASSWORD_HASH', ''),
 
     /*
+    | Proxies confiables detrás de Nginx/Balanceador en VPS (por defecto loopback 127.0.0.1).
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES', '127.0.0.1'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------

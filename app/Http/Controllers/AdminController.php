@@ -118,15 +118,21 @@ class AdminController extends Controller
     {
         $hash = trim((string) config('app.admin_password_hash'), " \t\n\r\0\x0B'\"");
         $password = (string) $request->input('password');
+        $esBcrypt = str_starts_with($hash, '$2y$')
+            || str_starts_with($hash, '$2b$')
+            || str_starts_with($hash, '$2a$');
 
         $valido = false;
         if ($hash !== '') {
-            try {
-                $valido = str_starts_with($hash, '$2')
-                    ? Hash::check($password, $hash)
-                    : hash_equals($hash, $password);
-            } catch (\Throwable $e) {
-                $valido = false;
+            if ($esBcrypt) {
+                try {
+                    $valido = Hash::check($password, $hash);
+                } catch (\Throwable $e) {
+                    $valido = false;
+                }
+            } elseif (app()->environment(['local', 'testing'])) {
+                // Solo para compatibilidad controlada en local/testing; en producción exige bcrypt
+                $valido = hash_equals($hash, $password);
             }
         }
 

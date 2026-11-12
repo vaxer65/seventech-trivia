@@ -12,7 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustProxies(at: '*');
+        $proxiesRaw = trim((string) env('TRUSTED_PROXIES', '127.0.0.1'));
+        if ($proxiesRaw === '*') {
+            $middleware->trustProxies(at: '*');
+        } elseif ($proxiesRaw !== '') {
+            $proxies = array_values(array_filter(array_map('trim', explode(',', $proxiesRaw)), fn ($ip) => $ip !== ''));
+            if (!empty($proxies)) {
+                $middleware->trustProxies(at: $proxies);
+            }
+        }
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
         ]);
