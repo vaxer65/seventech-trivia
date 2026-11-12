@@ -35,27 +35,27 @@
     </div>
 
     <!-- CABECERA DEL CONCURSANTE -->
-    <header class="w-full max-w-lg mx-auto neon-border rounded-2xl p-3.5 flex items-center justify-between bg-[#0F2342]/90">
-        <a href="/" title="Volver al Portal Principal" class="flex items-center gap-3 hover:opacity-90 transition">
-            <img src="/favicon.svg" alt="Seven Tech" class="w-10 h-10 rounded-xl border border-[#00E5FF]">
+    <header class="w-full max-w-lg mx-auto neon-border rounded-2xl p-3 sm:p-3.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 bg-[#0F2342]/90">
+        <a href="/" title="Volver al Portal Principal" class="flex items-center gap-2.5 sm:gap-3 hover:opacity-90 transition min-w-0 shrink-0">
+            <img src="/favicon.svg" alt="Seven Tech" class="w-10 h-10 rounded-xl border border-[#00E5FF] shrink-0">
             <div>
-                <h1 class="cyber-title text-lg sm:text-xl leading-none">SEVEN TECH</h1>
+                <h1 class="cyber-title text-base sm:text-xl leading-none">SEVEN TECH</h1>
                 <p class="font-orbitron text-[10px] text-slate-300 mt-1">Seven Tech Trivia 2026</p>
             </div>
         </a>
 
         <!-- Información del equipo activo + Reloj Global + Botón Salir -->
-        <div id="info-equipo-header" class="hidden flex items-center gap-2">
-            <div class="text-center bg-[#07101E] px-2.5 py-1 rounded-lg border border-slate-700">
+        <div id="info-equipo-header" class="hidden flex items-center gap-1.5 sm:gap-2 min-w-0 ml-auto">
+            <div class="text-center bg-[#07101E] px-2 sm:px-2.5 py-1 rounded-lg border border-slate-700 shrink-0">
                 <span class="font-orbitron block text-[8px] text-slate-400 uppercase">Torneo</span>
                 <span id="reloj-global-movil" class="font-orbitron text-xs font-bold text-amber-400">--:--</span>
             </div>
-            <div class="text-right bg-[#07101E] px-3 py-1 rounded-lg border border-[#00E5FF]/40">
-                <p id="header-nombre-equipo" class="text-xs font-bold text-white leading-tight"></p>
+            <div class="text-right bg-[#07101E] px-2.5 sm:px-3 py-1 rounded-lg border border-[#00E5FF]/40 min-w-0">
+                <p id="header-nombre-equipo" class="text-xs font-bold text-white leading-tight truncate max-w-[105px] sm:max-w-[180px]"></p>
                 <p id="header-puntaje" class="font-orbitron text-xs text-[#00E5FF] font-bold">0 PTS</p>
             </div>
             <button type="button" onclick="cerrarSesionEquipo()" title="Salir del Equipo"
-                    class="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/60 text-xs font-orbitron font-bold text-rose-300 transition flex items-center gap-1.5 shrink-0">
+                    class="min-h-[48px] px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/60 text-xs font-orbitron font-bold text-rose-300 transition flex items-center gap-1.5 shrink-0">
                 <span>🚪</span>
                 <span class="hidden sm:inline">Salir del Equipo</span>
             </button>
@@ -66,14 +66,14 @@
     <main class="w-full max-w-lg mx-auto my-auto py-4">
 
         <!-- 1. PANTALLA DE REGISTRO O RECUPERACIÓN CON PIN -->
-        <section id="vista-registro" class="hidden neon-border rounded-2xl p-5 bg-[#0F2342]/90 space-y-4">
+        <section id="vista-registro" class="hidden neon-border rounded-2xl p-4 sm:p-5 bg-[#0F2342]/90 space-y-4">
             <div class="grid grid-cols-2 gap-2 bg-[#07101E] p-1 rounded-xl border border-slate-800">
                 <button type="button" id="tab-nuevo" onclick="cambiarTab('nuevo')"
-                        class="py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-[#00E5FF] text-[#07101E] transition">
+                        class="min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-[#00E5FF] text-[#07101E] transition">
                     🚀 NUEVO EQUIPO
                 </button>
                 <button type="button" id="tab-pin" onclick="cambiarTab('pin')"
-                        class="py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition">
+                        class="min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition">
                     🔑 USAR PIN
                 </button>
             </div>
@@ -85,33 +85,33 @@
                 <div>
                     <label class="font-orbitron text-[11px] text-[#00E5FF] uppercase font-bold">Nombre del Equipo *</label>
                     <input type="text" id="reg-nombre-equipo" name="nombre_equipo" required maxlength="40" placeholder="Ej: CyberTitans"
-                           class="w-full mt-1 bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
+                           class="w-full min-h-[48px] mt-1 bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
                     <p id="error-reg-nombre_equipo" class="hidden mt-1 text-xs font-semibold text-rose-400"></p>
                 </div>
 
                 <div>
-                    <div class="flex items-center justify-between mb-1">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
                         <label class="font-orbitron text-[11px] text-[#00E5FF] uppercase font-bold">
                             Integrantes (Mín 2 / Máx {{ $config->max_integrantes_equipo ?? 5 }}) *
                         </label>
                         <button type="button" onclick="agregarCampoIntegrante()"
-                                class="text-xs px-2.5 py-1 rounded-lg bg-cyan-500/15 border border-[#00E5FF]/50 text-[#00E5FF] font-bold">
+                                class="min-h-[48px] text-xs px-3 py-2 rounded-lg bg-cyan-500/15 border border-[#00E5FF]/50 text-[#00E5FF] font-bold">
                             + Añadir integrante
                         </button>
                     </div>
                     <p class="text-[11px] text-slate-400 mb-2">⚠️ Ingresa el <b>Nombre y Apellido real</b> de cada participante (son privados y solo visibles para el jurado/administrador).</p>
 
-                    <div id="lista-integrantes" class="space-y-2">
+                    <div id="lista-integrantes" class="space-y-2.5">
                         <input type="text" name="integrantes[]" required placeholder="Nombre y Apellido del Capitán *"
-                               class="w-full bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
+                               class="w-full min-h-[48px] bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
                         <input type="text" name="integrantes[]" required placeholder="Nombre y Apellido del Integrante 2 *"
-                               class="w-full bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
+                               class="w-full min-h-[48px] bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
                     </div>
                     <p id="error-reg-integrantes" class="hidden mt-1.5 text-xs font-semibold text-rose-400"></p>
                 </div>
 
                 <button type="submit" id="btn-registrar"
-                        class="w-full py-3.5 rounded-xl bg-[#00E5FF] hover:bg-cyan-300 text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,229,255,0.4)] transition">
+                        class="w-full min-h-[48px] py-3.5 rounded-xl bg-[#00E5FF] hover:bg-cyan-300 text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,229,255,0.4)] transition">
                     🚀 REGISTRAR EQUIPO Y GENERAR PIN
                 </button>
             </form>
@@ -122,17 +122,17 @@
                 <div>
                     <label class="font-orbitron text-[11px] text-[#00E5FF] uppercase font-bold">Nombre Exacto del Equipo</label>
                     <input type="text" id="rec-nombre-equipo" name="nombre_equipo" required placeholder="Ej: CyberTitans"
-                           class="w-full mt-1 bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
+                           class="w-full min-h-[48px] mt-1 bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
                     <p id="error-rec-nombre_equipo" class="hidden mt-1 text-xs font-semibold text-rose-400"></p>
                 </div>
                 <div>
                     <label class="font-orbitron text-[11px] text-amber-400 uppercase font-bold">🔑 PIN de Recuperación (4 dígitos)</label>
-                    <input type="text" id="rec-pin" name="pin_recuperacion" required maxlength="4" placeholder="Ej: 4829"
-                           class="w-full mt-1 bg-[#07101E] border border-amber-400/60 rounded-xl px-3.5 py-2.5 font-orbitron text-lg tracking-widest text-amber-300 text-center outline-none">
+                    <input type="text" id="rec-pin" name="pin_recuperacion" required maxlength="4" placeholder="Ej: 4829" inputmode="numeric"
+                           class="w-full min-h-[48px] mt-1 bg-[#07101E] border border-amber-400/60 rounded-xl px-3.5 py-2.5 font-orbitron text-base sm:text-lg tracking-widest text-amber-300 text-center outline-none">
                     <p id="error-rec-pin_recuperacion" class="hidden mt-1 text-xs font-semibold text-rose-400"></p>
                 </div>
                 <button type="submit" id="btn-recuperar"
-                        class="w-full py-3.5 rounded-xl bg-amber-400 text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider disabled:opacity-50">
+                        class="w-full min-h-[48px] py-3.5 rounded-xl bg-amber-400 text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider disabled:opacity-50">
                     🔄 RECUPERAR MI CARRERA
                 </button>
             </form>
@@ -161,10 +161,10 @@
 
             <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
                 <button type="button" onclick="cerrarSesionEquipo()"
-                        class="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-orbitron text-xs font-bold border border-rose-500/60 transition">
+                        class="w-full sm:w-auto min-h-[48px] px-5 py-3.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-orbitron text-xs font-bold border border-rose-500/60 transition flex items-center justify-center">
                     🚪 Salir del Equipo
                 </button>
-                <a href="/" class="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-[#07101E] hover:border-[#00E5FF] text-[#00E5FF] font-orbitron text-xs border border-slate-800 transition">
+                <a href="/" class="w-full sm:w-auto min-h-[48px] px-5 py-3.5 rounded-xl bg-[#07101E] hover:border-[#00E5FF] text-[#00E5FF] font-orbitron text-xs border border-slate-800 transition flex items-center justify-center">
                     🏠 Portal Principal
                 </a>
             </div>
@@ -196,7 +196,7 @@
 
             <h3 id="texto-enunciado" class="text-lg sm:text-xl font-bold text-white leading-snug py-1"></h3>
 
-            <div id="contenedor-opciones" class="space-y-2.5 pt-1"></div>
+            <div id="contenedor-opciones" class="space-y-3 pt-1"></div>
 
             <div id="feedback-respuesta" class="hidden p-3 rounded-xl text-center font-orbitron text-xs font-bold"></div>
         </section>
@@ -291,11 +291,11 @@
             document.getElementById('form-registro').classList.toggle('hidden', !esNuevo);
             document.getElementById('form-recuperar').classList.toggle('hidden', esNuevo);
             document.getElementById('tab-nuevo').className = esNuevo
-                ? 'py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-[#00E5FF] text-[#07101E] transition'
-                : 'py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition';
+                ? 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-[#00E5FF] text-[#07101E] transition'
+                : 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition';
             document.getElementById('tab-pin').className = !esNuevo
-                ? 'py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-amber-400 text-[#07101E] transition'
-                : 'py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition';
+                ? 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-amber-400 text-[#07101E] transition'
+                : 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition';
             document.getElementById('alerta-error').classList.add('hidden');
         }
 
@@ -310,7 +310,7 @@
             input.type = 'text';
             input.name = 'integrantes[]';
             input.placeholder = `Nombre y Apellido del Integrante ${total + 1} *`;
-            input.className = 'w-full bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none';
+            input.className = 'w-full min-h-[48px] bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none';
             contenedor.appendChild(input);
         }
 
@@ -491,6 +491,7 @@
                 if (!data.autenticado || !data.equipo) {
                     document.getElementById('info-equipo-header').classList.add('hidden');
                     mostrarVista('vista-registro');
+                    activarRegistroDirectoSiAplica();
                     return;
                 }
 
@@ -605,7 +606,7 @@
             contenedor.replaceChildren(...opciones.map(op => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'btn-opcion w-full text-left p-3.5 rounded-xl bg-[#07101E] hover:bg-[#00E5FF]/15 border border-slate-700 hover:border-[#00E5FF] transition flex items-center gap-3';
+                btn.className = 'btn-opcion w-full min-h-[48px] text-left p-3.5 rounded-xl bg-[#07101E] hover:bg-[#00E5FF]/15 border border-slate-700 hover:border-[#00E5FF] transition flex items-center gap-3';
                 btn.addEventListener('click', () => enviarRespuesta(op.letra, btn));
 
                 const letra = document.createElement('span');
@@ -776,6 +777,21 @@
             preguntaActualId = null;
             enviandoRespuesta = false;
             sincronizarJuego();
+        }
+
+        const esAccesoQrRegistro = new URLSearchParams(window.location.search).get('registro') === '1';
+        let registroAutoActivado = false;
+
+        function activarRegistroDirectoSiAplica() {
+            if (!esAccesoQrRegistro || registroAutoActivado) {
+                return;
+            }
+            registroAutoActivado = true;
+            cambiarTab('nuevo');
+            const inputEquipo = document.getElementById('reg-nombre-equipo');
+            if (inputEquipo && !inputEquipo.value) {
+                inputEquipo.focus();
+            }
         }
 
         sincronizarJuego();

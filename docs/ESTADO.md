@@ -2,9 +2,9 @@
 
 ## 1. Estado Actual
 
-- **Rama activa:** `bloque-5-rachas` (creada desde `desarrollo` tras integrar `bloque-4-ux-y-antitrampas`).
+- **Rama activa:** `bloque-6-qr-movil` (creada desde `desarrollo` tras integrar `bloque-5-rachas`).
 - **Entorno en producción (cPanel):** `https://trivia-seventech.softecsa.com` operativo.
-- **Suite de pruebas:** **30 tests pasando (1,290 aserciones)** contra `seventech_trivia_test`:
+- **Suite de pruebas:** **35 tests pasando (1,313 aserciones)** contra `seventech_trivia_test`:
   - `Tests\Unit\ExampleTest` (1 test)
   - `Tests\Feature\ExampleTest` (1 test)
   - `Tests\Feature\Bloque1SeguridadTest` (10 tests: ocultación de respuesta correcta, rechazo de pregunta no asignada `409`, mismo orden por `semilla_partida`, tiempo medido en servidor, idempotencia `UNIQUE(equipo_id, pregunta_id)`, sesión por cookie sin `equipo_id` en request, límite 2–5 integrantes, `rate limiting` del PIN `429`, protección de `/admin/*` incluyendo `/admin/preguntas/importar`, y regeneración de `semilla_partida`).
@@ -13,6 +13,7 @@
   - `Tests\Feature\Bloque3BancoPreguntasTest` (4 tests: seeder de 10 módulos en modo global con 360 preguntas únicas y balanceadas 90/90/90/90; entrega de exactamente 1 pregunta amena y 4 técnicas por etapa normal manteniendo orden idéntico entre equipos y ocultando `es_amena`; mezcla multitemática en modo "Todos los Módulos" y filtrado por módulo individual; e importador CSV/JSON con deduplicación y protección de sesión admin).
   - `Tests\Feature\Bloque4UxAntitrampasTest` (4 tests: anulación en servidor al salir de pestaña con `0` puntos, registro en `salidas_pantalla` y avance tras `F5` sin doble penalización; candado `409 Conflict` en módulo activo, duración, etapas, módulos y preguntas durante `en_curso`, `pausado` y `desempate`; respuestas JSON `200`/`422` para autoguardado en `registro` y `finalizado`; y visualización de incidentes en `/admin`).
   - `Tests\Feature\Bloque5RachasTest` (4 tests: cálculo atómico de `racha_actual` y `racha_maxima` ante aciertos, errores, tiempo agotado y pérdida de racha `racha_perdida` desde `>= 3`; ruptura de racha al salir de pestaña; exposición de rachas reales en `/api/espectador/datos` y reinicio a `0` con `borrar_equipos = false`; y manejo amigable de `TokenMismatchException` `419` en `/admin/*`).
+  - `Tests\Feature\Bloque6QrMovilTest` (5 tests: resolución automática de IP LAN en `EspectadorController` filtrando interfaces virtuales para `/jugar?registro=1`, aviso en `localhost` sin LAN, origen real en producción sin aviso, activación automática de pestaña Nuevo Equipo con `?registro=1` + controles táctiles `min-h-[48px]` / `text-base`, y conservación de disuasivos y escudo Anti-IA).
 
 ---
 
@@ -24,7 +25,7 @@
 - [x] **Bloque 3 (`bloque-3-banco-preguntas`) — Completado:** Banco definitivo exhaustivo de **360 preguntas originales** repartidas en **10 módulos tecnológicos** (110 fáciles en Etapa 1, 110 medias en Etapa 2, 100 difíciles en Etapa 3 y 40 dificilísimas en Muerte Súbita), con balance exacto 25% por opción (`90 a`, `90 b`, `90 c`, `90 d`), modo *"🌐 Todos los Módulos"* (`modulo_activo_id = null`) activo por defecto, garantía de exactamente 1 pregunta amena (`es_amena = true`) y 4 técnicas por etapa normal en una sola consulta SQL (manteniendo presupuesto `≤ 7 queries`), e importador masivo CSV/JSON con deduplicación en `/admin/preguntas/importar`.
 - [x] **Bloque 4 (`bloque-4-ux-y-antitrampas`) — Completado:** Penalización en servidor al salir de la pantalla (`POST /api/reportar-salida-pantalla`, columna `bloqueada_por_salida` y contador `salidas_pantalla` visible en `/admin` sin falsos positivos en `F5`), candado `409 Conflict` + bloqueo visual de módulo/duración/etapas/banco durante `en_curso`, `pausado` y `desempate`, autoguardado con `debounce(500ms)` y *toasts* **Notyf** en `/admin`, mensajes de error por campo en login/registro/PIN y botones grandes de salida (`🚪 Cerrar Sesión` y `🚪 Salir del Equipo`).
 - [x] **Bloque 5 (`bloque-5-rachas`) — Completado:** Sistema real de rachas consecutivas en base de datos (`racha_actual`, `racha_maxima` en `equipos`), cálculo atómico en servidor (`enviarRespuesta`, `reportarSalidaPantalla`, `simularAvanceCarrera` y `reiniciarJuego`), visualización en vivo en `/espectador` (`🔥 RACHA xN` y `🏅 Racha máx`), banner móvil y avisos de racha perdida en `/jugar`, y manejo amigable de `TokenMismatchException` (`419`) en `/admin/*`.
-- [ ] **Bloque 6 — Pendiente:** QR dinámico, experiencia móvil y validación de conexión en red local y producción.
+- [x] **Bloque 6 (`bloque-6-qr-movil`) — Completado:** QR dinámico en `/espectador` apuntando a `/jugar?registro=1` con detección automática de IPv4 LAN física en servidor local (ignorando `lo`, `docker`, `virbr`, `veth`, `br-`, `tun`, `tap`, `vmnet`) y uso directo del origen real en producción; activación automática de pestaña *Nuevo Equipo* con `?registro=1`; ajustes responsive `320px+` (`min-h-[48px]`, `text-base` en inputs, `truncate` en cabecera móvil); y documentación realista del escudo Anti-IA en [`docs/STACK.md`](file:///home/vaxer/seventech-trivia/docs/STACK.md).
 - [ ] **Bloque 7 — Pendiente:** Estimador de duración del torneo en el panel de administración según etapas, preguntas y tiempos configurados.
 - [ ] **Bloque 8 — Pendiente:** Optimización final para alta concurrencia, caché con Redis, endurecimiento de seguridad (`trustProxies`, retiro de fallback en texto plano en login admin) y guía/preparación de despliegue en VPS.
 
@@ -101,4 +102,4 @@ git status
 
 ## 8. Próximo Paso
 
-- **Integrar `bloque-5-rachas` en `desarrollo` e iniciar el Bloque 6:** QR dinámico, experiencia móvil y validación de conexión en red local y producción.
+- **Integrar `bloque-6-qr-movil` en `desarrollo` e iniciar el Bloque 7:** estimador de duración del torneo en el panel de administración según etapas, preguntas y tiempos configurados.

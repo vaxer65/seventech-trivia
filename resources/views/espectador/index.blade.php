@@ -68,9 +68,9 @@
                  // ACCESO ABIERTO A CONCURSANTES
             </span>
             <h2 class="text-2xl md:text-3xl font-bold text-white">¡ESCANEA EL QR CON TU MÓVIL PARA REGISTRAR TU EQUIPO!</h2>
-            <p class="text-slate-300 text-base">O ingresa directamente desde tu navegador a: <b id="url-jugar-texto" class="font-orbitron text-[#00E5FF] underline"></b></p>
-            <p id="aviso-qr-localhost" class="hidden text-xs font-orbitron text-amber-300 bg-amber-500/15 border border-amber-400/50 rounded-lg px-3 py-1.5 mt-1">
-                ⚠️ Estás abriendo esta pantalla en <b>localhost</b>: los celulares no podrán entrar. Inicia con <code>php artisan serve --host=0.0.0.0 --port=8000</code> y abre esta vista usando la IP Wi-Fi de tu PC (ej. <code>http://192.168.1.X:8000/espectador</code>) o configura <code>APP_URL</code>.
+            <p class="text-slate-300 text-base">O ingresa directamente desde tu navegador a: <b id="url-jugar-texto" class="font-orbitron text-[#00E5FF] underline">{{ $urlRegistroQr ?? url('/jugar?registro=1') }}</b></p>
+            <p id="aviso-qr-localhost" class="{{ !empty($mostrarAvisoLocalhost) ? '' : 'hidden ' }}text-xs font-orbitron text-amber-300 bg-amber-500/15 border border-amber-400/50 rounded-lg px-3 py-1.5 mt-1">
+                ⚠️ No se detectó una IP LAN activa para este servidor local: los celulares no podrán entrar con <b>localhost</b>. Inicia con <code>php artisan serve --host=0.0.0.0 --port=8000</code> conectado a la red Wi-Fi o configura <code>APP_URL</code>.
             </p>
         </div>
         <div class="flex items-center gap-4 bg-[#07101E] p-3 rounded-xl border border-[#00E5FF]">
@@ -145,15 +145,13 @@
     </main>
 
     <script>
-        const appUrlConfig = @json(rtrim((string) config('app.url'), '/'));
-        const esHostLocal = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
-        const baseOrigen = (!esHostLocal || !appUrlConfig || appUrlConfig.includes('localhost') || appUrlConfig.includes('127.0.0.1'))
-            ? window.location.origin
-            : appUrlConfig;
-        const urlJugar = baseOrigen + '/jugar';
+        const urlJugar = @json($urlRegistroQr ?? (rtrim((string) config('app.url'), '/') . '/jugar?registro=1'));
+        const mostrarAvisoLocalhost = @json((bool) ($mostrarAvisoLocalhost ?? false));
         document.getElementById('url-jugar-texto').textContent = urlJugar;
-        if (urlJugar.includes('localhost') || urlJugar.includes('127.0.0.1')) {
+        if (mostrarAvisoLocalhost) {
             document.getElementById('aviso-qr-localhost')?.classList.remove('hidden');
+        } else {
+            document.getElementById('aviso-qr-localhost')?.classList.add('hidden');
         }
         new QRCode(document.getElementById("qrcode"), {
             text: urlJugar,

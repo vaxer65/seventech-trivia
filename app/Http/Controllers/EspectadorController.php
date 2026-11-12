@@ -5,12 +5,125 @@ namespace App\Http\Controllers;
 use App\Models\ConfiguracionEvento;
 use App\Models\Equipo;
 use App\Models\Nivel;
+use Illuminate\Http\Request;
 
 class EspectadorController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return view('espectador.index');
+        $host = strtolower((string) $request->getHost());
+        $esHostLocal = in_array($host, ['localhost', '127.0.0.1', '0.0.0.0', '::1'], true);
+        $mostrarAvisoLocalhost = false;
+
+        if ($esHostLocal) {
+            $ipLan = $this->resolverIpLanLocal();
+            $puerto = (int) $request->getPort();
+            $esquema = $request->getScheme();
+
+            if ($ipLan !== null) {
+                $sufijoPuerto = (($esquema === 'http' && $puerto === 80) || ($esquema === 'https' && $puerto === 443) || $puerto <= 0)
+                    ? ''
+                    : ':' . $puerto;
+                $baseOrigen = "{$esquema}://{$ipLan}{$sufijoPuerto}";
+            } else {
+                $appUrl = rtrim((string) config('app.url'), '/');
+                $appHost = strtolower((string) parse_url($appUrl, PHP_URL_HOST));
+                if ($appUrl !== '' && !in_array($appHost, ['', 'localhost', '127.0.0.1', '0.0.0.0', '::1'], true)) {
+                    $baseOrigen = $appUrl;
+                } else {
+                    $baseOrigen = rtrim($request->getSchemeAndHttpHost(), '/');
+                    $mostrarAvisoLocalhost = true;
+                }
+            }
+        } else {
+            $baseOrigen = rtrim($request->getSchemeAndHttpHost(), '/');
+        }
+
+        $urlRegistroQr = $baseOrigen . '/jugar?registro=1';
+
+        return view('espectador.index', compact('urlRegistroQr', 'mostrarAvisoLocalhost'));
+    }
+
+    /**
+     * Detecta la IPv4 LAN física del servidor ignorando interfaces virtuales (Docker, KVM, VPN).
+     */
+    protected function resolverIpLanLocal(): ?string
+    {
+        $prefijosIgnorados = ['lo', 'docker', 'virbr', 'veth', 'br-', 'tun', 'tap', 'vmnet'];
+        $prefijosPrioritarios = ['wl', 'en', 'eth', 'wi-fi', 'ethernet'];
+
+        if (function_exists('net_get_interfaces')) {
+            $interfaces = @net_get_interfaces();
+            if (is_array($interfaces)) {
+                $candidatasPrioritarias = [];
+                $candidatasSecundarias = [];
+
+                foreach ($interfaces as $nombre => $info) {
+                    if (!is_array($info) || !($info['up'] ?? true)) {
+                        continue;
+                    }
+
+                    $nombreLower = strtolower((string) $nombre);
+                    $esVirtual = false;
+                    foreach ($prefijosIgnorados as $prefijo) {
+                        if (str_starts_with($nombreLower, $prefijo)) {
+                            $esVirtual = true;
+                            break;
+                        }
+                    }
+                    if ($esVirtual) {
+                        continue;
+                    }
+
+                    $esPrioritaria = false;
+                    foreach ($prefijosPrioritarios as $prefijo) {
+                        if (str_starts_with($nombreLower, $prefijo)) {
+                            $esPrioritaria = true;
+                            break;
+                        }
+                    }
+
+                    foreach (($info['unicast'] ?? []) as $unicast) {
+                        $ip = $unicast['address'] ?? null;
+                        if (!is_string($ip) || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                            continue;
+                        }
+                        if (str_starts_with($ip, '127.') || str_starts_with($ip, '169.254.')) {
+                            continue;
+                        }
+                        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE)) {
+                            if ($esPrioritaria) {
+                                $candidatasPrioritarias[] = $ip;
+                            } else {
+                                $candidatasSecundarias[] = $ip;
+                            }
+                        }
+                    }
+                }
+
+                if (!empty($candidatasPrioritarias)) {
+                    return $candidatasPrioritarias[0];
+                }
+                if (!empty($candidatasSecundarias)) {
+                    return $candidatasSecundarias[0];
+                }
+            }
+        }
+
+        $hostname = @gethostname();
+        if (is_string($hostname) && $hostname !== '') {
+            $hostIp = @gethostbyname($hostname);
+            if (
+                filter_var($hostIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+                && !str_starts_with($hostIp, '127.')
+                && !str_starts_with($hostIp, '169.254.')
+                && !filter_var($hostIp, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE)
+            ) {
+                return $hostIp;
+            }
+        }
+
+        return null;
     }
 
     // Endpoint en tiempo real para mover los robots en la pista 2D
