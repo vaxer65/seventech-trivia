@@ -35,6 +35,10 @@ Route::post('/api/enviar-respuesta', [ConcursanteController::class, 'enviarRespu
     ->middleware('throttle:juego-respuesta')
     ->name('concursante.responder');
 
+Route::post('/api/reportar-salida-pantalla', [ConcursanteController::class, 'reportarSalidaPantalla'])
+    ->middleware('throttle:juego-respuesta')
+    ->name('concursante.salida_pantalla');
+
 // ==========================================
 // 2. ROL ESPECTADOR (Pantalla Gigante Carrera 2D)
 // ==========================================

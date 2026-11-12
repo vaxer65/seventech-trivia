@@ -9,6 +9,11 @@ class RespuestaEquipo extends Model
     protected $table = 'respuestas_equipos';
     protected $guarded = [];
 
+    protected $casts = [
+        'es_correcta'          => 'boolean',
+        'bloqueada_por_salida' => 'boolean',
+    ];
+
     public function equipo()
     {
         return $this->belongsTo(Equipo::class);

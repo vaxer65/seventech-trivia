@@ -19,13 +19,13 @@
 
     <!-- ESCUDO ANTI-IA / ANTI-CAPTURAS -->
     <div id="cortina-anti-ia" class="hidden fixed inset-0 z-50 bg-[#07101E]/98 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
-        <div class="text-6xl mb-4 animate-bounce">🛡️</div>
-        <h2 class="cyber-title text-2xl sm:text-3xl text-rose-500 mb-2">ALERTA DE SEGURIDAD ANTI-IA</h2>
-        <p class="text-slate-300 text-sm max-w-md mb-6">
-            Se detectó que saliste de la pantalla de competencia o intentaste abrir otra aplicación/captura. Las preguntas se ocultan automáticamente por seguridad.
+        <div class="text-6xl mb-4 animate-bounce">⚠️</div>
+        <h2 class="cyber-title text-2xl sm:text-3xl text-rose-500 mb-2">PREGUNTA ANULADA POR SALIDA</h2>
+        <p id="texto-cortina-anti-ia" class="text-slate-200 text-sm max-w-md mb-6 leading-relaxed">
+            ⚠️ Saliste de la pantalla de competencia. Esta pregunta quedó anulada con <b class="text-rose-400">0 puntos</b>. Prepárate para la siguiente.
         </p>
-        <button onclick="desactivarCortina()" class="px-6 py-3 rounded-xl bg-[#00E5FF] text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider">
-            VOLVER A LA COMPETENCIA
+        <button onclick="desactivarCortina()" class="px-6 py-3.5 rounded-xl bg-[#00E5FF] hover:bg-cyan-300 text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,229,255,0.4)] transition">
+            ➡️ CONTINUAR CON LA SIGUIENTE PREGUNTA
         </button>
     </div>
 
@@ -54,9 +54,10 @@
                 <p id="header-nombre-equipo" class="text-xs font-bold text-white leading-tight"></p>
                 <p id="header-puntaje" class="font-orbitron text-xs text-[#00E5FF] font-bold">0 PTS</p>
             </div>
-            <button type="button" onclick="cerrarSesionEquipo()" title="Salir / Regresar al inicio"
-                    class="p-2 rounded-lg bg-slate-800/90 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-500 text-xs text-slate-300 hover:text-rose-300 transition">
-                🚪
+            <button type="button" onclick="cerrarSesionEquipo()" title="Salir del Equipo"
+                    class="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/60 text-xs font-orbitron font-bold text-rose-300 transition flex items-center gap-1.5 shrink-0">
+                <span>🚪</span>
+                <span class="hidden sm:inline">Salir del Equipo</span>
             </button>
         </div>
     </header>
@@ -83,8 +84,9 @@
             <form id="form-registro" class="space-y-4">
                 <div>
                     <label class="font-orbitron text-[11px] text-[#00E5FF] uppercase font-bold">Nombre del Equipo *</label>
-                    <input type="text" name="nombre_equipo" required maxlength="40" placeholder="Ej: CyberTitans"
+                    <input type="text" id="reg-nombre-equipo" name="nombre_equipo" required maxlength="40" placeholder="Ej: CyberTitans"
                            class="w-full mt-1 bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
+                    <p id="error-reg-nombre_equipo" class="hidden mt-1 text-xs font-semibold text-rose-400"></p>
                 </div>
 
                 <div>
@@ -105,6 +107,7 @@
                         <input type="text" name="integrantes[]" required placeholder="Nombre y Apellido del Integrante 2 *"
                                class="w-full bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
                     </div>
+                    <p id="error-reg-integrantes" class="hidden mt-1.5 text-xs font-semibold text-rose-400"></p>
                 </div>
 
                 <button type="submit" id="btn-registrar"
@@ -118,13 +121,15 @@
                 <p class="text-xs text-slate-300">Si se cerró tu navegador o cambiaste de teléfono, ingresa el nombre de tu equipo y tu PIN de 4 dígitos:</p>
                 <div>
                     <label class="font-orbitron text-[11px] text-[#00E5FF] uppercase font-bold">Nombre Exacto del Equipo</label>
-                    <input type="text" name="nombre_equipo" required placeholder="Ej: CyberTitans"
+                    <input type="text" id="rec-nombre-equipo" name="nombre_equipo" required placeholder="Ej: CyberTitans"
                            class="w-full mt-1 bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
+                    <p id="error-rec-nombre_equipo" class="hidden mt-1 text-xs font-semibold text-rose-400"></p>
                 </div>
                 <div>
                     <label class="font-orbitron text-[11px] text-amber-400 uppercase font-bold">🔑 PIN de Recuperación (4 dígitos)</label>
-                    <input type="text" name="pin_recuperacion" required maxlength="4" placeholder="Ej: 4829"
+                    <input type="text" id="rec-pin" name="pin_recuperacion" required maxlength="4" placeholder="Ej: 4829"
                            class="w-full mt-1 bg-[#07101E] border border-amber-400/60 rounded-xl px-3.5 py-2.5 font-orbitron text-lg tracking-widest text-amber-300 text-center outline-none">
+                    <p id="error-rec-pin_recuperacion" class="hidden mt-1 text-xs font-semibold text-rose-400"></p>
                 </div>
                 <button type="submit" id="btn-recuperar"
                         class="w-full py-3.5 rounded-xl bg-amber-400 text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider disabled:opacity-50">
@@ -156,10 +161,10 @@
 
             <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
                 <button type="button" onclick="cerrarSesionEquipo()"
-                        class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-orbitron text-xs border border-slate-700 transition">
-                    🔄 Cambiar de Equipo / Ir al Registro
+                        class="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-orbitron text-xs font-bold border border-rose-500/60 transition">
+                    🚪 Salir del Equipo
                 </button>
-                <a href="/" class="px-4 py-3 rounded-xl bg-[#07101E] hover:border-[#00E5FF] text-[#00E5FF] font-orbitron text-xs border border-slate-800 transition">
+                <a href="/" class="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-[#07101E] hover:border-[#00E5FF] text-[#00E5FF] font-orbitron text-xs border border-slate-800 transition">
                     🏠 Portal Principal
                 </a>
             </div>
@@ -217,10 +222,10 @@
 
             <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
                 <button type="button" onclick="cerrarSesionEquipo()"
-                        class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-orbitron text-xs font-bold border border-slate-700 transition">
-                    🔄 Registrar o Entrar con Otro Equipo
+                        class="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-orbitron text-xs font-bold border border-rose-500/60 transition">
+                    🚪 Salir del Equipo
                 </button>
-                <a href="/" class="px-4 py-2.5 rounded-xl bg-[#00E5FF]/20 border border-[#00E5FF] text-[#00E5FF] font-orbitron text-xs font-bold transition">
+                <a href="/" class="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-[#00E5FF]/20 border border-[#00E5FF] text-[#00E5FF] font-orbitron text-xs font-bold transition">
                     🏠 Ir al Inicio
                 </a>
             </div>
@@ -305,6 +310,30 @@
             contenedor.appendChild(input);
         }
 
+        function limpiarErroresCampos() {
+            document.querySelectorAll('#form-registro input, #form-recuperar input').forEach(inp => {
+                inp.classList.remove('border-rose-500');
+            });
+            ['error-reg-nombre_equipo', 'error-reg-integrantes', 'error-rec-nombre_equipo', 'error-rec-pin_recuperacion'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.textContent = '';
+                    el.classList.add('hidden');
+                }
+            });
+        }
+
+        function mostrarErrorCampo(idTexto, selectorInput, mensaje) {
+            const el = document.getElementById(idTexto);
+            if (el) {
+                el.textContent = mensaje;
+                el.classList.remove('hidden');
+            }
+            if (selectorInput) {
+                document.querySelectorAll(selectorInput).forEach(inp => inp.classList.add('border-rose-500'));
+            }
+        }
+
         document.getElementById('form-registro').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-registrar');
@@ -313,6 +342,7 @@
 
             const alerta = document.getElementById('alerta-error');
             alerta.classList.add('hidden');
+            limpiarErroresCampos();
 
             const formData = new FormData(e.target);
             const payload = {
@@ -328,8 +358,23 @@
                 });
                 const data = await res.json();
                 if (!res.ok) {
-                    const primerError = data.errors ? Object.values(data.errors)[0][0] : (data.error || data.message);
-                    alerta.textContent = primerError || 'Verifica los datos ingresados.';
+                    let primerError = data.error || data.message || 'Verifica los datos ingresados.';
+                    if (data.errors) {
+                        const keys = Object.keys(data.errors);
+                        if (keys.length > 0) primerError = data.errors[keys[0]][0];
+                        if (data.errors.nombre_equipo) {
+                            mostrarErrorCampo('error-reg-nombre_equipo', '#reg-nombre-equipo', data.errors.nombre_equipo[0]);
+                        }
+                        const errIntKey = keys.find(k => k === 'integrantes' || k.startsWith('integrantes.'));
+                        if (errIntKey) {
+                            mostrarErrorCampo('error-reg-integrantes', '#lista-integrantes input', data.errors[errIntKey][0]);
+                        }
+                    } else if (primerError.toLowerCase().includes('equipo')) {
+                        mostrarErrorCampo('error-reg-nombre_equipo', '#reg-nombre-equipo', primerError);
+                    } else if (primerError.toLowerCase().includes('integrante') || primerError.toLowerCase().includes('participante')) {
+                        mostrarErrorCampo('error-reg-integrantes', '#lista-integrantes input', primerError);
+                    }
+                    alerta.textContent = primerError;
                     alerta.classList.remove('hidden');
                     return;
                 }
@@ -350,6 +395,7 @@
 
             const alerta = document.getElementById('alerta-error');
             alerta.classList.add('hidden');
+            limpiarErroresCampos();
 
             const formData = new FormData(e.target);
             try {
@@ -363,7 +409,16 @@
                 });
                 const data = await res.json();
                 if (!res.ok) {
-                    alerta.textContent = data.error || 'No se pudo recuperar el equipo.';
+                    const msg = data.errors ? Object.values(data.errors)[0][0] : (data.error || 'No se pudo recuperar el equipo.');
+                    if (data.errors && data.errors.nombre_equipo) {
+                        mostrarErrorCampo('error-rec-nombre_equipo', '#rec-nombre-equipo', data.errors.nombre_equipo[0]);
+                    }
+                    if (data.errors && data.errors.pin_recuperacion) {
+                        mostrarErrorCampo('error-rec-pin_recuperacion', '#rec-pin', data.errors.pin_recuperacion[0]);
+                    } else {
+                        mostrarErrorCampo('error-rec-pin_recuperacion', '#rec-nombre-equipo, #rec-pin', msg);
+                    }
+                    alerta.textContent = msg;
                     alerta.classList.remove('hidden');
                     return;
                 }
@@ -380,8 +435,12 @@
         let syncTimerMovil = null;
         let sincronizandoMovil = false;
         let descargandoMovil = false;
+        let esRecargaPagina = false;
 
-        window.addEventListener('beforeunload', () => { descargandoMovil = true; });
+        window.addEventListener('beforeunload', () => {
+            esRecargaPagina = true;
+            descargandoMovil = true;
+        });
 
         function actualizarEstadoConexionMovil(conectado) {
             if (descargandoMovil) return;
@@ -651,14 +710,39 @@
             fb.textContent = texto;
         }
 
+        function reportarSalidaPantalla() {
+            if (!preguntaActualId || enviandoRespuesta) return;
+            const idAnulada = preguntaActualId;
+            enviandoRespuesta = true;
+            clearInterval(timerInterval);
+            document.querySelectorAll('.btn-opcion').forEach(b => b.disabled = true);
+            document.getElementById('cortina-anti-ia').classList.remove('hidden');
+
+            try {
+                fetch('/api/reportar-salida-pantalla', {
+                    method: 'POST',
+                    keepalive: true,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({ pregunta_id: idAnulada })
+                }).catch(() => {});
+            } catch (e) {}
+        }
+
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden && enPreguntaActiva) {
-                document.getElementById('cortina-anti-ia').classList.remove('hidden');
+            if (document.hidden && !esRecargaPagina && enPreguntaActiva && preguntaActualId && !enviandoRespuesta) {
+                reportarSalidaPantalla();
             }
         });
 
         function desactivarCortina() {
             document.getElementById('cortina-anti-ia').classList.add('hidden');
+            preguntaActualId = null;
+            enviandoRespuesta = false;
+            sincronizarJuego();
         }
 
         sincronizarJuego();

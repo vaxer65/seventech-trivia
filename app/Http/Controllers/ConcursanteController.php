@@ -396,6 +396,124 @@ class ConcursanteController extends Controller
         return response()->json($resultado['body'], $resultado['status']);
     }
 
+    // Registrar incidente de salida de pestaña/app y anular la pregunta en curso con 0 puntos
+    public function reportarSalidaPantalla(Request $request)
+    {
+        $token = $request->session()->get('equipo_token');
+        $equipo = $token ? Equipo::where('token_sesion', $token)->first() : null;
+
+        if (!$equipo) {
+            return response()->json(['error' => 'Sesión no válida'], 401);
+        }
+
+        $request->validate([
+            'pregunta_id' => 'required|integer',
+        ]);
+        $preguntaId = (int) $request->input('pregunta_id');
+
+        $config = ConfiguracionEvento::first();
+        $this->cerrarSiVencioRelojGlobal($config);
+
+        if (!in_array($config->estado_juego, ['en_curso', 'desempate'], true)
+            || ($config->estado_juego === 'desempate' && !$equipo->en_desempate)) {
+            return response()->json(['error' => 'La ronda no está activa.', 'resync' => true], 409);
+        }
+
+        try {
+            $resultado = DB::transaction(function () use ($equipo, $preguntaId) {
+                // Orden estricto de locks: primero ConfiguracionEvento, luego Equipo
+                $configLock = ConfiguracionEvento::lockForUpdate()->first();
+                $equipoLock = Equipo::whereKey($equipo->id)->lockForUpdate()->first();
+
+                if (!$equipoLock) {
+                    return ['status' => 401, 'body' => ['error' => 'Sesión no válida']];
+                }
+
+                $this->cerrarSiVencioRelojGlobal($configLock);
+
+                if (!in_array($configLock->estado_juego, ['en_curso', 'desempate'], true)
+                    || ($configLock->estado_juego === 'desempate' && !$equipoLock->en_desempate)) {
+                    return ['status' => 409, 'body' => ['error' => 'La ronda no está activa.', 'resync' => true]];
+                }
+
+                $asignacion = $this->asignacionActual($equipoLock, $configLock);
+                $pregunta = $asignacion['pregunta'] ?? null;
+
+                if (!$pregunta || $pregunta->id !== $preguntaId) {
+                    $yaRegistrada = RespuestaEquipo::where('equipo_id', $equipoLock->id)
+                        ->where('pregunta_id', $preguntaId)
+                        ->exists();
+
+                    if ($yaRegistrada) {
+                        return [
+                            'status' => 200,
+                            'body'   => [
+                                'bloqueada'        => true,
+                                'duplicada'        => true,
+                                'puntos_sumados'   => 0,
+                                'salidas_pantalla' => (int) $equipoLock->salidas_pantalla,
+                                'mensaje'          => 'Incidente ya registrado.',
+                            ],
+                        ];
+                    }
+
+                    return ['status' => 409, 'body' => ['error' => 'Esa pregunta ya no está vigente.', 'resync' => true]];
+                }
+
+                $entrega = Entrega::where('equipo_id', $equipoLock->id)
+                    ->where('pregunta_id', $pregunta->id)
+                    ->first();
+
+                if (!$entrega) {
+                    return ['status' => 409, 'body' => ['error' => 'Entrega no registrada.', 'resync' => true]];
+                }
+
+                $nivel = $asignacion['nivel'];
+                $limiteMs = max(1, (int) $nivel->tiempo_limite_seg) * 1000;
+                $transcurridoMs = max(0, now()->getTimestampMs() - $entrega->entregada_at->getTimestampMs());
+                $tiempoMs = min($transcurridoMs, $limiteMs);
+
+                RespuestaEquipo::create([
+                    'equipo_id'            => $equipoLock->id,
+                    'pregunta_id'          => $pregunta->id,
+                    'nivel_id'             => $pregunta->nivel_id,
+                    'opcion_elegida'       => null,
+                    'es_correcta'          => false,
+                    'bloqueada_por_salida' => true,
+                    'puntos_ganados'       => 0,
+                    'tiempo_respuesta_ms'  => $tiempoMs,
+                ]);
+
+                Equipo::whereKey($equipoLock->id)->update([
+                    'preguntas_contestadas' => DB::raw('preguntas_contestadas + 1'),
+                    'tiempo_acumulado_ms'   => DB::raw('tiempo_acumulado_ms + ' . (int) $tiempoMs),
+                    'salidas_pantalla'      => DB::raw('salidas_pantalla + 1'),
+                ]);
+
+                return [
+                    'status' => 200,
+                    'body'   => [
+                        'bloqueada'        => true,
+                        'duplicada'        => false,
+                        'puntos_sumados'   => 0,
+                        'salidas_pantalla' => (int) $equipoLock->salidas_pantalla + 1,
+                        'mensaje'          => 'Pregunta anulada con 0 puntos por salir de la pantalla de competencia.',
+                    ],
+                ];
+            });
+        } catch (UniqueConstraintViolationException $e) {
+            return response()->json([
+                'bloqueada'        => true,
+                'duplicada'        => true,
+                'puntos_sumados'   => 0,
+                'salidas_pantalla' => (int) ($equipo->fresh()->salidas_pantalla ?? 0),
+                'mensaje'          => 'Incidente ya registrado.',
+            ]);
+        }
+
+        return response()->json($resultado['body'], $resultado['status']);
+    }
+
     // Margen para la latencia de red cuando el celular envía justo al agotarse el tiempo
     private const GRACIA_RED_MS = 1500;
 

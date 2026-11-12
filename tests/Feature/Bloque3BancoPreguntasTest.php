@@ -203,10 +203,11 @@ class Bloque3BancoPreguntasTest extends TestCase
         $modulosSorteados = Pregunta::whereIn('id', $idsModoGlobal)->pluck('modulo_id')->unique();
         $this->assertGreaterThanOrEqual(3, $modulosSorteados->count(), 'El modo Todos los Módulos debe mezclar preguntas de múltiples módulos.');
 
-        // Ahora el admin filtra por un módulo específico desde /admin/configuracion
+        // Ahora el admin reinicia (vuelve a registro) y filtra por un módulo específico desde /admin/configuracion
         $moduloEspecifico = Modulo::where('nombre', 'Bases de Datos Relacionales & SQL')->firstOrFail();
 
         $this->travel(2)->minutes();
+        $this->withSession(['es_admin_seventech' => true])->post('/admin/reiniciar')->assertRedirect();
         $this->withSession(['es_admin_seventech' => true])
             ->post('/admin/configuracion', [
                 'estado_juego'           => 'en_curso',
@@ -217,9 +218,6 @@ class Bloque3BancoPreguntasTest extends TestCase
             ])->assertRedirect();
 
         $this->assertSame($moduloEspecifico->id, $config->fresh()->modulo_activo_id);
-
-        $this->withSession(['es_admin_seventech' => true])->post('/admin/reiniciar')->assertRedirect();
-        $config->refresh()->update(['estado_juego' => 'en_curso', 'fin_evento_at' => now()->addMinutes(15)]);
 
         $idsModuloUnico = [];
         $this->withSession(['equipo_token' => $equipo->token_sesion]);
@@ -233,10 +231,11 @@ class Bloque3BancoPreguntasTest extends TestCase
         $this->assertCount(1, $modulosUnico);
         $this->assertSame($moduloEspecifico->id, $modulosUnico->first());
 
-        // Volver a activar "Todos los Módulos" enviando cadena vacía ""
+        // Volver a activar "Todos los Módulos" tras reiniciar (estado registro) enviando cadena vacía ""
+        $this->withSession(['es_admin_seventech' => true])->post('/admin/reiniciar')->assertRedirect();
         $this->withSession(['es_admin_seventech' => true])
             ->post('/admin/configuracion', [
-                'estado_juego'           => 'en_curso',
+                'estado_juego'           => 'registro',
                 'modulo_activo_id'       => '',
                 'max_integrantes_equipo' => 5,
                 'max_equipos_permitidos' => 30,

@@ -2,15 +2,16 @@
 
 ## 1. Estado Actual
 
-- **Rama activa:** `bloque-3-banco-preguntas` (creada desde `desarrollo` tras integrar `bloque-2-algoritmo-banco` en `df6598d`).
+- **Rama activa:** `bloque-4-ux-y-antitrampas` (creada desde `desarrollo` tras integrar `bloque-3-banco-preguntas` en `5978b7c`).
 - **Entorno en producción (cPanel):** `https://trivia-seventech.softecsa.com` operativo.
-- **Suite de pruebas:** **22 tests pasando (1129 aserciones)** contra `seventech_trivia_test`:
+- **Suite de pruebas:** **26 tests pasando (1,211 aserciones)** contra `seventech_trivia_test`:
   - `Tests\Unit\ExampleTest` (1 test)
   - `Tests\Feature\ExampleTest` (1 test)
   - `Tests\Feature\Bloque1SeguridadTest` (10 tests: ocultación de respuesta correcta, rechazo de pregunta no asignada `409`, mismo orden por `semilla_partida`, tiempo medido en servidor, idempotencia `UNIQUE(equipo_id, pregunta_id)`, sesión por cookie sin `equipo_id` en request, límite 2–5 integrantes, `rate limiting` del PIN `429`, protección de `/admin/*` incluyendo `/admin/preguntas/importar`, y regeneración de `semilla_partida`).
   - `Tests\Feature\Bloque1ReinicioTest` (3 tests: reinicio total a cero conservando Salón de la Fama, reinicio conservando equipos e integrantes con contadores en cero, y rechazo limpio `409`/`401` de respuestas o estados tardíos tras reinicio sin ensuciar la BD).
   - `Tests\Feature\Bloque2AlgoritmoBancoTest` (3 tests: inclusión sin sesgo de preguntas nuevas recién creadas en el sorteo `CRC32(SHA2(...))` con secuencia idéntica entre equipos, permutación determinista en recarga y diferente entre equipos totalmente opaca en JSON con traducción exacta en servidor, y distribución matemática uniforme ~25% en las posiciones visuales `A`, `B`, `C`, `D`).
   - `Tests\Feature\Bloque3BancoPreguntasTest` (4 tests: seeder de 10 módulos en modo global con 360 preguntas únicas y balanceadas 90/90/90/90; entrega de exactamente 1 pregunta amena y 4 técnicas por etapa normal manteniendo orden idéntico entre equipos y ocultando `es_amena`; mezcla multitemática en modo "Todos los Módulos" y filtrado por módulo individual; e importador CSV/JSON con deduplicación y protección de sesión admin).
+  - `Tests\Feature\Bloque4UxAntitrampasTest` (4 tests: anulación en servidor al salir de pestaña con `0` puntos, registro en `salidas_pantalla` y avance tras `F5` sin doble penalización; candado `409 Conflict` en módulo activo, duración, etapas, módulos y preguntas durante `en_curso`, `pausado` y `desempate`; respuestas JSON `200`/`422` para autoguardado en `registro` y `finalizado`; y visualización de incidentes en `/admin`).
 
 ---
 
@@ -20,7 +21,7 @@
 - [x] **Bloque 1 (`bloque-1-reinicio`) — Completado:** Reinicio 100% atómico en `AdminController::reiniciarJuego()` sin `TRUNCATE` (`query()->delete()`), orden estricto de locks (`ConfiguracionEvento::lockForUpdate()` antes que `Equipo`), renovación garantizada de `semilla_partida`, blindaje contra peticiones en vuelo en `ConcursanteController` y preservación del Salón de la Fama (`historial_eventos`).
 - [x] **Bloque 2 (`bloque-2-algoritmo-banco`) — Completado:** Sorteo uniforme de preguntas mediante `CRC32(SHA2(CONCAT(preguntas.id, "-", ?), 256))` tanto en juego real como en el simulador, rotación de `semilla_partida` también al iniciar desde `finalizado`, preselección del módulo activo al crear preguntas en `/admin`, y barajado determinista y opaco en servidor de las opciones `A/B/C/D` sobre las 24 permutaciones de $S_4$ por `(equipo_id, pregunta_id, semilla_partida)` con traducción inversa al calificar.
 - [x] **Bloque 3 (`bloque-3-banco-preguntas`) — Completado:** Banco definitivo exhaustivo de **360 preguntas originales** repartidas en **10 módulos tecnológicos** (110 fáciles en Etapa 1, 110 medias en Etapa 2, 100 difíciles en Etapa 3 y 40 dificilísimas en Muerte Súbita), con balance exacto 25% por opción (`90 a`, `90 b`, `90 c`, `90 d`), modo *"🌐 Todos los Módulos"* (`modulo_activo_id = null`) activo por defecto, garantía de exactamente 1 pregunta amena (`es_amena = true`) y 4 técnicas por etapa normal en una sola consulta SQL (manteniendo presupuesto `≤ 7 queries`), e importador masivo CSV/JSON con deduplicación en `/admin/preguntas/importar`.
-- [ ] **Bloque 4 — Pendiente:** (a) Concursantes: detección y bloqueo en servidor al salir de la pestaña/app (pierde esa pregunta y espera a la siguiente) con registro de incidentes visible en `/admin`. (b) Admin: autoguardado con toasts y bloqueo de edición de parámetros críticos cuando el evento está `en_curso`, `pausado` o `desempate`.
+- [x] **Bloque 4 (`bloque-4-ux-y-antitrampas`) — Completado:** Penalización en servidor al salir de la pantalla (`POST /api/reportar-salida-pantalla`, columna `bloqueada_por_salida` y contador `salidas_pantalla` visible en `/admin` sin falsos positivos en `F5`), candado `409 Conflict` + bloqueo visual de módulo/duración/etapas/banco durante `en_curso`, `pausado` y `desempate`, autoguardado con `debounce(500ms)` y *toasts* **Notyf** en `/admin`, mensajes de error por campo en login/registro/PIN y botones grandes de salida (`🚪 Cerrar Sesión` y `🚪 Salir del Equipo`).
 - [ ] **Bloque 5 — Pendiente:** Sistema de rachas en servidor y UI (la racha se rompe con respuesta incorrecta, tiempo agotado o bloqueo por salir de la pestaña).
 - [ ] **Bloque 6 — Pendiente:** QR dinámico, experiencia móvil y validación de conexión en red local y producción.
 - [ ] **Bloque 7 — Pendiente:** Estimador de duración del torneo en el panel de administración según etapas, preguntas y tiempos configurados.
@@ -99,4 +100,4 @@ git status
 
 ## 8. Próximo Paso
 
-- **Integrar `bloque-3-banco-preguntas` en `desarrollo` e iniciar el Bloque 4 (`bloque-4-antitrampa-y-admin`):** implementar (a) detección y bloqueo en servidor cuando un concursante sale de la pestaña/app (anulando esa pregunta y registrando el incidente para `/admin`), y (b) autoguardado con *toasts* y bloqueo de edición de parámetros críticos en `/admin` mientras la partida esté `en_curso`, `pausado` o `desempate`.
+- **Integrar `bloque-4-ux-y-antitrampas` en `desarrollo` e iniciar el Bloque 5:** sistema de rachas en servidor y UI (la racha de aciertos consecutivos se rompe ante respuesta incorrecta, tiempo agotado o bloqueo por salir de la pestaña).

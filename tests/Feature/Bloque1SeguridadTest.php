@@ -273,6 +273,7 @@ class Bloque1SeguridadTest extends TestCase
         $this->withSession(['es_admin_seventech' => true]);
 
         // Estado inválido o límites fuera de rango deben ser rechazados con 302 (errores de validación)
+        $this->config->update(['estado_juego' => 'registro']);
         $this->post('/admin/configuracion', [
             'estado_juego'           => 'hackeado',
             'max_integrantes_equipo' => 0,
@@ -285,6 +286,7 @@ class Bloque1SeguridadTest extends TestCase
             'puntos_por_acierto' => -10,
             'tiempo_limite_seg'  => 1,
         ])->assertSessionHasErrors(['cantidad_preguntas', 'puntos_por_acierto', 'tiempo_limite_seg']);
+        $this->config->update(['estado_juego' => 'en_curso', 'fin_evento_at' => now()->addMinutes(15)]);
 
         // Pausar la carrera durante 60 segundos y reanudar debe desplazar fin_evento_at +60s
         $this->travelTo(now());
@@ -341,6 +343,7 @@ class Bloque1SeguridadTest extends TestCase
         }
 
         // S4: crearPregunta solo persiste los campos validados (ignora activa=false inyectado)
+        $this->config->update(['estado_juego' => 'registro']);
         $this->withSession(['es_admin_seventech' => true])
             ->post('/admin/pregunta', [
                 'modulo_id'          => $this->modulo->id,
@@ -354,6 +357,7 @@ class Bloque1SeguridadTest extends TestCase
                 'activa'             => false,
             ])->assertSessionHasNoErrors();
 
+        $this->config->update(['estado_juego' => 'en_curso', 'fin_evento_at' => now()->addMinutes(15)]);
         $creada = Pregunta::where('enunciado', 'Pregunta segura')->firstOrFail();
         $this->assertTrue((bool) $creada->activa);
 

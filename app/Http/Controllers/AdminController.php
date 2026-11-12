@@ -73,6 +73,29 @@ class AdminController extends Controller
         return redirect('/admin');
     }
 
+    private function esPartidaBloqueada(?ConfiguracionEvento $config): bool
+    {
+        return $config && in_array($config->estado_juego, ['en_curso', 'pausado', 'desempate'], true);
+    }
+
+    private function responderBloqueoPartida(Request $request, string $mensaje = 'No se pueden modificar parámetros estructurales, etapas ni preguntas mientras la partida está en curso, pausada o en desempate.')
+    {
+        if ($request->wantsJson()) {
+            return response()->json(['error' => $mensaje], 409);
+        }
+
+        abort(409, $mensaje);
+    }
+
+    private function responderExitoAdmin(Request $request, string $mensaje, array $extra = [])
+    {
+        if ($request->wantsJson()) {
+            return response()->json(array_merge(['ok' => true, 'mensaje' => $mensaje], $extra));
+        }
+
+        return back()->with('ok', $mensaje);
+    }
+
     // Cambiar estado del juego, tiempo global (minutos) o módulo activo
     public function actualizarConfiguracion(Request $request)
     {
@@ -80,7 +103,7 @@ class AdminController extends Controller
 
         $config = ConfiguracionEvento::first();
 
-        if ($request->input('modulo_activo_id') === '') {
+        if ($request->has('modulo_activo_id') && $request->input('modulo_activo_id') === '') {
             $request->merge(['modulo_activo_id' => null]);
         }
 
@@ -92,13 +115,38 @@ class AdminController extends Controller
             'tiempo_total_minutos'   => 'nullable|integer|between:1,180',
         ]);
 
+        if ($this->esPartidaBloqueada($config)) {
+            if ($request->has('modulo_activo_id')) {
+                $solicitadoMod = $validated['modulo_activo_id'] !== null ? (int) $validated['modulo_activo_id'] : null;
+                $actualMod = $config->modulo_activo_id !== null ? (int) $config->modulo_activo_id : null;
+                if ($solicitadoMod !== $actualMod) {
+                    return $this->responderBloqueoPartida($request, 'No puedes cambiar el módulo activo mientras la partida está en curso, pausada o en desempate.');
+                }
+            }
+
+            if ($request->filled('tiempo_total_minutos')) {
+                $solicitadoMin = (int) $validated['tiempo_total_minutos'];
+                $actualMin = (int) ($config->tiempo_total_minutos ?? 15);
+                if ($solicitadoMin !== $actualMin) {
+                    return $this->responderBloqueoPartida($request, 'No puedes cambiar la duración global mientras la partida está en curso, pausada o en desempate.');
+                }
+            }
+
+            $moduloFinal = $config->modulo_activo_id;
+            $minutosTotales = (int) ($config->tiempo_total_minutos ?? 15);
+        } else {
+            $moduloFinal = $request->has('modulo_activo_id')
+                ? ($validated['modulo_activo_id'] !== null ? (int) $validated['modulo_activo_id'] : null)
+                : $config->modulo_activo_id;
+            $minutosTotales = (int) ($validated['tiempo_total_minutos'] ?? $config->tiempo_total_minutos ?? 15);
+        }
+
         $estadoAnterior = $config->estado_juego;
         $nuevoEstado = $validated['estado_juego'];
-        $minutosTotales = (int) ($validated['tiempo_total_minutos'] ?? $config->tiempo_total_minutos ?? 15);
 
         $datosActualizar = [
             'estado_juego'           => $nuevoEstado,
-            'modulo_activo_id'       => $validated['modulo_activo_id'] ?? null,
+            'modulo_activo_id'       => $moduloFinal,
             'max_integrantes_equipo' => (int) $validated['max_integrantes_equipo'],
             'max_equipos_permitidos' => (int) $validated['max_equipos_permitidos'],
             'tiempo_total_minutos'   => $minutosTotales,
@@ -129,12 +177,19 @@ class AdminController extends Controller
 
         $config->update($datosActualizar);
 
-        return back()->with('ok', 'Configuración y tiempos del evento actualizados en vivo.');
+        return $this->responderExitoAdmin($request, 'Configuración y tiempos del evento actualizados en vivo.', [
+            'estado_juego' => $nuevoEstado,
+            'bloqueado'    => $this->esPartidaBloqueada($config->fresh()),
+        ]);
     }
     // Modificar cantidad de preguntas, puntos o tiempo de cualquier Etapa/Nivel (Escalabilidad)
     public function actualizarNivel(Request $request, $id)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
+            return $this->responderBloqueoPartida($request, 'No puedes modificar etapas mientras la partida está en curso, pausada o en desempate.');
+        }
 
         $validated = $request->validate([
             'nombre'             => 'required|string|max:100',
@@ -146,13 +201,17 @@ class AdminController extends Controller
         $nivel = Nivel::findOrFail($id);
         $nivel->update($validated);
 
-        return back()->with('ok', 'Etapa actualizada correctamente.');
+        return $this->responderExitoAdmin($request, 'Etapa actualizada correctamente.');
     }
 
     // Agregar cualquier módulo/categoría nuevo
     public function crearModulo(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
+            return $this->responderBloqueoPartida($request, 'No puedes crear módulos mientras la partida está en curso, pausada o en desempate.');
+        }
 
         $request->validate(['nombre' => 'required|string|max:80']);
         Modulo::create([
@@ -161,13 +220,17 @@ class AdminController extends Controller
             'activo'      => true,
         ]);
 
-        return back()->with('ok', 'Nuevo módulo creado.');
+        return $this->responderExitoAdmin($request, 'Nuevo módulo creado.');
     }
 
     // Agregar nuevas preguntas a cualquier módulo y etapa
     public function crearPregunta(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
+            return $this->responderBloqueoPartida($request, 'No puedes agregar preguntas mientras la partida está en curso, pausada o en desempate.');
+        }
 
         $validated = $request->validate([
             'modulo_id'          => 'required|exists:modulos,id',
@@ -183,13 +246,17 @@ class AdminController extends Controller
         $validated['es_amena'] = $request->boolean('es_amena');
 
         Pregunta::create($validated);
-        return back()->with('ok', 'Pregunta agregada al banco exitosamente.');
+        return $this->responderExitoAdmin($request, 'Pregunta agregada al banco exitosamente.');
     }
 
     // Importar lote de preguntas desde archivo JSON o CSV con deduplicación automática
     public function importarPreguntas(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
+            return $this->responderBloqueoPartida($request, 'No puedes importar preguntas mientras la partida está en curso, pausada o en desempate.');
+        }
 
         $request->validate([
             'archivo' => 'required|file|max:5120',
@@ -323,7 +390,7 @@ class AdminController extends Controller
             Pregunta::insert($chunk);
         }
 
-        return back()->with('ok', "Importación completada: {$importadas} preguntas nuevas añadidas y {$omitidas} omitidas.");
+        return $this->responderExitoAdmin($request, "Importación completada: {$importadas} preguntas nuevas añadidas y {$omitidas} omitidas.");
     }
 
     // Activar Ronda de Desempate (Muerte Súbita) entre los equipos punteros
@@ -395,6 +462,7 @@ class AdminController extends Controller
                     'aciertos_totales'      => 0,
                     'puntaje_total'         => 0,
                     'tiempo_acumulado_ms'   => 0,
+                    'salidas_pantalla'      => 0,
                     'en_desempate'          => false,
                     'finalizo_carrera'      => false,
                 ]);
@@ -559,6 +627,10 @@ class AdminController extends Controller
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
+        if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
+            return $this->responderBloqueoPartida($request, 'No puedes editar preguntas mientras la partida está en curso, pausada o en desempate.');
+        }
+
         $validated = $request->validate([
             'modulo_id'          => 'sometimes|required|exists:modulos,id',
             'nivel_id'           => 'sometimes|required|exists:niveles,id',
@@ -575,7 +647,7 @@ class AdminController extends Controller
         $pregunta = Pregunta::findOrFail($id);
         $pregunta->update($validated);
 
-        return back()->with('ok', 'Pregunta actualizada correctamente en la base de datos.');
+        return $this->responderExitoAdmin($request, 'Pregunta actualizada correctamente en la base de datos.');
     }
 
     // Eliminar una pregunta del banco
@@ -583,8 +655,12 @@ class AdminController extends Controller
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
+        if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
+            return $this->responderBloqueoPartida($request, 'No puedes eliminar preguntas mientras la partida está en curso, pausada o en desempate.');
+        }
+
         Pregunta::findOrFail($id)->delete();
-        return back()->with('ok', 'Pregunta eliminada del banco.');
+        return $this->responderExitoAdmin($request, 'Pregunta eliminada del banco.');
     }
 
     // Eliminar un módulo completo
@@ -592,12 +668,16 @@ class AdminController extends Controller
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
 
+        if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
+            return $this->responderBloqueoPartida($request, 'No puedes eliminar módulos mientras la partida está en curso, pausada o en desempate.');
+        }
+
         if (Modulo::count() <= 1) {
-            return back()->with('ok', 'Debe existir al menos 1 módulo en el sistema.');
+            return $this->responderExitoAdmin($request, 'Debe existir al menos 1 módulo en el sistema.');
         }
 
         Modulo::findOrFail($id)->delete();
-        return back()->with('ok', 'Módulo eliminado.');
+        return $this->responderExitoAdmin($request, 'Módulo eliminado.');
     }
     // Eliminar un equipo específico desde el panel de administración
     public function eliminarEquipo(Request $request, $id)

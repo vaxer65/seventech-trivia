@@ -3,8 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Seven Tech - Panel de Administración</title>
     @include('partials.cyberpunk-head')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+    <style>
+        .notyf__toast {
+            border-radius: 12px !important;
+            border: 1px solid rgba(0, 229, 255, 0.45);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.2) !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            font-weight: 700 !important;
+        }
+        [data-lockable="true"]:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body class="circuit-bg min-h-screen p-4 md:p-6">
 
@@ -14,22 +30,25 @@
             <h1 class="text-2xl font-black text-[#00E5FF] mb-1">🔐 Admin Seven Tech</h1>
             <p class="text-xs text-slate-300 mb-5">Ingresa la clave maestra para controlar la trivia en vivo.</p>
 
-            @if($errors->any())
-                <div class="mb-4 p-3 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-200 text-xs font-bold">
-                    {{ $errors->first() }}
-                </div>
-            @endif
-
             <form method="POST" action="/admin/login" class="space-y-4">
                 @csrf
-                <input type="password" name="password" required placeholder="Contraseña de administrador"
-                       class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#00E5FF]">
+                <div>
+                    <label class="text-xs font-bold text-slate-300">Contraseña Maestra</label>
+                    <input type="password" name="password" required placeholder="Contraseña de administrador"
+                           class="w-full mt-1 bg-[#07101E] border {{ $errors->has('password') ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-[#00E5FF]' }} rounded-xl px-4 py-3 text-sm text-white outline-none">
+                    @error('password')
+                        <p class="mt-1.5 text-xs font-bold text-rose-400">⚠️ {{ $message }}</p>
+                    @enderror
+                </div>
                 <button type="submit" class="w-full py-3 rounded-xl bg-[#00E5FF] text-[#07101E] font-black text-sm uppercase">
                     Entrar al Panel de Control
                 </button>
             </form>
         </div>
     @else
+        @php
+            $partidaBloqueada = in_array($config->estado_juego, ['en_curso', 'pausado', 'desempate'], true);
+        @endphp
         <!-- PANEL DE CONTROL COMPLETO -->
         <header class="max-w-7xl mx-auto flex flex-wrap justify-between items-center card rounded-2xl p-4 mb-6">
             <div class="flex items-center gap-3">
@@ -38,19 +57,22 @@
                 </a>
                 <div>
                     <h1 class="text-xl font-black text-[#00E5FF]">CENTRO DE MANDO SEVEN TECH</h1>
-                    <p class="text-xs text-slate-300">Estado actual: <b class="uppercase text-amber-400">{{ $config->estado_juego }}</b></p>
+                    <p class="text-xs text-slate-300">Estado actual: <b id="badge-estado-admin" class="uppercase text-amber-400">{{ $config->estado_juego }}</b></p>
                 </div>
             </div>
-            <div class="flex items-center gap-3 mt-2 sm:mt-0">
-                <a href="/espectador" target="_blank" class="px-3.5 py-2 rounded-xl bg-cyan-500/20 border border-[#00E5FF] text-[#00E5FF] text-xs font-bold">
+            <div class="flex flex-wrap items-center gap-3 mt-2 sm:mt-0">
+                <a href="/espectador" target="_blank" class="px-3.5 py-2.5 rounded-xl bg-cyan-500/20 border border-[#00E5FF] text-[#00E5FF] text-xs font-bold">
                     🖥️ Abrir Pantalla Espectador
                 </a>
-                <a href="/jugar" target="_blank" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-xs font-bold">
+                <a href="/jugar" target="_blank" class="px-3.5 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-xs font-bold">
                     🎮 Abrir Vista Concursante
                 </a>
                 <form method="POST" action="/admin/logout">
                     @csrf
-                    <button class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">Salir</button>
+                    <button type="submit" class="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/60 text-rose-200 text-xs font-bold flex items-center gap-1.5 transition">
+                        <span>🚪</span>
+                        <span>Cerrar Sesión</span>
+                    </button>
                 </form>
             </div>
         </header>
@@ -60,6 +82,11 @@
                 ✅ {{ session('ok') }}
             </div>
         @endif
+        @if($errors->any())
+            <div class="max-w-7xl mx-auto mb-6 p-3.5 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-200 text-sm font-bold">
+                ⚠️ {{ $errors->first() }}
+            </div>
+        @endif
 
         <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -67,7 +94,11 @@
             <section class="card rounded-2xl p-5 space-y-5">
                 <h2 class="text-base font-extrabold text-[#00E5FF] border-b border-slate-800 pb-2">1. Control de Carrera en Vivo</h2>
 
-                <form method="POST" action="/admin/configuracion" class="space-y-3">
+                <div id="aviso-bloqueo-config" class="{{ $partidaBloqueada ? '' : 'hidden' }} p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/50 text-amber-200 text-[11px] font-bold">
+                    🔒 Bloqueado mientras hay una partida en curso/pausa (solo editable en Registro o Finalizado).
+                </div>
+
+                <form id="form-configuracion" method="POST" action="/admin/configuracion" class="space-y-3">
                     @csrf
                     <div>
                         <label class="text-xs font-bold text-slate-300">Estado de la Trivia</label>
@@ -81,7 +112,7 @@
 
                     <div>
                         <label class="text-xs font-bold text-slate-300">Módulo / Categoría Activa</label>
-                        <select name="modulo_activo_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white">
+                        <select name="modulo_activo_id" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white">
                             <option value="" {{ is_null($config->modulo_activo_id) ? 'selected' : '' }}>
                                 🌐 Todos los Módulos (Sorteo Global - {{ $preguntas->count() }} pregs)
                             </option>
@@ -104,7 +135,7 @@
                         </div>
                         <div>
                             <label class="text-[11px] text-[#00E5FF] font-bold">Trivia (Minutos)</label>
-                            <input type="number" name="tiempo_total_minutos" min="1" max="180" value="{{ $config->tiempo_total_minutos ?? 15 }}" class="w-full bg-[#07101E] border border-[#00E5FF] rounded-xl px-2.5 py-2 text-sm text-[#00E5FF] font-bold">
+                            <input type="number" name="tiempo_total_minutos" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} min="1" max="180" value="{{ $config->tiempo_total_minutos ?? 15 }}" class="w-full bg-[#07101E] border border-[#00E5FF] rounded-xl px-2.5 py-2 text-sm text-[#00E5FF] font-bold">
                         </div>
                     </div>
 
@@ -165,26 +196,29 @@
             <!-- 2. ESCALABILIDAD: EDITAR ETAPAS Y CREAR MÓDULOS -->
             <section class="card rounded-2xl p-5 space-y-5">
                 <h2 class="text-base font-extrabold text-[#00E5FF] border-b border-slate-800 pb-2">2. Configurar Etapas de la Carrera</h2>
+                <div id="aviso-bloqueo-etapas" class="{{ $partidaBloqueada ? '' : 'hidden' }} p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/50 text-amber-200 text-[11px] font-bold">
+                    🔒 Bloqueado mientras hay una partida en curso/pausa
+                </div>
                 <div class="space-y-3">
                     @foreach($niveles as $niv)
-                        <form method="POST" action="/admin/nivel/{{ $niv->id }}" class="bg-[#07101E] p-3 rounded-xl border border-slate-800 space-y-2">
+                        <form method="POST" action="/admin/nivel/{{ $niv->id }}" class="form-nivel-admin bg-[#07101E] p-3 rounded-xl border border-slate-800 space-y-2">
                             @csrf
-                            <input type="text" name="nombre" value="{{ $niv->nombre }}" class="w-full bg-transparent font-bold text-xs text-[#00E5FF] border-b border-slate-800 pb-1">
+                            <input type="text" name="nombre" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->nombre }}" class="w-full bg-transparent font-bold text-xs text-[#00E5FF] border-b border-slate-800 pb-1">
                             <div class="grid grid-cols-3 gap-2 text-xs">
                                 <div>
                                     <span class="text-[10px] text-slate-400">Preguntas</span>
-                                    <input type="number" name="cantidad_preguntas" value="{{ $niv->cantidad_preguntas }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
+                                    <input type="number" name="cantidad_preguntas" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->cantidad_preguntas }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
                                 </div>
                                 <div>
                                     <span class="text-[10px] text-slate-400">Puntos c/u</span>
-                                    <input type="number" name="puntos_por_acierto" value="{{ $niv->puntos_por_acierto }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
+                                    <input type="number" name="puntos_por_acierto" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->puntos_por_acierto }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
                                 </div>
                                 <div>
                                     <span class="text-[10px] text-slate-400">Segundos</span>
-                                    <input type="number" name="tiempo_limite_seg" value="{{ $niv->tiempo_limite_seg }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
+                                    <input type="number" name="tiempo_limite_seg" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->tiempo_limite_seg }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
                                 </div>
                             </div>
-                            <button class="w-full py-1.5 rounded-lg bg-cyan-500/20 text-[#00E5FF] font-bold text-xs">Actualizar Etapa</button>
+                            <button type="submit" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full py-1.5 rounded-lg bg-cyan-500/20 text-[#00E5FF] font-bold text-xs">Actualizar Etapa</button>
                         </form>
                     @endforeach
                 </div>
@@ -194,9 +228,9 @@
                     <h3 class="text-xs font-bold uppercase text-[#00E5FF] mb-2">➕ Agregar Nuevo Módulo/Categoría</h3>
                     <form method="POST" action="/admin/modulo" class="space-y-2">
                         @csrf
-                        <input type="text" name="nombre" required placeholder="Nombre del módulo (Ej: Robótica e IoT)" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
-                        <input type="text" name="descripcion" placeholder="Descripción corta" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
-                        <button class="w-full py-2 rounded-xl bg-emerald-500 text-[#07101E] font-black text-xs uppercase">Crear Módulo</button>
+                        <input type="text" name="nombre" required data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} placeholder="Nombre del módulo (Ej: Robótica e IoT)" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        <input type="text" name="descripcion" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} placeholder="Descripción corta" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                        <button type="submit" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full py-2 rounded-xl bg-emerald-500 text-[#07101E] font-black text-xs uppercase">Crear Módulo</button>
                     </form>
                 </div>
             </section>
@@ -204,11 +238,14 @@
             <!-- 3. AGREGAR NUEVAS PREGUNTAS AL BANCO -->
             <section class="card rounded-2xl p-5 space-y-4">
                 <h2 class="text-base font-extrabold text-[#00E5FF] border-b border-slate-800 pb-2">3. Añadir Pregunta al Banco</h2>
+                <div id="aviso-bloqueo-banco" class="{{ $partidaBloqueada ? '' : 'hidden' }} p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/50 text-amber-200 text-[11px] font-bold">
+                    🔒 Bloqueado mientras hay una partida en curso/pausa
+                </div>
                 <form method="POST" action="/admin/pregunta" class="space-y-2.5 text-xs">
                     @csrf
                     <div>
                         <label class="text-slate-300 font-bold">Módulo</label>
-                        <select name="modulo_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
+                        <select name="modulo_id" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
                             @foreach($modulos as $m)
                                 <option value="{{ $m->id }}" {{ ($config->modulo_activo_id ?? null) == $m->id ? 'selected' : '' }}>{{ $m->nombre }}</option>
                             @endforeach
@@ -216,7 +253,7 @@
                     </div>
                     <div>
                         <label class="text-slate-300 font-bold">Etapa / Nivel de Dificultad</label>
-                        <select name="nivel_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
+                        <select name="nivel_id" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
                             @foreach($niveles as $n)
                                 <option value="{{ $n->id }}">{{ $n->nombre }}</option>
                             @endforeach
@@ -224,15 +261,15 @@
                     </div>
                     <div>
                         <label class="text-slate-300 font-bold">Enunciado de la Pregunta</label>
-                        <textarea name="enunciado" required rows="2" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white"></textarea>
+                        <textarea name="enunciado" required rows="2" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white"></textarea>
                     </div>
-                    <input type="text" name="opcion_a" required placeholder="Opción A" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
-                    <input type="text" name="opcion_b" required placeholder="Opción B" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
-                    <input type="text" name="opcion_c" required placeholder="Opción C" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
-                    <input type="text" name="opcion_d" required placeholder="Opción D" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
+                    <input type="text" name="opcion_a" required data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} placeholder="Opción A" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
+                    <input type="text" name="opcion_b" required data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} placeholder="Opción B" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
+                    <input type="text" name="opcion_c" required data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} placeholder="Opción C" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
+                    <input type="text" name="opcion_d" required data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} placeholder="Opción D" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
                     <div>
                         <label class="text-emerald-400 font-bold">Respuesta Correcta (Secreta)</label>
-                        <select name="respuesta_correcta" class="w-full mt-1 bg-[#07101E] border border-emerald-500 rounded-xl px-3 py-2 font-bold text-emerald-300">
+                        <select name="respuesta_correcta" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full mt-1 bg-[#07101E] border border-emerald-500 rounded-xl px-3 py-2 font-bold text-emerald-300">
                             <option value="a">Opción A</option>
                             <option value="b">Opción B</option>
                             <option value="c">Opción C</option>
@@ -240,10 +277,10 @@
                         </select>
                     </div>
                     <label class="flex items-center gap-2 text-xs text-amber-300 font-semibold pt-1 cursor-pointer">
-                        <input type="checkbox" name="es_amena" value="1" class="rounded border-slate-600">
+                        <input type="checkbox" name="es_amena" value="1" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="rounded border-slate-600">
                         <span>🎮 Pregunta amena / curiosa de cultura geek</span>
                     </label>
-                    <button type="submit" class="w-full py-2.5 rounded-xl bg-[#00E5FF] text-[#07101E] font-black uppercase">
+                    <button type="submit" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full py-2.5 rounded-xl bg-[#00E5FF] text-[#07101E] font-black uppercase">
                         Guardar Pregunta
                     </button>
                 </form>
@@ -254,9 +291,9 @@
                     <p class="text-[11px] text-slate-400 mb-2">Sube un archivo JSON o CSV para agregar preguntas sin duplicar las existentes.</p>
                     <form method="POST" action="/admin/preguntas/importar" enctype="multipart/form-data" class="space-y-2 text-xs">
                         @csrf
-                        <input type="file" name="archivo" accept=".json,.csv,.txt" required
+                        <input type="file" name="archivo" accept=".json,.csv,.txt" required data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }}
                                class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-slate-300 text-xs">
-                        <button type="submit" class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#07101E] font-black uppercase">
+                        <button type="submit" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#07101E] font-black uppercase">
                             📤 Importar Archivo al Banco
                         </button>
                     </form>
@@ -286,9 +323,16 @@
                                         <span class="w-3 h-3 rounded-full" style="background-color: {{ $eq->color_carril }};"></span>
                                         <h3 class="font-bold text-sm text-white">{{ $eq->nombre_equipo }}</h3>
                                     </div>
-                                    <span class="font-orbitron text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40">
-                                        🔑 PIN: {{ $eq->pin_recuperacion }}
-                                    </span>
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        @if(($eq->salidas_pantalla ?? 0) > 0)
+                                            <span class="font-orbitron text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/60">
+                                                ⚠️ {{ $eq->salidas_pantalla }} {{ $eq->salidas_pantalla === 1 ? 'salida de app' : 'salidas de app' }}
+                                            </span>
+                                        @endif
+                                        <span class="font-orbitron text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40">
+                                            🔑 PIN: {{ $eq->pin_recuperacion }}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <p class="text-[11px] font-bold text-[#00E5FF] uppercase mb-1">
@@ -424,7 +468,7 @@
                                         </label>
                                     </div>
 
-                                    <button type="submit" class="px-4 py-1.5 rounded-lg bg-[#00E5FF] text-[#07101E] font-bold uppercase">
+                                    <button type="submit" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="px-4 py-1.5 rounded-lg bg-[#00E5FF] text-[#07101E] font-bold uppercase">
                                         💾 Guardar Cambios
                                     </button>
                                 </div>
@@ -432,7 +476,7 @@
 
                             <form method="POST" action="/admin/pregunta/{{ $preg->id }}/eliminar" class="mt-2 text-right" onsubmit="return confirm('¿Eliminar esta pregunta definitivamente?');">
                                 @csrf
-                                <button type="submit" class="px-3 py-1 rounded-lg bg-rose-500/20 border border-rose-500 text-rose-300 text-xs font-bold hover:bg-rose-500/30">
+                                <button type="submit" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="px-3 py-1 rounded-lg bg-rose-500/20 border border-rose-500 text-rose-300 text-xs font-bold hover:bg-rose-500/30">
                                     🗑️ Eliminar Pregunta
                                 </button>
                             </form>
@@ -606,6 +650,113 @@
             </details>
         </section>
         @endif
+
+        <script>
+            const notyfAdmin = typeof Notyf !== 'undefined'
+                ? new Notyf({
+                    duration: 3200,
+                    position: { x: 'right', y: 'bottom' },
+                    dismissible: true,
+                    types: [
+                        { type: 'success', background: '#0F2342', icon: false },
+                        { type: 'error', background: '#7F1D1D', icon: false }
+                    ]
+                })
+                : null;
+
+            function mostrarToast(mensaje, tipo = 'success') {
+                if (notyfAdmin) {
+                    notyfAdmin.open({
+                        type: tipo === 'error' ? 'error' : 'success',
+                        message: (tipo === 'error' ? '⚠️ ' : '✅ ') + mensaje
+                    });
+                }
+            }
+
+            @if(session('ok'))
+                mostrarToast(@json(session('ok')), 'success');
+            @endif
+            @if($errors->any())
+                mostrarToast(@json($errors->first()), 'error');
+            @endif
+
+            function debounceAdmin(fn, wait = 500) {
+                let timer = null;
+                return (...args) => {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => fn(...args), wait);
+                };
+            }
+
+            function actualizarBloqueosUI(bloqueado, estadoJuego) {
+                const badge = document.getElementById('badge-estado-admin');
+                if (badge && estadoJuego) {
+                    badge.textContent = estadoJuego;
+                }
+                document.querySelectorAll('[data-lockable="true"]').forEach(el => {
+                    el.disabled = !!bloqueado;
+                });
+                ['aviso-bloqueo-config', 'aviso-bloqueo-etapas', 'aviso-bloqueo-banco'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.toggle('hidden', !bloqueado);
+                });
+            }
+
+            async function autoguardarFormulario(form) {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrf = csrfMeta ? csrfMeta.content : '';
+                try {
+                    const res = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrf
+                        },
+                        body: new FormData(form)
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        const errMsg = data.errors
+                            ? Object.values(data.errors)[0][0]
+                            : (data.error || data.message || 'No se pudo guardar el cambio.');
+                        mostrarToast(errMsg, 'error');
+                        return;
+                    }
+                    mostrarToast(data.mensaje || 'Cambios guardados en vivo.', 'success');
+                    if (typeof data.bloqueado === 'boolean') {
+                        actualizarBloqueosUI(data.bloqueado, data.estado_juego);
+                    }
+                } catch (e) {
+                    mostrarToast('Error de conexión al guardar en vivo.', 'error');
+                }
+            }
+
+            const formConfig = document.getElementById('form-configuracion');
+            if (formConfig) {
+                const guardarConfigDebounced = debounceAdmin(() => autoguardarFormulario(formConfig), 500);
+                formConfig.querySelectorAll('select').forEach(sel => {
+                    sel.addEventListener('change', () => autoguardarFormulario(formConfig));
+                });
+                formConfig.querySelectorAll('input').forEach(inp => {
+                    inp.addEventListener('input', guardarConfigDebounced);
+                });
+                formConfig.addEventListener('submit', e => {
+                    e.preventDefault();
+                    autoguardarFormulario(formConfig);
+                });
+            }
+
+            document.querySelectorAll('.form-nivel-admin').forEach(formNivel => {
+                const guardarNivelDebounced = debounceAdmin(() => autoguardarFormulario(formNivel), 500);
+                formNivel.querySelectorAll('input').forEach(inp => {
+                    inp.addEventListener('input', guardarNivelDebounced);
+                });
+                formNivel.addEventListener('submit', e => {
+                    e.preventDefault();
+                    autoguardarFormulario(formNivel);
+                });
+            });
+        </script>
     @endif
 
 </body>

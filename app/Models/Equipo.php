@@ -12,6 +12,12 @@ class Equipo extends Model
     // Ocultamos el token de sesión en las vistas públicas del espectador
     protected $hidden = ['token_sesion'];
 
+    protected $casts = [
+        'salidas_pantalla' => 'integer',
+        'en_desempate'     => 'boolean',
+        'finalizo_carrera' => 'boolean',
+    ];
+
     public function integrantes()
     {
         return $this->hasMany(Integrante::class);
