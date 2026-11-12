@@ -82,6 +82,9 @@
                     <div>
                         <label class="text-xs font-bold text-slate-300">Módulo / Categoría Activa</label>
                         <select name="modulo_activo_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white">
+                            <option value="" {{ is_null($config->modulo_activo_id) ? 'selected' : '' }}>
+                                🌐 Todos los Módulos (Sorteo Global - {{ $preguntas->count() }} pregs)
+                            </option>
                             @foreach($modulos as $mod)
                                 <option value="{{ $mod->id }}" {{ $config->modulo_activo_id == $mod->id ? 'selected' : '' }}>
                                     {{ $mod->nombre }} ({{ $mod->preguntas_count }} pregs)
@@ -236,10 +239,28 @@
                             <option value="d">Opción D</option>
                         </select>
                     </div>
+                    <label class="flex items-center gap-2 text-xs text-amber-300 font-semibold pt-1 cursor-pointer">
+                        <input type="checkbox" name="es_amena" value="1" class="rounded border-slate-600">
+                        <span>🎮 Pregunta amena / curiosa de cultura geek</span>
+                    </label>
                     <button type="submit" class="w-full py-2.5 rounded-xl bg-[#00E5FF] text-[#07101E] font-black uppercase">
                         Guardar Pregunta
                     </button>
                 </form>
+
+                <!-- Importador Masivo CSV / JSON -->
+                <div class="pt-3 border-t border-slate-800">
+                    <h3 class="text-xs font-bold uppercase text-[#00E5FF] mb-1.5">📥 Importar Lote de Preguntas (.JSON / .CSV)</h3>
+                    <p class="text-[11px] text-slate-400 mb-2">Sube un archivo JSON o CSV para agregar preguntas sin duplicar las existentes.</p>
+                    <form method="POST" action="/admin/preguntas/importar" enctype="multipart/form-data" class="space-y-2 text-xs">
+                        @csrf
+                        <input type="file" name="archivo" accept=".json,.csv,.txt" required
+                               class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-slate-300 text-xs">
+                        <button type="submit" class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#07101E] font-black uppercase">
+                            📤 Importar Archivo al Banco
+                        </button>
+                    </form>
+                </div>
             </section>
 
         </main>
@@ -341,6 +362,11 @@
                                 <span class="px-2 py-0.5 rounded text-[10px] bg-[#0F2342] text-slate-300 border border-slate-700">
                                     {{ $preg->modulo->nombre ?? 'Módulo' }}
                                 </span>
+                                @if($preg->es_amena)
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/50">
+                                        🎮 AMENA
+                                    </span>
+                                @endif
                                 <span class="text-white font-semibold">{{ $preg->enunciado }}</span>
                             </div>
 
@@ -382,14 +408,20 @@
                                 </div>
 
                                 <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-emerald-400 font-bold">Correcta:</span>
-                                        <select name="respuesta_correcta" class="bg-[#0F2342] border border-emerald-500 rounded-lg px-2.5 py-1 font-bold text-emerald-300">
-                                            <option value="a" {{ $preg->getRawOriginal('respuesta_correcta') == 'a' ? 'selected' : '' }}>Opción A</option>
-                                            <option value="b" {{ $preg->getRawOriginal('respuesta_correcta') == 'b' ? 'selected' : '' }}>Opción B</option>
-                                            <option value="c" {{ $preg->getRawOriginal('respuesta_correcta') == 'c' ? 'selected' : '' }}>Opción C</option>
-                                            <option value="d" {{ $preg->getRawOriginal('respuesta_correcta') == 'd' ? 'selected' : '' }}>Opción D</option>
-                                        </select>
+                                    <div class="flex flex-wrap items-center gap-4">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-emerald-400 font-bold">Correcta:</span>
+                                            <select name="respuesta_correcta" class="bg-[#0F2342] border border-emerald-500 rounded-lg px-2.5 py-1 font-bold text-emerald-300">
+                                                <option value="a" {{ $preg->getRawOriginal('respuesta_correcta') == 'a' ? 'selected' : '' }}>Opción A</option>
+                                                <option value="b" {{ $preg->getRawOriginal('respuesta_correcta') == 'b' ? 'selected' : '' }}>Opción B</option>
+                                                <option value="c" {{ $preg->getRawOriginal('respuesta_correcta') == 'c' ? 'selected' : '' }}>Opción C</option>
+                                                <option value="d" {{ $preg->getRawOriginal('respuesta_correcta') == 'd' ? 'selected' : '' }}>Opción D</option>
+                                            </select>
+                                        </div>
+                                        <label class="flex items-center gap-1.5 text-amber-300 font-semibold cursor-pointer">
+                                            <input type="checkbox" name="es_amena" value="1" {{ $preg->es_amena ? 'checked' : '' }} class="rounded border-slate-600">
+                                            <span>🎮 Amena / Curiosa</span>
+                                        </label>
                                     </div>
 
                                     <button type="submit" class="px-4 py-1.5 rounded-lg bg-[#00E5FF] text-[#07101E] font-bold uppercase">

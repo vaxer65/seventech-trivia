@@ -13,6 +13,7 @@
 
 - **Ordenamiento de preguntas de trivia:** Las preguntas se ordenan de forma pseudoaleatoria, uniforme e idéntica para todos los equipos usando `semilla_partida` mediante `CRC32(SHA2(CONCAT(preguntas.id, "-", ?), 256))` (implementado en `app/Http/Controllers/ConcursanteController.php` y `app/Http/Controllers/AdminController.php`).
 - **Barajado determinista y opaco de opciones A/B/C/D:** En `GET /api/estado-juego`, el servidor permuta los textos `opcion_a..d` usando una de las 24 permutaciones de $S_4$ derivada de `hash('sha256', "{$equipoId}:{$preguntaId}:{$semilla}")` y en `POST /api/enviar-respuesta` traduce la letra visual elegida a la clave original antes de calificar.
+- **Banco multitemático de 360 preguntas y 1 pregunta amena por etapa:** El seeder siembra 10 módulos tecnológicos y 360 preguntas originales (110 Etapa 1, 110 Etapa 2, 100 Etapa 3, 40 Muerte Súbita) con distribución exacta 25% por opción (`90 a..d`) y `modulo_activo_id = null` (Modo *"Todos los Módulos"*) por defecto. Cada etapa normal entrega exactamente 1 pregunta amena (`es_amena = true`) en el turno determinista `hexdec(substr(hash('sha256', "amena:{$nivel->id}:{$semilla}"), 0, 8)) % $nivel->cantidad_preguntas` y el resto técnicas (`es_amena = false`). Soporta importación masiva CSV/JSON con deduplicación en `POST /admin/preguntas/importar`.
 
 ## Reglas Permanentes del Proyecto
 

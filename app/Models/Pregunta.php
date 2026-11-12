@@ -9,8 +9,13 @@ class Pregunta extends Model
     protected $table = 'preguntas';
     protected $guarded = [];
 
-    // BLINDAJE: Jamás se envía la respuesta correcta al frontend
-    protected $hidden = ['respuesta_correcta'];
+    protected $casts = [
+        'activa'   => 'boolean',
+        'es_amena' => 'boolean',
+    ];
+
+    // BLINDAJE: Jamás se envía la respuesta correcta ni metadatos internos al frontend de concursantes
+    protected $hidden = ['respuesta_correcta', 'es_amena'];
 
     public function modulo()
     {

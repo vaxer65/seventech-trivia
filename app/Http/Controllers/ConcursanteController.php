@@ -425,19 +425,23 @@ class ConcursanteController extends Controller
             return null;
         }
 
-        $conteo = RespuestaEquipo::where('equipo_id', $equipo->id)
-            ->selectRaw('nivel_id, COUNT(*) as total')
-            ->groupBy('nivel_id')
-            ->pluck('total', 'nivel_id');
+        $estadisticasPorNivel = RespuestaEquipo::where('respuestas_equipos.equipo_id', $equipo->id)
+            ->join('preguntas', 'respuestas_equipos.pregunta_id', '=', 'preguntas.id')
+            ->selectRaw('respuestas_equipos.nivel_id, COUNT(*) as total, SUM(CASE WHEN preguntas.es_amena = 1 THEN 1 ELSE 0 END) as amenas')
+            ->groupBy('respuestas_equipos.nivel_id')
+            ->get()
+            ->keyBy('nivel_id');
 
         foreach ($niveles as $nivel) {
-            $contestadas = (int) ($conteo[$nivel->id] ?? 0);
+            $fila = $estadisticasPorNivel->get($nivel->id);
+            $contestadas = (int) ($fila->total ?? 0);
+            $amenasContestadas = (int) ($fila->amenas ?? 0);
             if ($contestadas < $nivel->cantidad_preguntas) {
                 return [
                     'completo'    => false,
                     'nivel'       => $nivel,
                     'contestadas' => $contestadas,
-                    'pregunta'    => $this->siguientePregunta($equipo, $nivel, $config),
+                    'pregunta'    => $this->siguientePregunta($equipo, $nivel, $config, $contestadas, $amenasContestadas),
                 ];
             }
         }
@@ -446,13 +450,22 @@ class ConcursanteController extends Controller
     }
 
     // Orden pseudoaleatorio por partida, IDÉNTICO para todos los equipos (justicia deportiva)
-    private function siguientePregunta(Equipo $equipo, Nivel $nivel, ConfiguracionEvento $config): ?Pregunta
+    // En etapas normales garantiza exactamente 1 pregunta amena/curiosa y el resto técnicas.
+    private function siguientePregunta(Equipo $equipo, Nivel $nivel, ConfiguracionEvento $config, int $contestadas = 0, int $amenasContestadas = 0): ?Pregunta
     {
         if (empty($config->semilla_partida) || $config->semilla_partida === 'seventech_init') {
             $config->update(['semilla_partida' => Str::random(16)]);
         }
 
         $semilla = (string) $config->semilla_partida;
+
+        $prefiereAmena = 0;
+        if (!$nivel->es_desempate && $nivel->cantidad_preguntas >= 2) {
+            $turnoAmena = hexdec(substr(hash('sha256', "amena:{$nivel->id}:{$semilla}"), 0, 8)) % $nivel->cantidad_preguntas;
+            if ($amenasContestadas === 0 && ($contestadas === $turnoAmena || $contestadas >= $nivel->cantidad_preguntas - 1)) {
+                $prefiereAmena = 1;
+            }
+        }
 
         $query = Pregunta::select('preguntas.*')
             ->selectRaw('EXISTS(SELECT 1 FROM entregas WHERE entregas.equipo_id = ? AND entregas.pregunta_id = preguntas.id) as ya_entregada', [$equipo->id])
@@ -469,7 +482,11 @@ class ConcursanteController extends Controller
             $query->where('modulo_id', $config->modulo_activo_id);
         }
 
-        return $query->orderByRaw('CRC32(SHA2(CONCAT(preguntas.id, "-", ?), 256))', [$semilla])->orderBy('preguntas.id')->first();
+        return $query
+            ->orderByRaw('CASE WHEN preguntas.es_amena = ? THEN 0 ELSE 1 END ASC', [$prefiereAmena])
+            ->orderByRaw('CRC32(SHA2(CONCAT(preguntas.id, "-", ?), 256))', [$semilla])
+            ->orderBy('preguntas.id')
+            ->first();
     }
 
     // 24 permutaciones canónicas (S4) de ['a', 'b', 'c', 'd']; cada letra aparece exactamente 6 veces (25%) en cada posición

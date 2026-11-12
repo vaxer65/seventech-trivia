@@ -80,6 +80,10 @@ class AdminController extends Controller
 
         $config = ConfiguracionEvento::first();
 
+        if ($request->input('modulo_activo_id') === '') {
+            $request->merge(['modulo_activo_id' => null]);
+        }
+
         $validated = $request->validate([
             'estado_juego'           => 'required|in:registro,en_curso,pausado,desempate,finalizado',
             'modulo_activo_id'       => 'nullable|exists:modulos,id',
@@ -176,8 +180,150 @@ class AdminController extends Controller
             'respuesta_correcta' => 'required|in:a,b,c,d',
         ]);
 
+        $validated['es_amena'] = $request->boolean('es_amena');
+
         Pregunta::create($validated);
         return back()->with('ok', 'Pregunta agregada al banco exitosamente.');
+    }
+
+    // Importar lote de preguntas desde archivo JSON o CSV con deduplicación automática
+    public function importarPreguntas(Request $request)
+    {
+        if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        $request->validate([
+            'archivo' => 'required|file|max:5120',
+        ]);
+
+        $archivo = $request->file('archivo');
+        $ext = strtolower((string) $archivo->getClientOriginalExtension());
+        $contenido = (string) file_get_contents($archivo->getRealPath());
+        $contenido = preg_replace('/^\xEF\xBB\xBF/', '', $contenido); // Quitar BOM UTF-8 si existe
+
+        $items = [];
+        $trimContenido = ltrim($contenido);
+
+        if ($ext === 'json' || str_starts_with($trimContenido, '[') || str_starts_with($trimContenido, '{')) {
+            $decoded = json_decode($contenido, true);
+            if (!is_array($decoded)) {
+                return back()->withErrors(['archivo' => 'El archivo JSON no tiene un formato válido.']);
+            }
+            $items = (isset($decoded['preguntas']) && is_array($decoded['preguntas'])) ? $decoded['preguntas'] : $decoded;
+        } else {
+            $lineas = preg_split('/\r\n|\r|\n/', trim($contenido));
+            if (!$lineas || count($lineas) < 2) {
+                return back()->withErrors(['archivo' => 'El archivo CSV está vacío o no incluye filas de datos.']);
+            }
+            $delimitador = (substr_count($lineas[0], ';') > substr_count($lineas[0], ',')) ? ';' : ',';
+            $cabeceras = array_map(fn ($h) => strtolower(trim((string) $h)), str_getcsv(array_shift($lineas), $delimitador));
+
+            foreach ($lineas as $linea) {
+                if (trim($linea) === '') {
+                    continue;
+                }
+                $valores = str_getcsv($linea, $delimitador);
+                $fila = [];
+                foreach ($cabeceras as $idx => $col) {
+                    if ($col !== '') {
+                        $fila[$col] = $valores[$idx] ?? '';
+                    }
+                }
+                $items[] = $fila;
+            }
+        }
+
+        $modulos = Modulo::all();
+        $modulosPorId = $modulos->keyBy('id');
+        $modulosPorNombre = $modulos->mapWithKeys(fn ($m) => [mb_strtolower(trim($m->nombre), 'UTF-8') => $m->id]);
+
+        $niveles = Nivel::all();
+        $nivelesPorId = $niveles->keyBy('id');
+        $nivelesPorOrden = $niveles->mapWithKeys(fn ($n) => [(int) $n->orden_dificultad => $n->id]);
+        $nivelesPorNombre = $niveles->mapWithKeys(fn ($n) => [mb_strtolower(trim($n->nombre), 'UTF-8') => $n->id]);
+
+        $existentes = Pregunta::pluck('enunciado')
+            ->mapWithKeys(fn ($e) => [mb_strtolower(trim((string) $e), 'UTF-8') => true])
+            ->all();
+
+        $nuevas = [];
+        $importadas = 0;
+        $omitidas = 0;
+        $now = now();
+
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                $omitidas++;
+                continue;
+            }
+
+            // 1. Resolver modulo_id
+            $moduloId = null;
+            if (!empty($item['modulo_id']) && isset($modulosPorId[(int) $item['modulo_id']])) {
+                $moduloId = (int) $item['modulo_id'];
+            } elseif (!empty($item['modulo'])) {
+                $claveMod = mb_strtolower(trim((string) $item['modulo']), 'UTF-8');
+                $moduloId = $modulosPorNombre[$claveMod] ?? null;
+            }
+
+            // 2. Resolver nivel_id
+            $nivelId = null;
+            if (!empty($item['nivel_id']) && isset($nivelesPorId[(int) $item['nivel_id']])) {
+                $nivelId = (int) $item['nivel_id'];
+            } else {
+                $refNivel = $item['orden_dificultad'] ?? $item['etapa'] ?? $item['nivel'] ?? null;
+                if ($refNivel !== null && $refNivel !== '') {
+                    if (is_numeric($refNivel) && isset($nivelesPorOrden[(int) $refNivel])) {
+                        $nivelId = (int) $nivelesPorOrden[(int) $refNivel];
+                    } else {
+                        $claveNiv = mb_strtolower(trim((string) $refNivel), 'UTF-8');
+                        $nivelId = $nivelesPorNombre[$claveNiv] ?? null;
+                    }
+                }
+            }
+
+            $enunciado = trim((string) ($item['enunciado'] ?? ''));
+            $opA = trim((string) ($item['opcion_a'] ?? ''));
+            $opB = trim((string) ($item['opcion_b'] ?? ''));
+            $opC = trim((string) ($item['opcion_c'] ?? ''));
+            $opD = trim((string) ($item['opcion_d'] ?? ''));
+            $correcta = strtolower(trim((string) ($item['respuesta_correcta'] ?? '')));
+
+            if (!$moduloId || !$nivelId || $enunciado === '' || $opA === '' || $opB === '' || $opC === '' || $opD === '' || !in_array($correcta, ['a', 'b', 'c', 'd'], true)) {
+                $omitidas++;
+                continue;
+            }
+
+            $claveEnunciado = mb_strtolower($enunciado, 'UTF-8');
+            if (isset($existentes[$claveEnunciado])) {
+                $omitidas++;
+                continue;
+            }
+
+            $existentes[$claveEnunciado] = true;
+            $esAmena = filter_var($item['es_amena'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+            $nuevas[] = [
+                'modulo_id'          => $moduloId,
+                'nivel_id'           => $nivelId,
+                'enunciado'          => $enunciado,
+                'opcion_a'           => $opA,
+                'opcion_b'           => $opB,
+                'opcion_c'           => $opC,
+                'opcion_d'           => $opD,
+                'respuesta_correcta' => $correcta,
+                'activa'             => true,
+                'es_amena'           => $esAmena,
+                'created_at'         => $now,
+                'updated_at'         => $now,
+            ];
+            $importadas++;
+        }
+
+        foreach (array_chunk($nuevas, 50) as $chunk) {
+            Pregunta::insert($chunk);
+        }
+
+        return back()->with('ok', "Importación completada: {$importadas} preguntas nuevas añadidas y {$omitidas} omitidas.");
     }
 
     // Activar Ronda de Desempate (Muerte Súbita) entre los equipos punteros
@@ -325,8 +471,24 @@ class AdminController extends Controller
         foreach ($equipos as $equipo) {
             $respondioTurno = false;
             foreach ($niveles as $nivel) {
-                $contestadas = RespuestaEquipo::where('equipo_id', $equipo->id)->where('nivel_id', $nivel->id)->count();
+                $estadisticasNivel = RespuestaEquipo::where('respuestas_equipos.equipo_id', $equipo->id)
+                    ->where('respuestas_equipos.nivel_id', $nivel->id)
+                    ->join('preguntas', 'respuestas_equipos.pregunta_id', '=', 'preguntas.id')
+                    ->selectRaw('COUNT(*) as total, SUM(CASE WHEN preguntas.es_amena = 1 THEN 1 ELSE 0 END) as amenas')
+                    ->first();
+
+                $contestadas = (int) ($estadisticasNivel->total ?? 0);
+                $amenasContestadas = (int) ($estadisticasNivel->amenas ?? 0);
+
                 if ($contestadas < $nivel->cantidad_preguntas) {
+                    $prefiereAmena = 0;
+                    if (!$nivel->es_desempate && $nivel->cantidad_preguntas >= 2) {
+                        $turnoAmena = hexdec(substr(hash('sha256', "amena:{$nivel->id}:{$semilla}"), 0, 8)) % $nivel->cantidad_preguntas;
+                        if ($amenasContestadas === 0 && ($contestadas === $turnoAmena || $contestadas >= $nivel->cantidad_preguntas - 1)) {
+                            $prefiereAmena = 1;
+                        }
+                    }
+
                     $respondidasIds = RespuestaEquipo::where('equipo_id', $equipo->id)->pluck('pregunta_id');
                     $queryPregunta = Pregunta::where('nivel_id', $nivel->id)
                         ->where('activa', true)
@@ -337,6 +499,7 @@ class AdminController extends Controller
                     }
 
                     $pregunta = $queryPregunta
+                        ->orderByRaw('CASE WHEN preguntas.es_amena = ? THEN 0 ELSE 1 END ASC', [$prefiereAmena])
                         ->orderByRaw('CRC32(SHA2(CONCAT(preguntas.id, "-", ?), 256))', [$semilla])
                         ->orderBy('preguntas.id')
                         ->first();
@@ -350,7 +513,7 @@ class AdminController extends Controller
                             'equipo_id'           => $equipo->id,
                             'pregunta_id'         => $pregunta->id,
                             'nivel_id'            => $nivel->id,
-                            'opcion_elegida'      => $acierta ? $pregunta->respuesta_correcta : 'a',
+                            'opcion_elegida'      => $acierta ? $pregunta->getRawOriginal('respuesta_correcta') : 'a',
                             'es_correcta'         => $acierta,
                             'puntos_ganados'      => $puntos,
                             'tiempo_respuesta_ms' => $tiempoMs,
@@ -406,6 +569,8 @@ class AdminController extends Controller
             'opcion_d'           => 'required|string',
             'respuesta_correcta' => 'required|in:a,b,c,d',
         ]);
+
+        $validated['es_amena'] = $request->boolean('es_amena');
 
         $pregunta = Pregunta::findOrFail($id);
         $pregunta->update($validated);

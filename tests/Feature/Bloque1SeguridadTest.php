@@ -326,6 +326,7 @@ class Bloque1SeguridadTest extends TestCase
             "/admin/nivel/{$this->nivel1->id}",
             '/admin/modulo',
             '/admin/pregunta',
+            '/admin/preguntas/importar',
             '/admin/desempate',
             '/admin/reiniciar',
             '/admin/pregunta/1/editar',
