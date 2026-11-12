@@ -365,12 +365,20 @@ class ConcursanteController extends Controller
                     'tiempo_respuesta_ms' => $tiempoMs,
                 ]);
 
+                $rachaAnterior = (int) $equipoLock->racha_actual;
+                $rachaMaxAnterior = (int) $equipoLock->racha_maxima;
+                $nuevaRacha = $esCorrecta ? ($rachaAnterior + 1) : 0;
+                $nuevaRachaMax = max($rachaMaxAnterior, $nuevaRacha);
+                $rachaPerdida = ($rachaAnterior >= 3 && $nuevaRacha === 0);
+
                 // El equipo SIEMPRE avanza en preguntas_contestadas aunque falle
                 Equipo::whereKey($equipoLock->id)->update([
                     'preguntas_contestadas' => DB::raw('preguntas_contestadas + 1'),
                     'tiempo_acumulado_ms'   => DB::raw('tiempo_acumulado_ms + ' . (int) $tiempoMs),
                     'aciertos_totales'      => DB::raw('aciertos_totales + ' . ($esCorrecta ? 1 : 0)),
                     'puntaje_total'         => DB::raw('puntaje_total + ' . (int) $puntosGanados),
+                    'racha_actual'          => $nuevaRacha,
+                    'racha_maxima'          => $nuevaRachaMax,
                 ]);
 
                 return [
@@ -381,6 +389,9 @@ class ConcursanteController extends Controller
                         'fuera_de_tiempo' => $fueraDeTiempo,
                         'puntos_sumados'  => $puntosGanados,
                         'puntaje_total'   => $equipoLock->fresh()->puntaje_total,
+                        'racha_actual'    => $nuevaRacha,
+                        'racha_maxima'    => $nuevaRachaMax,
+                        'racha_perdida'   => $rachaPerdida,
                         'mensaje'         => 'Respuesta registrada.',
                     ],
                 ];
@@ -484,10 +495,15 @@ class ConcursanteController extends Controller
                     'tiempo_respuesta_ms'  => $tiempoMs,
                 ]);
 
+                $rachaAnterior = (int) $equipoLock->racha_actual;
+                $rachaMaxAnterior = (int) $equipoLock->racha_maxima;
+                $rachaPerdida = ($rachaAnterior >= 3);
+
                 Equipo::whereKey($equipoLock->id)->update([
                     'preguntas_contestadas' => DB::raw('preguntas_contestadas + 1'),
                     'tiempo_acumulado_ms'   => DB::raw('tiempo_acumulado_ms + ' . (int) $tiempoMs),
                     'salidas_pantalla'      => DB::raw('salidas_pantalla + 1'),
+                    'racha_actual'          => 0,
                 ]);
 
                 return [
@@ -497,6 +513,9 @@ class ConcursanteController extends Controller
                         'duplicada'        => false,
                         'puntos_sumados'   => 0,
                         'salidas_pantalla' => (int) $equipoLock->salidas_pantalla + 1,
+                        'racha_actual'     => 0,
+                        'racha_maxima'     => $rachaMaxAnterior,
+                        'racha_perdida'    => $rachaPerdida,
                         'mensaje'          => 'Pregunta anulada con 0 puntos por salir de la pantalla de competencia.',
                     ],
                 ];

@@ -460,6 +460,8 @@ class AdminController extends Controller
                     'fase_actual'           => 1,
                     'preguntas_contestadas' => 0,
                     'aciertos_totales'      => 0,
+                    'racha_actual'          => 0,
+                    'racha_maxima'          => 0,
                     'puntaje_total'         => 0,
                     'tiempo_acumulado_ms'   => 0,
                     'salidas_pantalla'      => 0,
@@ -589,11 +591,22 @@ class AdminController extends Controller
 
                         $equipo->increment('preguntas_contestadas');
                         $equipo->increment('tiempo_acumulado_ms', $tiempoMs);
-                        $equipo->update(['fase_actual' => $nivel->orden_dificultad]);
 
                         if ($acierta) {
+                            $nuevaRacha = (int) $equipo->racha_actual + 1;
+                            $nuevaRachaMax = max((int) $equipo->racha_maxima, $nuevaRacha);
                             $equipo->increment('aciertos_totales');
                             $equipo->increment('puntaje_total', $puntos);
+                            $equipo->update([
+                                'fase_actual'  => $nivel->orden_dificultad,
+                                'racha_actual' => $nuevaRacha,
+                                'racha_maxima' => $nuevaRachaMax,
+                            ]);
+                        } else {
+                            $equipo->update([
+                                'fase_actual'  => $nivel->orden_dificultad,
+                                'racha_actual' => 0,
+                            ]);
                         }
                         $algunoAvanzo = true;
                         $respondioTurno = true;

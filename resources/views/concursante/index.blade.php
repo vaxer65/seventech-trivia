@@ -190,6 +190,10 @@
                 <div id="barra-tiempo" class="h-full bg-[#00E5FF] transition-all duration-300" style="width: 100%;"></div>
             </div>
 
+            <div id="banner-racha-movil" class="hidden px-3 py-1.5 rounded-xl bg-orange-500/20 border border-orange-400 text-orange-300 font-orbitron text-xs font-bold text-center shadow-[0_0_15px_rgba(251,146,60,0.3)] animate-pulse">
+                🔥 ¡ESTÁS EN RACHA x3! ¡No la pierdas!
+            </div>
+
             <h3 id="texto-enunciado" class="text-lg sm:text-xl font-bold text-white leading-snug py-1"></h3>
 
             <div id="contenedor-opciones" class="space-y-2.5 pt-1"></div>
@@ -495,6 +499,17 @@
                 document.getElementById('header-nombre-equipo').textContent = data.equipo.nombre_equipo;
                 document.getElementById('header-puntaje').textContent = `${data.equipo.puntaje_total} PTS`;
 
+                const bannerRacha = document.getElementById('banner-racha-movil');
+                const rachaActual = Number(data.equipo.racha_actual) || 0;
+                if (bannerRacha) {
+                    if (rachaActual >= 3) {
+                        bannerRacha.textContent = `🔥 ¡ESTÁS EN RACHA x${rachaActual}! ¡No la pierdas!`;
+                        bannerRacha.classList.remove('hidden');
+                    } else {
+                        bannerRacha.classList.add('hidden');
+                    }
+                }
+
                 const elRelojMovil = document.getElementById('reloj-global-movil');
                 if (elRelojMovil) {
                     if (data.segundos_globales !== null && data.segundos_globales !== undefined) {
@@ -679,12 +694,18 @@
                     mostrarAvisoNeutral(fb, '✔️ RESPUESTA YA REGISTRADA • AVANZANDO...');
                 } else if (resultado.es_correcta) {
                     fb.className = 'p-3 rounded-xl text-center font-orbitron text-xs font-bold bg-emerald-500/20 border border-emerald-400 text-emerald-300';
-                    fb.textContent = `✅ ¡CORRECTO! +${resultado.puntos_sumados} PUNTOS`;
+                    const rachaAct = Number(resultado.racha_actual) || 0;
+                    fb.textContent = rachaAct >= 3
+                        ? `✅ ¡CORRECTO! +${resultado.puntos_sumados} PUNTOS • 🔥 RACHA x${rachaAct}`
+                        : `✅ ¡CORRECTO! +${resultado.puntos_sumados} PUNTOS`;
                 } else {
                     fb.className = 'p-3 rounded-xl text-center font-orbitron text-xs font-bold bg-rose-500/20 border border-rose-500 text-rose-300';
-                    fb.textContent = (letraElegida === 'tiempo_agotado' || resultado.fuera_de_tiempo)
+                    const baseMsg = (letraElegida === 'tiempo_agotado' || resultado.fuera_de_tiempo)
                         ? '⏰ ¡TIEMPO AGOTADO! AVANZANDO A LA SIGUIENTE...'
                         : '❌ RESPUESTA INCORRECTA • AVANZANDO...';
+                    fb.textContent = resultado.racha_perdida
+                        ? `${baseMsg} • 💔 Racha perdida (Máxima: ${Number(resultado.racha_maxima) || 0})`
+                        : baseMsg;
                 }
 
                 setTimeout(() => {
@@ -716,6 +737,11 @@
             enviandoRespuesta = true;
             clearInterval(timerInterval);
             document.querySelectorAll('.btn-opcion').forEach(b => b.disabled = true);
+
+            const textoCortina = document.getElementById('texto-cortina-anti-ia');
+            if (textoCortina) {
+                textoCortina.textContent = '⚠️ Saliste de la pantalla de competencia. Esta pregunta quedó anulada con 0 puntos. Prepárate para la siguiente.';
+            }
             document.getElementById('cortina-anti-ia').classList.remove('hidden');
 
             try {
@@ -728,7 +754,14 @@
                         'X-CSRF-TOKEN': csrfToken
                     },
                     body: JSON.stringify({ pregunta_id: idAnulada })
-                }).catch(() => {});
+                })
+                .then(res => res.ok ? res.json() : null)
+                .then(data => {
+                    if (data && data.racha_perdida && textoCortina) {
+                        textoCortina.textContent += ` 💔 Racha perdida (Máxima: ${Number(data.racha_maxima) || 0}).`;
+                    }
+                })
+                .catch(() => {});
             } catch (e) {}
         }
 

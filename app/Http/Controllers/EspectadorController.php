@@ -54,6 +54,8 @@ class EspectadorController extends Controller
                     'preguntas_contestadas' => $equipo->preguntas_contestadas,
                     'total_preguntas'       => $totalPreguntasCarrera,
                     'aciertos_totales'      => $equipo->aciertos_totales,
+                    'racha_actual'          => (int) $equipo->racha_actual,
+                    'racha_maxima'          => (int) $equipo->racha_maxima,
                     'puntaje_total'         => $equipo->puntaje_total,
                     'tiempo_segundos'       => round($equipo->tiempo_acumulado_ms / 1000, 2),
                     'porcentaje_pista'      => max(3, min(100, $porcentajePista)), // Mínimo 3% para verse en la salida

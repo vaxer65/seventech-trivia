@@ -14,6 +14,8 @@ class Equipo extends Model
 
     protected $casts = [
         'salidas_pantalla' => 'integer',
+        'racha_actual'     => 'integer',
+        'racha_maxima'     => 'integer',
         'en_desempate'     => 'boolean',
         'finalizo_carrera' => 'boolean',
     ];

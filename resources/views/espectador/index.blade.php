@@ -341,7 +341,13 @@
 
                 pista.innerHTML = data.equipos.map((eq, idx) => {
                     const esLider = idx === 0 && eq.puntaje_total > 0;
-                    const enRacha = eq.aciertos_totales >= 3;
+                    const rachaActual = Number(eq.racha_actual) || 0;
+                    const rachaMaxima = Number(eq.racha_maxima) || 0;
+                    const badgeRacha = rachaActual >= 3
+                        ? `<span class="font-orbitron text-orange-300 font-bold text-xs px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.45)] animate-pulse">🔥 RACHA x${rachaActual}</span>`
+                        : (rachaMaxima >= 3
+                            ? `<span class="font-orbitron text-amber-200/80 font-bold text-[11px] px-2 py-0.5 rounded bg-slate-800/90 border border-slate-600">🏅 Racha máx: ${rachaMaxima}</span>`
+                            : '');
                     const etiquetaFase = eq.en_desempate ? '🔥 DESEMPATE' : (eq.finalizo_carrera ? '🏁 META COMPLETADA' : `ETAPA ${eq.fase_actual}`);
                     const leftPos = Math.min(92, Math.max(3, eq.porcentaje_pista));
 
@@ -352,7 +358,7 @@
                                 <span class="font-orbitron font-bold text-sm md:text-base px-2.5 py-0.5 rounded ${esLider ? 'bg-amber-400 text-[#07101E]' : 'bg-slate-800 text-[#00E5FF]'}">#${eq.posicion}</span>
                                 <span class="font-bold text-xl md:text-2xl text-white tracking-wide" data-nombre-equipo="${eq.id}"></span>
                                 ${esLider ? '<span class="font-orbitron text-amber-400 font-bold text-xs px-2 py-0.5 rounded bg-amber-500/10 border border-amber-400/40">👑 LÍDER</span>' : ''}
-                                ${enRacha ? '<span class="font-orbitron text-orange-400 font-bold text-xs">🔥 RACHA</span>' : ''}
+                                ${badgeRacha}
                             </div>
                             <div class="flex items-center gap-3">
                                 <span class="font-orbitron text-xs md:text-sm font-bold px-2.5 py-0.5 rounded bg-[#0F2342] text-[#00E5FF] border border-[#00E5FF]/30">
