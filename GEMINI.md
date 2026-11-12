@@ -11,7 +11,8 @@
 
 ## Reglas Técnicas Clave
 
-- **Ordenamiento de preguntas de trivia:** Las preguntas se ordenan de forma pseudoaleatoria e idéntica usando `semilla_partida` mediante `CRC32(CONCAT(id, ?))` (implementado en `app/Http/Controllers/ConcursanteController.php`).
+- **Ordenamiento de preguntas de trivia:** Las preguntas se ordenan de forma pseudoaleatoria, uniforme e idéntica para todos los equipos usando `semilla_partida` mediante `CRC32(SHA2(CONCAT(preguntas.id, "-", ?), 256))` (implementado en `app/Http/Controllers/ConcursanteController.php` y `app/Http/Controllers/AdminController.php`).
+- **Barajado determinista y opaco de opciones A/B/C/D:** En `GET /api/estado-juego`, el servidor permuta los textos `opcion_a..d` usando una de las 24 permutaciones de $S_4$ derivada de `hash('sha256', "{$equipoId}:{$preguntaId}:{$semilla}")` y en `POST /api/enviar-respuesta` traduce la letra visual elegida a la clave original antes de calificar.
 
 ## Reglas Permanentes del Proyecto
 

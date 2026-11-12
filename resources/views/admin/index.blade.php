@@ -207,7 +207,7 @@
                         <label class="text-slate-300 font-bold">Módulo</label>
                         <select name="modulo_id" class="w-full mt-1 bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white">
                             @foreach($modulos as $m)
-                                <option value="{{ $m->id }}">{{ $m->nombre }}</option>
+                                <option value="{{ $m->id }}" {{ ($config->modulo_activo_id ?? null) == $m->id ? 'selected' : '' }}>{{ $m->nombre }}</option>
                             @endforeach
                         </select>
                     </div>

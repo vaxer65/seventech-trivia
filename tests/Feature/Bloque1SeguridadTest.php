@@ -73,6 +73,16 @@ class Bloque1SeguridadTest extends TestCase
         return $eq;
     }
 
+    private function letraVisualParaTexto(array $preguntaJson, string $textoBuscado = 'B'): string
+    {
+        foreach (['a', 'b', 'c', 'd'] as $letra) {
+            if (($preguntaJson["opcion_{$letra}"] ?? null) === $textoBuscado) {
+                return $letra;
+            }
+        }
+        return 'b';
+    }
+
     // T1: no se puede responder una pregunta que no sea la asignada al equipo
     public function test_t1_rechaza_pregunta_no_asignada_sin_sumar_puntos(): void
     {
@@ -114,7 +124,9 @@ class Bloque1SeguridadTest extends TestCase
         $equipo = $this->crearEquipoAutenticado();
 
         $this->travelTo(now());
-        $p1 = $this->getJson('/api/estado-juego')->json('pregunta.id');
+        $p1Json = $this->getJson('/api/estado-juego')->json('pregunta');
+        $p1 = $p1Json['id'];
+        $letraCorrectaP1 = $this->letraVisualParaTexto($p1Json, 'B');
 
         // Recargar a los 2 s no debe mover entregada_at
         $this->travel(2)->seconds();
@@ -124,7 +136,7 @@ class Bloque1SeguridadTest extends TestCase
         $this->travel(1400)->milliseconds();
         $this->postJson('/api/enviar-respuesta', [
             'pregunta_id'         => $p1,
-            'opcion_elegida'      => 'b',
+            'opcion_elegida'      => $letraCorrectaP1,
             'tiempo_respuesta_ms' => 100,
         ])->assertOk()->assertJsonPath('es_correcta', true);
 
@@ -133,12 +145,14 @@ class Bloque1SeguridadTest extends TestCase
         $this->assertEqualsWithDelta(3400, $equipo->tiempo_acumulado_ms, 80);
 
         // Siguiente pregunta respondida fuera del límite (25 s + 1,5 s de gracia) -> 0 puntos
-        $p2 = $this->getJson('/api/estado-juego')->json('pregunta.id');
+        $p2Json = $this->getJson('/api/estado-juego')->json('pregunta');
+        $p2 = $p2Json['id'];
+        $letraCorrectaP2 = $this->letraVisualParaTexto($p2Json, 'B');
         $this->travel(30)->seconds();
 
         $this->postJson('/api/enviar-respuesta', [
             'pregunta_id'    => $p2,
-            'opcion_elegida' => 'b',
+            'opcion_elegida' => $letraCorrectaP2,
         ])->assertOk()
           ->assertJsonPath('es_correcta', false)
           ->assertJsonPath('fuera_de_tiempo', true)
@@ -176,13 +190,15 @@ class Bloque1SeguridadTest extends TestCase
     public function test_t5_reenvio_de_pregunta_contestada_no_duplica_ni_da_500(): void
     {
         $equipo = $this->crearEquipoAutenticado();
-        $p1 = $this->getJson('/api/estado-juego')->json('pregunta.id');
+        $p1Json = $this->getJson('/api/estado-juego')->json('pregunta');
+        $p1 = $p1Json['id'];
+        $letraCorrecta = $this->letraVisualParaTexto($p1Json, 'B');
 
-        $this->postJson('/api/enviar-respuesta', ['pregunta_id' => $p1, 'opcion_elegida' => 'b'])
+        $this->postJson('/api/enviar-respuesta', ['pregunta_id' => $p1, 'opcion_elegida' => $letraCorrecta])
             ->assertOk()->assertJsonPath('puntos_sumados', 100);
 
         // El cliente reintenta enviar la misma pregunta (aunque el servidor ya avanzó a p2)
-        $this->postJson('/api/enviar-respuesta', ['pregunta_id' => $p1, 'opcion_elegida' => 'b'])
+        $this->postJson('/api/enviar-respuesta', ['pregunta_id' => $p1, 'opcion_elegida' => $letraCorrecta])
             ->assertOk()
             ->assertJsonPath('duplicada', true)
             ->assertJsonPath('puntos_sumados', 0);

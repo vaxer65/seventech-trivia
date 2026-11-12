@@ -52,7 +52,7 @@ Toda la información persistente vive en **MySQL** (definida en [`database/migra
 7. `historial_eventos`: guarda en columnas `JSON` el podio Top 3 y la tabla final de ediciones pasadas.
 
 > **¿Por qué requiere MySQL específicamente?**  
-> Para sortear las preguntas de un banco grande manteniendo exactamente el mismo orden pseudoaleatorio para todos los equipos en una partida, el servidor ordena con la función SQL `CRC32(CONCAT(id, ?))` usando `semilla_partida`.
+> Para sortear las preguntas de un banco grande manteniendo exactamente el mismo orden pseudoaleatorio para todos los equipos en una partida y sin sesgos por ID, el servidor ordena con la función SQL `CRC32(SHA2(CONCAT(preguntas.id, "-", ?), 256))` usando `semilla_partida`.
 
 ---
 
@@ -100,7 +100,7 @@ En lugar de usar **WebSockets** (que requieren mantener decenas de conexiones TC
 
 ## 7. Capas de Protección Anti-Trampa
 
-1. **Ocultación de la respuesta correcta en el servidor**: el modelo [`Pregunta.php`](file:///home/vaxer/seventech-trivia/app/Models/Pregunta.php) declara `protected $hidden = ['respuesta_correcta']`. El navegador jamás recibe cuál es la opción correcta antes de responder.
+1. **Ocultación de la respuesta correcta y barajado determinista en el servidor**: el modelo [`Pregunta.php`](file:///home/vaxer/seventech-trivia/app/Models/Pregunta.php) declara `protected $hidden = ['respuesta_correcta']`. Además, `ConcursanteController` aplica una permutación determinista de las 4 opciones (`A`, `B`, `C`, `D`) única por `(equipo_id, pregunta_id, semilla_partida)` sobre las 24 permutaciones de $S_4$ y traduce la letra visual elegida de vuelta en el servidor al calificar. Así, el navegador jamás recibe cuál es la columna original en la BD ni la respuesta correcta, y dos equipos vecinos ven las opciones en distinto orden (distribución uniforme ~25% por letra).
 2. **Validación de pregunta asignada (T1)**: `POST /api/enviar-respuesta` recalcula en el servidor qué pregunta le toca exactamente al equipo (`asignacionActual`). Si alguien intenta enviar por consola otro `pregunta_id`, el servidor responde `409 Conflict` sin sumar puntos.
 3. **Justicia deportiva con semilla por partida**: todos los equipos reciben las mismas preguntas en el mismo orden pseudoaleatorio determinado por `semilla_partida` (oculta al público con `makeHidden('semilla_partida')`). Al reiniciar la partida, se genera una nueva semilla aleatoria con `Str::random(16)`.
 4. **Cálculo de tiempo 100% en el servidor (T2)**: cuando el servidor entrega una pregunta por primera vez, guarda `entregada_at` con milisegundos en la tabla `entregas` (`insertOrIgnore`). Recargar la página no reinicia ese reloj. Al recibir la respuesta, el servidor resta `now() - entregada_at` e ignora cualquier tiempo que mande el cliente. Si excede el límite de la etapa (+1.5 s de margen por latencia de red), se califica como fuera de tiempo (`0 puntos`).

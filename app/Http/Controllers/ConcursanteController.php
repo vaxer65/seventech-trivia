@@ -266,6 +266,9 @@ class ConcursanteController extends Controller
             }
         }
 
+        // Barajar opciones A/B/C/D de forma determinista y opaca en el servidor por (equipo_id, pregunta_id, semilla_partida)
+        $this->barajarOpcionesParaEquipo($pregunta, (int) $equipo->id, (string) $config->semilla_partida);
+
         return response()->json([
             'autenticado'       => true,
             'estado_juego'      => $config->estado_juego,
@@ -344,16 +347,19 @@ class ConcursanteController extends Controller
                 $fueraDeTiempo = $transcurridoMs > ($limiteMs + self::GRACIA_RED_MS);
                 $tiempoMs = min($transcurridoMs, $limiteMs);
 
-                // Obtener respuesta_correcta real de la BD (ignorando $hidden)
+                // Obtener respuesta_correcta real de la BD (ignorando $hidden) y traducir la letra visual enviada por el equipo
                 $respuestaCorrectaReal = strtolower(trim((string) $pregunta->getRawOriginal('respuesta_correcta')));
-                $esCorrecta = (!$fueraDeTiempo && $opcion !== null && $opcion === $respuestaCorrectaReal);
+                $claveOriginalElegida = $opcion !== null
+                    ? $this->traducirOpcionVisualAOriginal((int) $pregunta->id, (int) $equipoLock->id, (string) $configLock->semilla_partida, $opcion)
+                    : null;
+                $esCorrecta = (!$fueraDeTiempo && $claveOriginalElegida !== null && $claveOriginalElegida === $respuestaCorrectaReal);
                 $puntosGanados = $esCorrecta ? (int) $nivel->puntos_por_acierto : 0;
 
                 RespuestaEquipo::create([
                     'equipo_id'           => $equipoLock->id,
                     'pregunta_id'         => $pregunta->id,
                     'nivel_id'            => $pregunta->nivel_id,
-                    'opcion_elegida'      => $opcion,
+                    'opcion_elegida'      => $claveOriginalElegida,
                     'es_correcta'         => $esCorrecta,
                     'puntos_ganados'      => $puntosGanados,
                     'tiempo_respuesta_ms' => $tiempoMs,
@@ -463,7 +469,51 @@ class ConcursanteController extends Controller
             $query->where('modulo_id', $config->modulo_activo_id);
         }
 
-        return $query->orderByRaw('CRC32(CONCAT(preguntas.id, ?))', [$semilla])->orderBy('preguntas.id')->first();
+        return $query->orderByRaw('CRC32(SHA2(CONCAT(preguntas.id, "-", ?), 256))', [$semilla])->orderBy('preguntas.id')->first();
+    }
+
+    // 24 permutaciones canónicas (S4) de ['a', 'b', 'c', 'd']; cada letra aparece exactamente 6 veces (25%) en cada posición
+    public const PERMUTACIONES_ABCD = [
+        ['a', 'b', 'c', 'd'], ['a', 'b', 'd', 'c'], ['a', 'c', 'b', 'd'], ['a', 'c', 'd', 'b'], ['a', 'd', 'b', 'c'], ['a', 'd', 'c', 'b'],
+        ['b', 'a', 'c', 'd'], ['b', 'a', 'd', 'c'], ['b', 'c', 'a', 'd'], ['b', 'c', 'd', 'a'], ['b', 'd', 'a', 'c'], ['b', 'd', 'c', 'a'],
+        ['c', 'a', 'b', 'd'], ['c', 'a', 'd', 'b'], ['c', 'b', 'a', 'd'], ['c', 'b', 'd', 'a'], ['c', 'd', 'a', 'b'], ['c', 'd', 'b', 'a'],
+        ['d', 'a', 'b', 'c'], ['d', 'a', 'c', 'b'], ['d', 'b', 'a', 'c'], ['d', 'b', 'c', 'a'], ['d', 'c', 'a', 'b'], ['d', 'c', 'b', 'a'],
+    ];
+
+    public static function obtenerPermutacionOpciones(int $preguntaId, int $equipoId, string $semilla): array
+    {
+        $hashHex = substr(hash('sha256', "{$equipoId}:{$preguntaId}:{$semilla}"), 0, 8);
+        $indice = hexdec($hashHex) % 24;
+        return self::PERMUTACIONES_ABCD[$indice];
+    }
+
+    public function barajarOpcionesParaEquipo(Pregunta $pregunta, int $equipoId, string $semilla): array
+    {
+        $perm = self::obtenerPermutacionOpciones((int) $pregunta->id, $equipoId, $semilla);
+        $originales = [
+            'a' => $pregunta->getRawOriginal('opcion_a') ?? $pregunta->opcion_a,
+            'b' => $pregunta->getRawOriginal('opcion_b') ?? $pregunta->opcion_b,
+            'c' => $pregunta->getRawOriginal('opcion_c') ?? $pregunta->opcion_c,
+            'd' => $pregunta->getRawOriginal('opcion_d') ?? $pregunta->opcion_d,
+        ];
+
+        $pregunta->opcion_a = $originales[$perm[0]];
+        $pregunta->opcion_b = $originales[$perm[1]];
+        $pregunta->opcion_c = $originales[$perm[2]];
+        $pregunta->opcion_d = $originales[$perm[3]];
+
+        return $perm;
+    }
+
+    public function traducirOpcionVisualAOriginal(int $preguntaId, int $equipoId, string $semilla, string $opcionVisual): ?string
+    {
+        $mapaIndice = ['a' => 0, 'b' => 1, 'c' => 2, 'd' => 3];
+        $letra = strtolower(trim($opcionVisual));
+        if (!isset($mapaIndice[$letra])) {
+            return null;
+        }
+        $perm = self::obtenerPermutacionOpciones($preguntaId, $equipoId, $semilla);
+        return $perm[$mapaIndice[$letra]];
     }
 
     private function respuestaCarreraCompletada(Equipo $equipo, ConfiguracionEvento $config)

@@ -100,8 +100,8 @@ class AdminController extends Controller
             'tiempo_total_minutos'   => $minutosTotales,
         ];
 
-        // Si el evento pasa a 'en_curso' desde 'registro', arrancamos el reloj global y sorteamos preguntas nuevas
-        if ($nuevoEstado === 'en_curso' && $estadoAnterior === 'registro') {
+        // Si el evento pasa a 'en_curso' desde 'registro' o 'finalizado', arrancamos el reloj global y sorteamos preguntas nuevas
+        if ($nuevoEstado === 'en_curso' && in_array($estadoAnterior, ['registro', 'finalizado'], true)) {
             $datosActualizar['fin_evento_at'] = now()->addMinutes($minutosTotales);
             $datosActualizar['pausado_at'] = null;
             do {
@@ -303,12 +303,21 @@ class AdminController extends Controller
 
         $config = ConfiguracionEvento::first();
         if ($config->estado_juego === 'registro') {
+            do {
+                $nuevaSemilla = Str::random(16);
+            } while ($nuevaSemilla === $config->semilla_partida);
+
             $config->update([
-                'estado_juego'  => 'en_curso',
-                'fin_evento_at' => now()->addMinutes($config->tiempo_total_minutos ?? 15),
+                'estado_juego'    => 'en_curso',
+                'fin_evento_at'   => now()->addMinutes($config->tiempo_total_minutos ?? 15),
+                'pausado_at'      => null,
+                'semilla_partida' => $nuevaSemilla,
             ]);
+        } elseif (empty($config->semilla_partida) || $config->semilla_partida === 'seventech_init') {
+            $config->update(['semilla_partida' => Str::random(16)]);
         }
 
+        $semilla = (string) $config->semilla_partida;
         $niveles = Nivel::where('es_desempate', false)->orderBy('orden_dificultad', 'asc')->get();
         $equipos = Equipo::all();
         $algunoAvanzo = false;
@@ -319,7 +328,18 @@ class AdminController extends Controller
                 $contestadas = RespuestaEquipo::where('equipo_id', $equipo->id)->where('nivel_id', $nivel->id)->count();
                 if ($contestadas < $nivel->cantidad_preguntas) {
                     $respondidasIds = RespuestaEquipo::where('equipo_id', $equipo->id)->pluck('pregunta_id');
-                    $pregunta = Pregunta::where('nivel_id', $nivel->id)->whereNotIn('id', $respondidasIds)->first();
+                    $queryPregunta = Pregunta::where('nivel_id', $nivel->id)
+                        ->where('activa', true)
+                        ->whereNotIn('id', $respondidasIds);
+
+                    if ($config->modulo_activo_id) {
+                        $queryPregunta->where('modulo_id', $config->modulo_activo_id);
+                    }
+
+                    $pregunta = $queryPregunta
+                        ->orderByRaw('CRC32(SHA2(CONCAT(preguntas.id, "-", ?), 256))', [$semilla])
+                        ->orderBy('preguntas.id')
+                        ->first();
 
                     if ($pregunta) {
                         $acierta = (rand(1, 100) <= 72);
