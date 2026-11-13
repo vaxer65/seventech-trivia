@@ -61,7 +61,8 @@ class Bloque9PulidoUxEspectadorTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('brilloEsmeraldaSuave', false)
-            ->assertSee('#dce3ec', false);
+            ->assertSee('#0d1629', false)
+            ->assertSee('canvas-fondo-interactivo', false);
 
         $resp = $this->get('https://trivia-seventech.softecsa.com/espectador');
         $resp->assertOk()
