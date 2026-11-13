@@ -27,15 +27,15 @@
     </div>
 
     <!-- CABECERA HUD DE TRANSMISIÓN EN VIVO -->
-    <header class="max-w-7xl mx-auto rounded-xl p-4 mb-6 flex flex-wrap items-center justify-between neon-border backdrop-blur-md">
+    <header class="max-w-7xl mx-auto rounded-xl p-4 mb-5 flex flex-wrap items-center justify-between neon-border backdrop-blur-md">
         <div class="flex items-center gap-4">
             <a href="/" title="Ir al Portal Principal">
-                <img src="/favicon.svg" alt="Seven Tech" class="w-14 h-14 rounded-xl border border-[#00E5FF] shadow-[0_0_15px_rgba(0,229,255,0.4)]">
+                <img src="/favicon.svg" alt="Seven Tech" class="w-14 h-14 rounded-xl border border-emerald-400/70 shadow-[0_0_15px_rgba(16,185,129,0.35)]">
             </a>
             <div>
                 <div class="flex items-center gap-3">
                     <a href="/"><h1 class="cyber-title text-2xl md:text-4xl">SEVEN TECH</h1></a>
-                    <span id="badge-estado" class="px-3 py-1 text-xs md:text-sm font-bold uppercase rounded bg-cyan-500/20 text-[#00E5FF] border border-[#00E5FF]">
+                    <span id="badge-estado" class="px-3 py-1 text-xs md:text-sm font-bold uppercase rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/60">
                         CARGANDO...
                     </span>
                 </div>
@@ -45,9 +45,9 @@
 
         <!-- TELEMETRÍA EN VIVO + RELOJ GLOBAL DEL TORNEO -->
         <div class="flex items-center gap-5 sm:gap-7 mt-3 sm:mt-0">
-            <div class="text-center bg-[#07101E] px-4 py-1.5 rounded-xl border border-[#00E5FF]/40">
+            <div class="text-center bg-[#0f172a] px-4 py-1.5 rounded-xl border border-emerald-400/50">
                 <p class="font-orbitron text-xs text-slate-400 uppercase tracking-wider">⏱️ Tiempo Torneo</p>
-                <p id="reloj-global-espectador" class="font-orbitron text-2xl md:text-3xl font-bold text-[#00E5FF]">--:--</p>
+                <p id="reloj-global-espectador" class="font-orbitron text-2xl md:text-3xl font-bold text-emerald-300">--:--</p>
             </div>
             <div class="text-right">
                 <p class="font-orbitron text-xs text-slate-400 uppercase">Equipos</p>
@@ -61,23 +61,41 @@
         </div>
     </header>
 
+    <!-- BANNER DE EVENTOS EN DIRECTO (TRANSMISIÓN EN VIVO) -->
+    <div id="banner-eventos-vivo"
+         role="status"
+         aria-live="polite"
+         class="max-w-7xl mx-auto mb-5 rounded-xl px-4 py-2.5 neon-border flex items-center justify-between gap-3 bg-[#0f172a]/95 transition-colors">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <span id="banner-eventos-badge" class="font-orbitron text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 shrink-0">
+                ● EN DIRECTO
+            </span>
+            <p id="banner-eventos-texto" class="font-orbitron text-xs sm:text-sm font-bold text-slate-100 truncate">
+                Transmisión en Directo • Sincronizado con los carriles
+            </p>
+        </div>
+        <span class="hidden sm:inline font-orbitron text-[10px] text-emerald-300/80 uppercase tracking-wider shrink-0">
+            AUDITORIO LIVE
+        </span>
+    </div>
+
     <!-- BANNER QR DINÁMICO (SOLO EN ESTADO 'REGISTRO') -->
-    <section id="panel-qr-registro" class="max-w-7xl mx-auto mb-6 neon-border p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 bg-[#0F2342]/95">
+    <section id="panel-qr-registro" class="max-w-7xl mx-auto mb-6 neon-border p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 bg-[#0f172a]/95">
         <div class="space-y-1 text-center md:text-left">
-            <span class="font-orbitron text-[10px] uppercase px-2.5 py-0.5 bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/50 rounded">
+            <span class="font-orbitron text-[10px] uppercase px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 rounded">
                  // ACCESO ABIERTO A CONCURSANTES
             </span>
             <h2 class="text-2xl md:text-3xl font-bold text-white">¡ESCANEA EL QR CON TU MÓVIL PARA REGISTRAR TU EQUIPO!</h2>
-            <p class="text-slate-300 text-base">O ingresa directamente desde tu navegador a: <b id="url-jugar-texto" class="font-orbitron text-[#00E5FF] underline">{{ $urlRegistroQr ?? url('/jugar?registro=1') }}</b></p>
+            <p class="text-slate-300 text-base">O ingresa directamente desde tu navegador a: <b id="url-jugar-texto" class="font-orbitron text-emerald-300 underline">{{ $urlRegistroQr ?? url('/jugar') }}</b></p>
             <p id="aviso-qr-localhost" class="{{ !empty($mostrarAvisoLocalhost) ? '' : 'hidden ' }}text-xs font-orbitron text-amber-300 bg-amber-500/15 border border-amber-400/50 rounded-lg px-3 py-1.5 mt-1">
                 ⚠️ No se detectó una IP LAN activa para este servidor local: los celulares no podrán entrar con <b>localhost</b>. Inicia con <code>php artisan serve --host=0.0.0.0 --port=8000</code> conectado a la red Wi-Fi o configura <code>APP_URL</code>.
             </p>
         </div>
-        <div class="flex items-center gap-4 bg-[#07101E] p-3 rounded-xl border border-[#00E5FF]">
+        <div class="flex items-center gap-4 bg-[#0b1322] p-3 rounded-xl border border-emerald-400/60">
             <div id="qrcode" class="bg-white p-2 rounded-lg"></div>
             <div class="hidden sm:block pr-2">
                 <p class="font-orbitron text-[10px] text-slate-400 uppercase">Integrantes</p>
-                <p class="text-lg font-bold text-[#00E5FF]">Mín. 2 / Máx. 5</p>
+                <p class="text-lg font-bold text-emerald-300">Mín. 2 / Máx. 5</p>
                 <p class="font-orbitron text-[10px] text-emerald-400 mt-1">● Sorteo Aleatorio Activo</p>
             </div>
         </div>
@@ -144,8 +162,10 @@
 
     </main>
 
+    @include('partials.ui-feedback')
+
     <script>
-        const urlJugar = @json($urlRegistroQr ?? (rtrim((string) config('app.url'), '/') . '/jugar?registro=1'));
+        const urlJugar = @json($urlRegistroQr ?? (rtrim((string) config('app.url'), '/') . '/jugar'));
         const mostrarAvisoLocalhost = @json((bool) ($mostrarAvisoLocalhost ?? false));
         document.getElementById('url-jugar-texto').textContent = urlJugar;
         if (mostrarAvisoLocalhost) {
@@ -164,12 +184,121 @@
 
         let confetiLanzado = false;
         let segundosGlobalesLocal = null;
+        let estadoAnteriorVivo = null;
+        let primerSnapshotVivo = false;
+        let liderAnteriorId = null;
+        const rachasAnterioresVivo = new Map();
+        const finalizadosAnterioresVivo = new Set();
+        let temporizadorBannerVivo = null;
 
         function formatearMinutosSegundos(seg) {
             if (seg === null || seg === undefined) return '--:--';
             const m = Math.floor(seg / 60).toString().padStart(2, '0');
             const s = Math.floor(seg % 60).toString().padStart(2, '0');
             return `${m}:${s}`;
+        }
+
+        function formatearTiempoCompetencia(segundos) {
+            const total = Math.max(0, Math.round(Number(segundos) || 0));
+            const min = Math.floor(total / 60);
+            const seg = total % 60;
+            return min > 0 ? `${min}m ${seg}s` : `${seg}s`;
+        }
+
+        function lanzarConfetiPodio() {
+            if (typeof confetti !== 'function') return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            const configuracionBase = {
+                particleCount: 95,
+                spread: 110,
+                ticks: 320,
+                startVelocity: 48,
+                gravity: 0.9,
+                colors: ['#10B981', '#00E5FF', '#FCEE09', '#F59E0B', '#F8FAFC'],
+            };
+
+            confetti({ ...configuracionBase, origin: { x: 0.15, y: 0.65 }, angle: 60 });
+            confetti({ ...configuracionBase, origin: { x: 0.5, y: 0.55 }, angle: 90, particleCount: 120 });
+            confetti({ ...configuracionBase, origin: { x: 0.85, y: 0.65 }, angle: 120 });
+
+            setTimeout(() => {
+                confetti({ ...configuracionBase, particleCount: 70, origin: { x: 0.25, y: 0.35 } });
+                confetti({ ...configuracionBase, particleCount: 70, origin: { x: 0.75, y: 0.35 } });
+            }, 350);
+        }
+
+        function publicarEventoEnDirecto(mensaje, badgeTexto = '● EN DIRECTO', destacado = false) {
+            const banner = document.getElementById('banner-eventos-vivo');
+            const elBadge = document.getElementById('banner-eventos-badge');
+            const elTexto = document.getElementById('banner-eventos-texto');
+            if (!banner || !elTexto || !elBadge) return;
+
+            elTexto.textContent = mensaje;
+            elBadge.textContent = badgeTexto;
+            elBadge.className = destacado
+                ? 'font-orbitron text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 shrink-0 animate-pulse'
+                : 'font-orbitron text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 shrink-0';
+
+            if (destacado) {
+                clearTimeout(temporizadorBannerVivo);
+                temporizadorBannerVivo = setTimeout(() => {
+                    elBadge.className = 'font-orbitron text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 shrink-0';
+                }, 6000);
+            }
+        }
+
+        function detectarEventosEnVivo(equipos, estadoRaw) {
+            const lider = equipos.length > 0 && equipos[0].puntaje_total > 0 ? equipos[0] : null;
+
+            if (!primerSnapshotVivo) {
+                primerSnapshotVivo = true;
+                estadoAnteriorVivo = estadoRaw;
+                liderAnteriorId = lider ? lider.id : null;
+                equipos.forEach(eq => {
+                    rachasAnterioresVivo.set(eq.id, Number(eq.racha_actual) || 0);
+                    if (eq.finalizo_carrera) finalizadosAnterioresVivo.add(eq.id);
+                });
+                if (lider) {
+                    publicarEventoEnDirecto(`Transmisión en Directo • Puntero actual: ${lider.nombre_equipo} (${lider.puntaje_total} PTS)`);
+                }
+                return;
+            }
+
+            if (estadoRaw === 'en_curso' && estadoAnteriorVivo && estadoAnteriorVivo !== 'en_curso') {
+                publicarEventoEnDirecto('🚀 ¡CARRERA INICIADA EN VIVO! Todos los equipos en pista', '🏁 ARRANQUE', true);
+            } else if (estadoRaw === 'finalizado' && estadoAnteriorVivo !== 'finalizado') {
+                publicarEventoEnDirecto(
+                    lider ? `🏆 ¡TORNEO FINALIZADO! Campeón provisional: ${lider.nombre_equipo}` : '🏆 ¡TORNEO FINALIZADO!',
+                    '🏆 FINAL',
+                    true
+                );
+            }
+
+            if (lider && lider.id !== liderAnteriorId) {
+                publicarEventoEnDirecto(`👑 ¡NUEVO LÍDER DE LA CARRERA: ${lider.nombre_equipo}!`, '👑 CAMBIO LÍDER', true);
+            } else {
+                const eqMeta = equipos.find(eq => eq.finalizo_carrera && !finalizadosAnterioresVivo.has(eq.id));
+                if (eqMeta) {
+                    publicarEventoEnDirecto(`🏁 ¡${eqMeta.nombre_equipo} CRUZÓ LA META FINAL!`, '🏁 META', true);
+                } else {
+                    const eqRacha = equipos.find(eq => {
+                        const actual = Number(eq.racha_actual) || 0;
+                        const previa = rachasAnterioresVivo.get(eq.id) ?? 0;
+                        return actual >= 3 && actual > previa;
+                    });
+                    if (eqRacha) {
+                        publicarEventoEnDirecto(`🔥 ¡${eqRacha.nombre_equipo} encendió RACHA x${Number(eqRacha.racha_actual)}!`, '🔥 RACHA', true);
+                    }
+                }
+            }
+
+            estadoAnteriorVivo = estadoRaw;
+            liderAnteriorId = lider ? lider.id : null;
+            equipos.forEach(eq => {
+                rachasAnterioresVivo.set(eq.id, Number(eq.racha_actual) || 0);
+                if (eq.finalizo_carrera) finalizadosAnterioresVivo.add(eq.id);
+            });
         }
 
         // Descontar segundo a segundo el reloj global suavemente en pantalla
@@ -183,8 +312,8 @@
         function renderizarInsigniaLaurel(equipo, puesto) {
             const configPuesto = {
                 1: { titulo: '1° LUGAR • CAMPEÓN', color: '#FCEE09', bg: 'bg-[#FCEE09]/10 border-[#FCEE09]', escala: 'md:scale-105 shadow-[0_0_30px_rgba(252,238,9,0.25)]' },
-                2: { titulo: '2° LUGAR • SUBCAMPEÓN', color: '#00E5FF', bg: 'bg-[#00E5FF]/10 border-[#00E5FF]/60', escala: '' },
-                3: { titulo: '3° LUGAR • PODIO TECH', color: '#10B981', bg: 'bg-emerald-500/10 border-emerald-400/60', escala: '' }
+                2: { titulo: '2° LUGAR • SUBCAMPEÓN', color: '#E2E8F0', bg: 'bg-slate-200/10 border-slate-300/70', escala: '' },
+                3: { titulo: '3° LUGAR • PODIO TECH', color: '#F59E0B', bg: 'bg-amber-500/10 border-amber-500/70', escala: '' }
             }[puesto];
 
             return `
@@ -202,7 +331,7 @@
                     <div class="text-center px-1">
                         <h3 class="text-2xl sm:text-4xl font-bold uppercase tracking-wide text-white leading-tight" data-nombre-equipo="${equipo.id}"></h3>
                         <p class="font-orbitron text-base sm:text-lg font-bold uppercase tracking-widest mt-1.5" style="color: ${configPuesto.color};">
-                            ${equipo.puntaje_total} PTS • ${equipo.tiempo_segundos}S
+                            ${equipo.puntaje_total} PTS • ${formatearTiempoCompetencia(equipo.tiempo_segundos)}
                         </p>
                         <p class="font-orbitron text-xs sm:text-sm text-slate-300 uppercase mt-1">${equipo.aciertos_totales} ACIERTOS</p>
                     </div>
@@ -307,20 +436,22 @@
                     contenedorLaureles.innerHTML = htmlPodio;
                     pintarNombres(contenedorLaureles, data.equipos, n => `"${n}"`);
 
-                    if (!confetiLanzado && typeof confetti === 'function') {
+                    if (!confetiLanzado) {
                         confetiLanzado = true;
-                        confetti({ particleCount: 130, spread: 85, origin: { y: 0.6 } });
+                        lanzarConfetiPodio();
                     }
                 } else {
                     seccionPodio.classList.add('hidden');
                     confetiLanzado = false;
                 }
 
+                detectarEventosEnVivo(data.equipos, estadoRaw);
+
                 const badge = document.getElementById('badge-estado');
                 badge.textContent = estado === 'DESEMPATE' ? '🔥 MUERTE SÚBITA' : estado.replace('_', ' ');
                 badge.className = estado === 'DESEMPATE'
                     ? 'font-orbitron px-3 py-1 text-xs md:text-sm font-bold uppercase rounded bg-rose-600 text-white animate-pulse'
-                    : 'font-orbitron px-3 py-1 text-xs md:text-sm font-bold uppercase rounded bg-cyan-500/20 text-[#00E5FF] border border-[#00E5FF]';
+                    : 'font-orbitron px-3 py-1 text-xs md:text-sm font-bold uppercase rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/60';
 
                 if (data.evento.modulo_activo) {
                     document.getElementById('modulo-actual').textContent = 'Categoría: ' + data.evento.modulo_activo.nombre;
@@ -342,24 +473,29 @@
                     const rachaActual = Number(eq.racha_actual) || 0;
                     const rachaMaxima = Number(eq.racha_maxima) || 0;
                     const badgeRacha = rachaActual >= 3
-                        ? `<span class="font-orbitron text-orange-300 font-bold text-xs px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.45)] animate-pulse">🔥 RACHA x${rachaActual}</span>`
+                        ? `<span class="font-orbitron text-orange-200 font-bold text-xs px-2.5 py-0.5 rounded-full bg-orange-500/25 border border-orange-400 shadow-[0_0_14px_rgba(251,146,60,0.45)]"><span class="llama-animada">🔥</span> RACHA x${rachaActual}</span>`
                         : (rachaMaxima >= 3
-                            ? `<span class="font-orbitron text-amber-200/80 font-bold text-[11px] px-2 py-0.5 rounded bg-slate-800/90 border border-slate-600">🏅 Racha máx: ${rachaMaxima}</span>`
+                            ? `<span class="font-orbitron text-amber-200/90 font-bold text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800/90 border border-orange-400/45"><span class="llama-animada">🔥</span> Racha máx: ${rachaMaxima}</span>`
                             : '');
+                    const clasePodioCarril = idx === 0 && eq.puntaje_total > 0
+                        ? 'podium-lane-1'
+                        : (idx === 1 && eq.puntaje_total > 0
+                            ? 'podium-lane-2'
+                            : (idx === 2 && eq.puntaje_total > 0 ? 'podium-lane-3' : 'border-slate-800'));
                     const etiquetaFase = eq.en_desempate ? '🔥 DESEMPATE' : (eq.finalizo_carrera ? '🏁 META COMPLETADA' : `ETAPA ${eq.fase_actual}`);
                     const leftPos = Math.min(92, Math.max(3, eq.porcentaje_pista));
 
                     return `
-                    <div class="bg-[#07101E]/95 border ${esLider ? 'border-amber-400 shadow-[0_0_18px_rgba(251,191,36,0.2)]' : 'border-slate-800'} rounded-xl p-3.5 relative overflow-hidden transition">
+                    <div class="bg-[#0b1322]/95 border ${clasePodioCarril} rounded-xl p-3.5 relative overflow-hidden transition">
                         <div class="flex flex-wrap justify-between items-center mb-2.5 z-10 relative gap-2">
                             <div class="flex items-center gap-2.5">
-                                <span class="font-orbitron font-bold text-sm md:text-base px-2.5 py-0.5 rounded ${esLider ? 'bg-amber-400 text-[#07101E]' : 'bg-slate-800 text-[#00E5FF]'}">#${eq.posicion}</span>
+                                <span class="font-orbitron font-bold text-sm md:text-base px-2.5 py-0.5 rounded ${esLider ? 'bg-amber-400 text-[#07101E]' : 'bg-slate-800 text-emerald-300'}">#${eq.posicion}</span>
                                 <span class="font-bold text-xl md:text-2xl text-white tracking-wide" data-nombre-equipo="${eq.id}"></span>
-                                ${esLider ? '<span class="font-orbitron text-amber-400 font-bold text-xs px-2 py-0.5 rounded bg-amber-500/10 border border-amber-400/40">👑 LÍDER</span>' : ''}
+                                ${esLider ? '<span class="font-orbitron text-amber-300 font-bold text-xs px-2 py-0.5 rounded bg-amber-500/15 border border-amber-400/50">👑 LÍDER</span>' : ''}
                                 ${badgeRacha}
                             </div>
                             <div class="flex items-center gap-3">
-                                <span class="font-orbitron text-xs md:text-sm font-bold px-2.5 py-0.5 rounded bg-[#0F2342] text-[#00E5FF] border border-[#00E5FF]/30">
+                                <span class="font-orbitron text-xs md:text-sm font-bold px-2.5 py-0.5 rounded bg-[#162033] text-emerald-300 border border-emerald-400/35">
                                     ${etiquetaFase} • ${eq.preguntas_contestadas}/${eq.total_preguntas}
                                 </span>
                                 <span class="font-orbitron font-bold text-emerald-400 text-lg md:text-xl">${eq.puntaje_total} PTS</span>
@@ -367,12 +503,12 @@
                         </div>
 
                         <!-- Pista con textura de cuadrícula y línea de meta a cuadros -->
-                        <div class="relative h-12 bg-[#0B1930] rounded-xl border border-slate-700/80 flex items-center overflow-hidden track-grid">
+                        <div class="relative h-12 bg-[#0f172a] rounded-xl border border-slate-700/80 flex items-center overflow-hidden track-grid">
                             <!-- Línea central de carril -->
                             <div class="absolute inset-x-0 h-px bg-slate-700/60"></div>
 
                             <!-- Bandera a cuadros en la meta derecha -->
-                            <div class="absolute right-0 top-0 bottom-0 w-6 finish-line border-l border-[#00E5FF]/40"></div>
+                            <div class="absolute right-0 top-0 bottom-0 w-6 finish-line border-l border-emerald-400/40"></div>
 
                             <!-- Barra de impulso láser -->
                             <div class="h-3 rounded-full transition-all duration-700 ml-2 relative z-10"
@@ -383,6 +519,7 @@
                             <div class="absolute top-1.5 robot-transition z-20 flex items-center justify-center w-9 h-9 rounded-full border-2 bg-[#07101E] ${esLider ? 'leader-pulse' : ''}"
                                  style="left: calc(${leftPos}% - 14px); border-color: ${eq.color_carril}; box-shadow: 0 0 16px ${eq.color_carril};">
                                 <img src="/favicon.svg" class="w-7 h-7 rounded-full" alt="Bot">
+                                ${rachaActual >= 3 ? '<span class="llama-animada absolute -top-2 -right-2 text-xs">🔥</span>' : ''}
                             </div>
                         </div>
                     </div>`;
@@ -390,17 +527,22 @@
 
                 tabla.innerHTML = data.equipos.map((eq, idx) => {
                     const medalla = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `#${eq.posicion}`));
+                    const rachaAct = Number(eq.racha_actual) || 0;
+                    const tiempoTexto = formatearTiempoCompetencia(eq.tiempo_segundos);
                     return `
-                    <div class="flex items-center justify-between p-3.5 rounded-xl bg-[#07101E]/90 border ${idx === 0 && eq.puntaje_total > 0 ? 'border-amber-400/70' : (eq.en_desempate ? 'border-rose-500' : 'border-slate-800')}">
-                        <div class="flex items-center gap-3">
-                            <span class="font-orbitron text-xl md:text-2xl font-bold w-9 text-center text-[#00E5FF]">${medalla}</span>
-                            <div>
-                                <p class="font-bold text-lg md:text-xl text-white leading-tight" data-nombre-equipo="${eq.id}"></p>
-                                <p class="font-orbitron text-xs md:text-sm text-slate-300 mt-0.5">✅ ${eq.aciertos_totales} ACIERTOS • ⏱️ ${eq.tiempo_segundos}S</p>
+                    <div class="flex items-center justify-between p-3.5 rounded-xl bg-[#0b1322]/90 border ${idx === 0 && eq.puntaje_total > 0 ? 'border-amber-400/75' : (eq.en_desempate ? 'border-rose-500' : 'border-slate-800')}">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="font-orbitron text-xl md:text-2xl font-bold w-9 text-center text-emerald-300 shrink-0">${medalla}</span>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <p class="font-bold text-lg md:text-xl text-white leading-tight truncate" data-nombre-equipo="${eq.id}"></p>
+                                    ${rachaAct >= 3 ? '<span class="llama-animada text-sm shrink-0">🔥</span>' : ''}
+                                </div>
+                                <p class="font-orbitron text-xs md:text-sm text-slate-300 mt-0.5">✅ ${eq.aciertos_totales} ACIERTOS • ⏱️ ${tiempoTexto}</p>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <span class="font-orbitron text-xl md:text-2xl font-bold text-[#00E5FF]">${eq.puntaje_total}</span>
+                        <div class="text-right shrink-0 ml-2">
+                            <span class="font-orbitron text-xl md:text-2xl font-bold text-emerald-300">${eq.puntaje_total}</span>
                             <span class="font-orbitron block text-xs text-slate-300 uppercase">PUNTOS</span>
                         </div>
                     </div>`;

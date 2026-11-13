@@ -35,29 +35,31 @@
     </div>
 
     <!-- CABECERA DEL CONCURSANTE -->
-    <header class="w-full max-w-lg mx-auto neon-border rounded-2xl p-3 sm:p-3.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 bg-[#0F2342]/90">
+    <header class="w-full max-w-lg mx-auto neon-border rounded-2xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2.5 bg-[#0f172a]/95">
         <a href="/" title="Volver al Portal Principal" class="flex items-center gap-2.5 sm:gap-3 hover:opacity-90 transition min-w-0 shrink-0">
-            <img src="/favicon.svg" alt="Seven Tech" class="w-10 h-10 rounded-xl border border-[#00E5FF] shrink-0">
-            <div>
+            <img src="/favicon.svg" alt="Seven Tech" class="w-10 h-10 rounded-xl border border-emerald-400/70 shadow-[0_0_12px_rgba(16,185,129,0.28)] shrink-0">
+            <div class="min-w-0">
                 <h1 class="cyber-title text-base sm:text-xl leading-none">SEVEN TECH</h1>
                 <p class="font-orbitron text-[10px] text-slate-300 mt-1">Seven Tech Trivia 2026</p>
             </div>
         </a>
 
         <!-- Información del equipo activo + Reloj Global + Botón Salir -->
-        <div id="info-equipo-header" class="hidden flex items-center gap-1.5 sm:gap-2 min-w-0 ml-auto">
-            <div class="text-center bg-[#07101E] px-2 sm:px-2.5 py-1 rounded-lg border border-slate-700 shrink-0">
-                <span class="font-orbitron block text-[8px] text-slate-400 uppercase">Torneo</span>
-                <span id="reloj-global-movil" class="font-orbitron text-xs font-bold text-amber-400">--:--</span>
+        <div id="info-equipo-header" class="hidden flex flex-wrap sm:flex-nowrap items-center justify-end gap-1.5 sm:gap-2 min-w-0 ml-auto">
+            <div class="text-center bg-[#0b1322] px-2.5 py-1.5 rounded-xl border border-slate-700/80 shrink-0">
+                <span class="font-orbitron block text-[8px] text-slate-400 uppercase tracking-wider">Torneo</span>
+                <span id="reloj-global-movil" class="font-orbitron text-xs font-bold text-amber-400 whitespace-nowrap">--:--</span>
             </div>
-            <div class="text-right bg-[#07101E] px-2.5 sm:px-3 py-1 rounded-lg border border-[#00E5FF]/40 min-w-0">
+            <div class="text-right bg-[#0b1322] px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-500/45 min-w-0">
                 <p id="header-nombre-equipo" class="text-xs font-bold text-white leading-tight truncate max-w-[105px] sm:max-w-[180px]"></p>
-                <p id="header-puntaje" class="font-orbitron text-xs text-[#00E5FF] font-bold">0 PTS</p>
+                <p id="header-puntaje" class="font-orbitron text-xs text-emerald-300 font-bold whitespace-nowrap">0 PTS</p>
             </div>
-            <button type="button" onclick="cerrarSesionEquipo()" title="Salir del Equipo"
-                    class="min-h-[48px] px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/60 text-xs font-orbitron font-bold text-rose-300 transition flex items-center gap-1.5 shrink-0">
-                <span>🚪</span>
-                <span class="hidden sm:inline">Salir del Equipo</span>
+            <button type="button" onclick="cerrarSesionEquipo()" title="Salir del Equipo" aria-label="Salir del Equipo"
+                    class="min-h-[48px] px-3 py-2 rounded-xl bg-slate-800/70 hover:bg-emerald-500/20 backdrop-blur-md border border-emerald-400/45 text-xs font-orbitron font-bold text-emerald-200 hover:text-white shadow-[0_0_14px_rgba(16,185,129,0.16)] transition flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                <svg class="w-4 h-4 shrink-0 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
+                </svg>
+                <span class="hidden sm:inline">Salir</span>
             </button>
         </div>
     </header>
@@ -66,10 +68,10 @@
     <main class="w-full max-w-lg mx-auto my-auto py-4">
 
         <!-- 1. PANTALLA DE REGISTRO O RECUPERACIÓN CON PIN -->
-        <section id="vista-registro" class="hidden neon-border rounded-2xl p-4 sm:p-5 bg-[#0F2342]/90 space-y-4">
-            <div class="grid grid-cols-2 gap-2 bg-[#07101E] p-1 rounded-xl border border-slate-800">
+        <section id="vista-registro" class="hidden neon-border rounded-2xl p-4 sm:p-5 bg-[#0f172a]/95 space-y-4">
+            <div class="grid grid-cols-2 gap-2 bg-[#0b1322] p-1 rounded-xl border border-slate-800">
                 <button type="button" id="tab-nuevo" onclick="cambiarTab('nuevo')"
-                        class="min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-[#00E5FF] text-[#07101E] transition">
+                        class="min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-emerald-500 text-slate-950 transition">
                     🚀 NUEVO EQUIPO
                 </button>
                 <button type="button" id="tab-pin" onclick="cambiarTab('pin')"
@@ -78,40 +80,42 @@
                 </button>
             </div>
 
-            <div id="alerta-error" class="hidden p-3 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-200 text-xs font-semibold"></div>
-
-            <!-- Formulario Nuevo Equipo -->
+            <!-- Formulario Nuevo Equipo (validación nativa con setCustomValidity/reportValidity) -->
             <form id="form-registro" class="space-y-4">
                 <div>
-                    <label class="font-orbitron text-[11px] text-[#00E5FF] uppercase font-bold">Nombre del Equipo *</label>
-                    <input type="text" id="reg-nombre-equipo" name="nombre_equipo" required maxlength="40" placeholder="Ej: CyberTitans"
-                           class="w-full min-h-[48px] mt-1 bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
-                    <p id="error-reg-nombre_equipo" class="hidden mt-1 text-xs font-semibold text-rose-400"></p>
+                    <label for="reg-nombre-equipo" class="block font-orbitron text-[11px] text-emerald-300 uppercase font-bold mb-1">Nombre del Equipo *</label>
+                    <input type="text" id="reg-nombre-equipo" name="nombre_equipo" required minlength="2" maxlength="40" autocomplete="organization" placeholder="Ej: CyberTitans"
+                           class="w-full min-h-[48px] bg-[#0b1322] border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-base text-slate-100 placeholder-slate-500 outline-none transition">
                 </div>
 
                 <div>
                     <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-                        <label class="font-orbitron text-[11px] text-[#00E5FF] uppercase font-bold">
+                        <label for="reg-integrante-1" class="font-orbitron text-[11px] text-emerald-300 uppercase font-bold">
                             Integrantes (Mín 2 / Máx {{ $config->max_integrantes_equipo ?? 5 }}) *
                         </label>
                         <button type="button" onclick="agregarCampoIntegrante()"
-                                class="min-h-[48px] text-xs px-3 py-2 rounded-lg bg-cyan-500/15 border border-[#00E5FF]/50 text-[#00E5FF] font-bold">
+                                class="min-h-[48px] text-xs px-3 py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/50 text-emerald-300 font-bold transition">
                             + Añadir integrante
                         </button>
                     </div>
                     <p class="text-[11px] text-slate-400 mb-2">⚠️ Ingresa el <b>Nombre y Apellido real</b> de cada participante (son privados y solo visibles para el jurado/administrador).</p>
 
                     <div id="lista-integrantes" class="space-y-2.5">
-                        <input type="text" name="integrantes[]" required placeholder="Nombre y Apellido del Capitán *"
-                               class="w-full min-h-[48px] bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
-                        <input type="text" name="integrantes[]" required placeholder="Nombre y Apellido del Integrante 2 *"
-                               class="w-full min-h-[48px] bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
+                        <div>
+                            <label for="reg-integrante-1" class="sr-only">Nombre y Apellido del Capitán</label>
+                            <input type="text" id="reg-integrante-1" name="integrantes[]" required minlength="3" autocomplete="name" placeholder="Nombre y Apellido del Capitán *"
+                                   class="w-full min-h-[48px] bg-[#0b1322] border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-base text-slate-100 placeholder-slate-500 outline-none transition">
+                        </div>
+                        <div>
+                            <label for="reg-integrante-2" class="sr-only">Nombre y Apellido del Integrante 2</label>
+                            <input type="text" id="reg-integrante-2" name="integrantes[]" required minlength="3" autocomplete="name" placeholder="Nombre y Apellido del Integrante 2 *"
+                                   class="w-full min-h-[48px] bg-[#0b1322] border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-base text-slate-100 placeholder-slate-500 outline-none transition">
+                        </div>
                     </div>
-                    <p id="error-reg-integrantes" class="hidden mt-1.5 text-xs font-semibold text-rose-400"></p>
                 </div>
 
                 <button type="submit" id="btn-registrar"
-                        class="w-full min-h-[48px] py-3.5 rounded-xl bg-[#00E5FF] hover:bg-cyan-300 text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,229,255,0.4)] transition">
+                        class="w-full min-h-[48px] py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-orbitron font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(16,185,129,0.35)] transition">
                     🚀 REGISTRAR EQUIPO Y GENERAR PIN
                 </button>
             </form>
@@ -120,25 +124,23 @@
             <form id="form-recuperar" class="hidden space-y-4">
                 <p class="text-xs text-slate-300">Si se cerró tu navegador o cambiaste de teléfono, ingresa el nombre de tu equipo y tu PIN de 4 dígitos:</p>
                 <div>
-                    <label class="font-orbitron text-[11px] text-[#00E5FF] uppercase font-bold">Nombre Exacto del Equipo</label>
-                    <input type="text" id="rec-nombre-equipo" name="nombre_equipo" required placeholder="Ej: CyberTitans"
-                           class="w-full min-h-[48px] mt-1 bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none">
-                    <p id="error-rec-nombre_equipo" class="hidden mt-1 text-xs font-semibold text-rose-400"></p>
+                    <label for="rec-nombre-equipo" class="block font-orbitron text-[11px] text-emerald-300 uppercase font-bold mb-1">Nombre Exacto del Equipo</label>
+                    <input type="text" id="rec-nombre-equipo" name="nombre_equipo" required minlength="2" maxlength="40" autocomplete="organization" placeholder="Ej: CyberTitans"
+                           class="w-full min-h-[48px] bg-[#0b1322] border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-base text-slate-100 placeholder-slate-500 outline-none transition">
                 </div>
                 <div>
-                    <label class="font-orbitron text-[11px] text-amber-400 uppercase font-bold">🔑 PIN de Recuperación (4 dígitos)</label>
-                    <input type="text" id="rec-pin" name="pin_recuperacion" required maxlength="4" placeholder="Ej: 4829" inputmode="numeric"
-                           class="w-full min-h-[48px] mt-1 bg-[#07101E] border border-amber-400/60 rounded-xl px-3.5 py-2.5 font-orbitron text-base sm:text-lg tracking-widest text-amber-300 text-center outline-none">
-                    <p id="error-rec-pin_recuperacion" class="hidden mt-1 text-xs font-semibold text-rose-400"></p>
+                    <label for="rec-pin" class="block font-orbitron text-[11px] text-amber-400 uppercase font-bold mb-1">🔑 PIN de Recuperación (4 dígitos)</label>
+                    <input type="text" id="rec-pin" name="pin_recuperacion" required pattern="\d{4}" minlength="4" maxlength="4" placeholder="Ej: 4829" inputmode="numeric" autocomplete="one-time-code"
+                           class="w-full min-h-[48px] bg-[#0b1322] border border-amber-400/60 focus:border-amber-300 rounded-xl px-3.5 py-2.5 font-orbitron text-base sm:text-lg tracking-widest text-amber-300 text-center placeholder-slate-500 outline-none transition">
                 </div>
                 <button type="submit" id="btn-recuperar"
-                        class="w-full min-h-[48px] py-3.5 rounded-xl bg-amber-400 text-[#07101E] font-orbitron font-bold text-xs uppercase tracking-wider disabled:opacity-50">
+                        class="w-full min-h-[48px] py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-orbitron font-bold text-xs uppercase tracking-wider disabled:opacity-50 transition">
                     🔄 RECUPERAR MI CARRERA
                 </button>
             </form>
 
             <div class="pt-2 border-t border-slate-800 text-center">
-                <a href="/" class="text-xs text-slate-400 hover:text-[#00E5FF] font-orbitron">← Volver al Portal Principal</a>
+                <a href="/" class="text-xs text-slate-400 hover:text-emerald-300 font-orbitron transition">← Volver al Portal Principal</a>
             </div>
         </section>
 
@@ -161,33 +163,36 @@
 
             <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
                 <button type="button" onclick="cerrarSesionEquipo()"
-                        class="w-full sm:w-auto min-h-[48px] px-5 py-3.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-orbitron text-xs font-bold border border-rose-500/60 transition flex items-center justify-center">
-                    🚪 Salir del Equipo
+                        class="w-full sm:w-auto min-h-[48px] px-5 py-3.5 rounded-xl bg-slate-800/70 hover:bg-emerald-500/20 backdrop-blur-md border border-emerald-400/45 text-emerald-200 hover:text-white font-orbitron text-xs font-bold transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4 shrink-0 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
+                    </svg>
+                    <span>Salir del Equipo</span>
                 </button>
-                <a href="/" class="w-full sm:w-auto min-h-[48px] px-5 py-3.5 rounded-xl bg-[#07101E] hover:border-[#00E5FF] text-[#00E5FF] font-orbitron text-xs border border-slate-800 transition flex items-center justify-center">
+                <a href="/" class="w-full sm:w-auto min-h-[48px] px-5 py-3.5 rounded-xl bg-[#0b1322] hover:border-emerald-400 text-emerald-300 font-orbitron text-xs border border-slate-700 transition flex items-center justify-center">
                     🏠 Portal Principal
                 </a>
             </div>
         </section>
 
         <!-- 3. PANTALLA DE PREGUNTA ACTIVA -->
-        <section id="vista-pregunta" class="hidden neon-border rounded-2xl p-5 bg-[#0F2342]/95 space-y-4">
+        <section id="vista-pregunta" class="hidden neon-border rounded-2xl p-5 bg-[#0f172a]/95 space-y-4">
             <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
                 <div>
-                    <span id="badge-nivel" class="font-orbitron text-[10px] font-bold uppercase px-2.5 py-1 rounded bg-cyan-500/20 text-[#00E5FF] border border-[#00E5FF]/50">
+                    <span id="badge-nivel" class="font-orbitron text-[10px] font-bold uppercase px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/50">
                         ETAPA 1
                     </span>
                     <span id="progreso-fase" class="font-orbitron text-[10px] text-slate-400 ml-2">1 / 5</span>
                 </div>
-                <div class="flex items-center gap-1.5 bg-[#07101E] px-3 py-1 rounded-xl border border-slate-700">
+                <div class="flex items-center gap-1.5 bg-[#0b1322] px-3 py-1 rounded-xl border border-slate-700">
                     <span class="text-xs">⏱️</span>
-                    <span id="reloj-pregunta" class="font-orbitron text-base font-bold text-[#00E5FF]">25s</span>
+                    <span id="reloj-pregunta" class="font-orbitron text-base font-bold text-emerald-300">25s</span>
                 </div>
             </div>
 
             <!-- Barra de tiempo visual -->
-            <div class="w-full h-2 bg-[#07101E] rounded-full overflow-hidden border border-slate-800">
-                <div id="barra-tiempo" class="h-full bg-[#00E5FF] transition-all duration-300" style="width: 100%;"></div>
+            <div class="w-full h-2 bg-[#0b1322] rounded-full overflow-hidden border border-slate-800">
+                <div id="barra-tiempo" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div>
             </div>
 
             <div id="banner-racha-movil" class="hidden px-3 py-1.5 rounded-xl bg-orange-500/20 border border-orange-400 text-orange-300 font-orbitron text-xs font-bold text-center shadow-[0_0_15px_rgba(251,146,60,0.3)] animate-pulse">
@@ -198,38 +203,44 @@
 
             <div id="contenedor-opciones" class="space-y-3 pt-1"></div>
 
-            <div id="feedback-respuesta" class="hidden p-3 rounded-xl text-center font-orbitron text-xs font-bold"></div>
+            <div id="feedback-respuesta" role="status" aria-live="polite" class="hidden">
+                <span id="feedback-respuesta-icono" aria-hidden="true" class="shrink-0"></span>
+                <span id="feedback-respuesta-texto"></span>
+            </div>
         </section>
 
         <!-- 4. PANTALLA DE BANDERITA: META CRUZADA / EVENTO FINALIZADO -->
-        <section id="vista-final" class="hidden neon-border rounded-2xl p-6 bg-[#0F2342]/95 text-center space-y-4">
+        <section id="vista-final" class="hidden neon-border rounded-2xl p-6 bg-[#0f172a]/95 text-center space-y-4">
             <div id="icono-meta" class="text-6xl animate-bounce">🏁</div>
-            <h2 id="titulo-meta" class="cyber-title text-2xl sm:text-3xl text-[#00E5FF]">¡CRUZASTE LA META!</h2>
+            <h2 id="titulo-meta" class="cyber-title text-2xl sm:text-3xl">¡CRUZASTE LA META!</h2>
             <p id="subtitulo-meta" class="text-slate-300 text-sm">
                 Tu equipo ha completado la carrera de <b>Seven Tech</b>. Mira la pantalla gigante del auditorio para conocer el podio oficial.
             </p>
 
-            <div class="grid grid-cols-2 gap-3 bg-[#07101E] p-4 rounded-xl border border-[#00E5FF]/40">
+            <div class="grid grid-cols-2 gap-3 bg-[#0b1322] p-4 rounded-xl border border-emerald-500/45">
                 <div>
                     <p class="font-orbitron text-[10px] text-slate-400 uppercase">Puntaje Final</p>
                     <p id="puntaje-final-texto" class="font-orbitron text-2xl sm:text-3xl font-bold text-emerald-400 mt-1">0 PTS</p>
                 </div>
                 <div class="border-l border-slate-800">
                     <p class="font-orbitron text-[10px] text-slate-400 uppercase">Aciertos</p>
-                    <p id="aciertos-final-texto" class="font-orbitron text-2xl sm:text-3xl font-bold text-[#00E5FF] mt-1">0</p>
+                    <p id="aciertos-final-texto" class="font-orbitron text-2xl sm:text-3xl font-bold text-emerald-300 mt-1">0</p>
                 </div>
             </div>
 
-            <div class="p-3 rounded-xl bg-[#07101E]/70 border border-slate-800 text-xs text-slate-400">
+            <div class="p-3 rounded-xl bg-[#0b1322]/70 border border-slate-800 text-xs text-slate-400">
                 🔑 PIN de tu equipo: <b id="pin-final-texto" class="font-orbitron text-amber-400">----</b>
             </div>
 
             <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
                 <button type="button" onclick="cerrarSesionEquipo()"
-                        class="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-orbitron text-xs font-bold border border-rose-500/60 transition">
-                    🚪 Salir del Equipo
+                        class="w-full sm:w-auto min-h-[48px] px-5 py-3.5 rounded-xl bg-slate-800/70 hover:bg-emerald-500/20 backdrop-blur-md border border-emerald-400/45 text-emerald-200 hover:text-white font-orbitron text-xs font-bold transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4 shrink-0 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
+                    </svg>
+                    <span>Salir del Equipo</span>
                 </button>
-                <a href="/" class="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-[#00E5FF]/20 border border-[#00E5FF] text-[#00E5FF] font-orbitron text-xs font-bold transition">
+                <a href="/" class="w-full sm:w-auto min-h-[48px] px-5 py-3.5 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 font-orbitron text-xs font-bold transition flex items-center justify-center">
                     🏠 Ir al Inicio
                 </a>
             </div>
@@ -237,7 +248,9 @@
 
     </main>
 
-    <footer class="text-center font-orbitron text-[10px] text-slate-500 py-2">
+    @include('partials.ui-feedback')
+
+    <footer class="text-center font-orbitron text-[10px] text-slate-700 font-bold py-2">
         Seven Tech Community • Protección Anti-IA Activa
     </footer>
 
@@ -272,7 +285,14 @@
         }
 
         async function cerrarSesionEquipo() {
-            if (!confirm('¿Deseas salir de este equipo y regresar a la pantalla de registro inicial? (Podrás volver a entrar luego usando tu PIN).')) {
+            const confirmar = await window.mostrarConfirmacion({
+                titulo: 'Salir del equipo',
+                mensaje: '¿Deseas salir de este equipo y regresar a la pantalla de registro inicial? (Podrás volver a entrar luego usando tu PIN).',
+                textoConfirmar: 'Salir del equipo',
+                textoCancelar: 'Seguir aquí',
+                variante: 'danger',
+            });
+            if (!confirmar) {
                 return;
             }
             try {
@@ -291,67 +311,130 @@
             document.getElementById('form-registro').classList.toggle('hidden', !esNuevo);
             document.getElementById('form-recuperar').classList.toggle('hidden', esNuevo);
             document.getElementById('tab-nuevo').className = esNuevo
-                ? 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-[#00E5FF] text-[#07101E] transition'
+                ? 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-emerald-500 text-slate-950 transition'
                 : 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition';
             document.getElementById('tab-pin').className = !esNuevo
-                ? 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-amber-400 text-[#07101E] transition'
+                ? 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-amber-400 text-slate-950 transition'
                 : 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition';
-            document.getElementById('alerta-error').classList.add('hidden');
+            limpiarErroresNativosForm(document.getElementById(esNuevo ? 'form-registro' : 'form-recuperar'));
         }
+
+        function vincularValidacionNativaInput(input) {
+            if (!input || input.dataset.validacionVinculada === '1') return;
+            input.dataset.validacionVinculada = '1';
+
+            input.addEventListener('invalid', () => {
+                input.setAttribute('aria-invalid', 'true');
+                if (input.validity.customError) return;
+
+                if (input.validity.valueMissing) {
+                    if (input.id === 'rec-pin') {
+                        input.setCustomValidity('Ingresa tu PIN numérico de 4 dígitos.');
+                    } else if (input.name === 'integrantes[]') {
+                        input.setCustomValidity('Ingresa el nombre y apellido de este integrante.');
+                    } else {
+                        input.setCustomValidity('Ingresa el nombre de tu equipo.');
+                    }
+                } else if (input.validity.patternMismatch && input.id === 'rec-pin') {
+                    input.setCustomValidity('El PIN debe contener exactamente 4 dígitos numéricos.');
+                } else if (input.validity.tooShort) {
+                    input.setCustomValidity(`Ingresa al menos ${input.minLength} caracteres.`);
+                }
+            });
+
+            input.addEventListener('input', () => {
+                input.setCustomValidity('');
+                input.removeAttribute('aria-invalid');
+            });
+        }
+
+        function limpiarErroresNativosForm(form) {
+            if (!form) return;
+            form.querySelectorAll('input').forEach(inp => {
+                inp.setCustomValidity('');
+                inp.removeAttribute('aria-invalid');
+            });
+        }
+
+        function aplicarErrorNativoCampo(input, mensaje) {
+            if (!input) return;
+            input.setCustomValidity(mensaje);
+            input.setAttribute('aria-invalid', 'true');
+            input.focus();
+            input.reportValidity();
+        }
+
+        document.querySelectorAll('#form-registro input, #form-recuperar input').forEach(vincularValidacionNativaInput);
 
         function agregarCampoIntegrante() {
             const contenedor = document.getElementById('lista-integrantes');
-            const total = contenedor.querySelectorAll('input').length;
+            const total = contenedor.querySelectorAll('input[name="integrantes[]"]').length;
             if (total >= maxIntegrantes) {
-                alert('El máximo permitido es de ' + maxIntegrantes + ' integrantes por equipo.');
+                window.mostrarToast(`El máximo permitido es de ${maxIntegrantes} integrantes por equipo.`, 'error');
                 return;
             }
+            const indice = total + 1;
+            const inputId = `reg-integrante-${indice}`;
+
+            const fila = document.createElement('div');
+            fila.className = 'flex items-center gap-2';
+
+            const label = document.createElement('label');
+            label.htmlFor = inputId;
+            label.className = 'sr-only';
+            label.textContent = `Nombre y Apellido del Integrante ${indice}`;
+
             const input = document.createElement('input');
             input.type = 'text';
+            input.id = inputId;
             input.name = 'integrantes[]';
-            input.placeholder = `Nombre y Apellido del Integrante ${total + 1} *`;
-            input.className = 'w-full min-h-[48px] bg-[#07101E] border border-slate-700 focus:border-[#00E5FF] rounded-xl px-3.5 py-2.5 text-base text-white outline-none';
-            contenedor.appendChild(input);
-        }
+            input.required = true;
+            input.minLength = 3;
+            input.autocomplete = 'name';
+            input.placeholder = `Nombre y Apellido del Integrante ${indice} *`;
+            input.className = 'w-full min-h-[48px] bg-[#0b1322] border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-base text-slate-100 placeholder-slate-500 outline-none transition';
+            vincularValidacionNativaInput(input);
 
-        function limpiarErroresCampos() {
-            document.querySelectorAll('#form-registro input, #form-recuperar input').forEach(inp => {
-                inp.classList.remove('border-rose-500');
-            });
-            ['error-reg-nombre_equipo', 'error-reg-integrantes', 'error-rec-nombre_equipo', 'error-rec-pin_recuperacion'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.textContent = '';
-                    el.classList.add('hidden');
-                }
-            });
-        }
+            const btnQuitar = document.createElement('button');
+            btnQuitar.type = 'button';
+            btnQuitar.setAttribute('aria-label', `Quitar integrante ${indice}`);
+            btnQuitar.className = 'min-w-[48px] min-h-[48px] rounded-xl bg-slate-800/80 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-400/60 text-slate-300 hover:text-rose-200 font-bold text-sm transition shrink-0';
+            btnQuitar.textContent = '✕';
+            btnQuitar.addEventListener('click', () => fila.remove());
 
-        function mostrarErrorCampo(idTexto, selectorInput, mensaje) {
-            const el = document.getElementById(idTexto);
-            if (el) {
-                el.textContent = mensaje;
-                el.classList.remove('hidden');
-            }
-            if (selectorInput) {
-                document.querySelectorAll(selectorInput).forEach(inp => inp.classList.add('border-rose-500'));
-            }
+            fila.append(label, input, btnQuitar);
+            contenedor.appendChild(fila);
+            input.focus();
         }
 
         document.getElementById('form-registro').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const form = e.target;
             const btn = document.getElementById('btn-registrar');
             if (btn.disabled) return;
+
+            limpiarErroresNativosForm(form);
+            if (!form.checkValidity()) {
+                const primeroInvalido = form.querySelector(':invalid');
+                if (primeroInvalido) {
+                    primeroInvalido.focus();
+                    primeroInvalido.reportValidity();
+                }
+                return;
+            }
+
+            const formData = new FormData(form);
+            const integrantesInputs = Array.from(form.querySelectorAll('input[name="integrantes[]"]'));
+            const integrantesValores = integrantesInputs.map(inp => inp.value.trim()).filter(v => v !== '');
+            if (integrantesValores.length < 2) {
+                aplicarErrorNativoCampo(integrantesInputs[0], 'Debes ingresar al menos 2 integrantes.');
+                return;
+            }
+
             btn.disabled = true;
-
-            const alerta = document.getElementById('alerta-error');
-            alerta.classList.add('hidden');
-            limpiarErroresCampos();
-
-            const formData = new FormData(e.target);
             const payload = {
-                nombre_equipo: formData.get('nombre_equipo'),
-                integrantes: formData.getAll('integrantes[]').filter(v => v.trim() !== '')
+                nombre_equipo: String(formData.get('nombre_equipo') || '').trim(),
+                integrantes: integrantesValores
             };
 
             try {
@@ -363,29 +446,25 @@
                 const data = await res.json();
                 if (!res.ok) {
                     let primerError = data.error || data.message || 'Verifica los datos ingresados.';
-                    if (data.errors) {
-                        const keys = Object.keys(data.errors);
-                        if (keys.length > 0) primerError = data.errors[keys[0]][0];
-                        if (data.errors.nombre_equipo) {
-                            mostrarErrorCampo('error-reg-nombre_equipo', '#reg-nombre-equipo', data.errors.nombre_equipo[0]);
-                        }
-                        const errIntKey = keys.find(k => k === 'integrantes' || k.startsWith('integrantes.'));
-                        if (errIntKey) {
-                            mostrarErrorCampo('error-reg-integrantes', '#lista-integrantes input', data.errors[errIntKey][0]);
-                        }
-                    } else if (primerError.toLowerCase().includes('equipo')) {
-                        mostrarErrorCampo('error-reg-nombre_equipo', '#reg-nombre-equipo', primerError);
-                    } else if (primerError.toLowerCase().includes('integrante') || primerError.toLowerCase().includes('participante')) {
-                        mostrarErrorCampo('error-reg-integrantes', '#lista-integrantes input', primerError);
+                    const keys = data.errors ? Object.keys(data.errors) : [];
+                    if (keys.length > 0) primerError = data.errors[keys[0]][0];
+
+                    const inpNombre = document.getElementById('reg-nombre-equipo');
+                    const errIntKey = keys.find(k => k === 'integrantes' || k.startsWith('integrantes.'));
+                    if (data.errors?.nombre_equipo || (!errIntKey && primerError.toLowerCase().includes('equipo'))) {
+                        aplicarErrorNativoCampo(inpNombre, data.errors?.nombre_equipo?.[0] || primerError);
+                    } else if (errIntKey || primerError.toLowerCase().includes('integrante') || primerError.toLowerCase().includes('participante') || primerError.toLowerCase().includes('nombre y apellido')) {
+                        const matchIdx = errIntKey ? errIntKey.match(/^integrantes\.(\d+)$/) : null;
+                        const targetInput = (matchIdx && integrantesInputs[Number(matchIdx[1])]) || integrantesInputs[0];
+                        aplicarErrorNativoCampo(targetInput, data.errors?.[errIntKey]?.[0] || primerError);
+                    } else {
+                        aplicarErrorNativoCampo(inpNombre, primerError);
                     }
-                    alerta.textContent = primerError;
-                    alerta.classList.remove('hidden');
                     return;
                 }
                 sincronizarJuego();
             } catch (err) {
-                alerta.textContent = 'Error de conexión. Intenta nuevamente.';
-                alerta.classList.remove('hidden');
+                window.mostrarToast('Error de conexión con el servidor. Intenta nuevamente.', 'error');
             } finally {
                 btn.disabled = false;
             }
@@ -393,43 +472,46 @@
 
         document.getElementById('form-recuperar').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const form = e.target;
             const btn = document.getElementById('btn-recuperar');
             if (btn && btn.disabled) return;
+
+            limpiarErroresNativosForm(form);
+            if (!form.checkValidity()) {
+                const primeroInvalido = form.querySelector(':invalid');
+                if (primeroInvalido) {
+                    primeroInvalido.focus();
+                    primeroInvalido.reportValidity();
+                }
+                return;
+            }
+
             if (btn) btn.disabled = true;
-
-            const alerta = document.getElementById('alerta-error');
-            alerta.classList.add('hidden');
-            limpiarErroresCampos();
-
-            const formData = new FormData(e.target);
+            const formData = new FormData(form);
             try {
                 const res = await fetch('/api/recuperar-sesion', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                     body: JSON.stringify({
-                        nombre_equipo: formData.get('nombre_equipo'),
-                        pin_recuperacion: formData.get('pin_recuperacion')
+                        nombre_equipo: String(formData.get('nombre_equipo') || '').trim(),
+                        pin_recuperacion: String(formData.get('pin_recuperacion') || '').trim()
                     })
                 });
                 const data = await res.json();
                 if (!res.ok) {
                     const msg = data.errors ? Object.values(data.errors)[0][0] : (data.error || 'No se pudo recuperar el equipo.');
-                    if (data.errors && data.errors.nombre_equipo) {
-                        mostrarErrorCampo('error-rec-nombre_equipo', '#rec-nombre-equipo', data.errors.nombre_equipo[0]);
-                    }
-                    if (data.errors && data.errors.pin_recuperacion) {
-                        mostrarErrorCampo('error-rec-pin_recuperacion', '#rec-pin', data.errors.pin_recuperacion[0]);
+                    if (data.errors?.nombre_equipo) {
+                        aplicarErrorNativoCampo(document.getElementById('rec-nombre-equipo'), data.errors.nombre_equipo[0]);
+                    } else if (data.errors?.pin_recuperacion) {
+                        aplicarErrorNativoCampo(document.getElementById('rec-pin'), data.errors.pin_recuperacion[0]);
                     } else {
-                        mostrarErrorCampo('error-rec-pin_recuperacion', '#rec-nombre-equipo, #rec-pin', msg);
+                        aplicarErrorNativoCampo(document.getElementById('rec-pin'), msg);
                     }
-                    alerta.textContent = msg;
-                    alerta.classList.remove('hidden');
                     return;
                 }
                 sincronizarJuego();
             } catch (err) {
-                alerta.textContent = 'Error al conectar con el servidor.';
-                alerta.classList.remove('hidden');
+                window.mostrarToast('Error al conectar con el servidor. Intenta de nuevo.', 'error');
             } finally {
                 if (btn) btn.disabled = false;
             }
@@ -589,7 +671,8 @@
             inicioPreguntaTimestamp = Date.now();
             tiempoLimiteActual = nivel ? nivel.tiempo_limite_seg : 25;
 
-            document.getElementById('feedback-respuesta').classList.add('hidden');
+            const fb = document.getElementById('feedback-respuesta');
+            if (fb) fb.className = 'hidden';
             document.getElementById('badge-nivel').textContent = nivel ? nivel.nombre : 'ETAPA ACTIVA';
             document.getElementById('progreso-fase').textContent = progreso || '';
             document.getElementById('texto-enunciado').textContent = pregunta.enunciado;
@@ -606,11 +689,11 @@
             contenedor.replaceChildren(...opciones.map(op => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'btn-opcion w-full min-h-[48px] text-left p-3.5 rounded-xl bg-[#07101E] hover:bg-[#00E5FF]/15 border border-slate-700 hover:border-[#00E5FF] transition flex items-center gap-3';
+                btn.className = 'btn-opcion w-full min-h-[48px] text-left p-3.5 rounded-xl bg-[#0b1322] hover:bg-emerald-500/15 border border-slate-700 hover:border-emerald-400 transition flex items-center gap-3';
                 btn.addEventListener('click', () => enviarRespuesta(op.letra, btn));
 
                 const letra = document.createElement('span');
-                letra.className = 'font-orbitron text-xs font-bold w-7 h-7 rounded-lg bg-[#0F2342] border border-[#00E5FF]/50 text-[#00E5FF] flex items-center justify-center uppercase shrink-0';
+                letra.className = 'font-orbitron text-xs font-bold w-7 h-7 rounded-lg bg-[#162033] border border-emerald-400/50 text-emerald-300 flex items-center justify-center uppercase shrink-0';
                 letra.textContent = op.letra;
 
                 const texto = document.createElement('span');
@@ -692,21 +775,21 @@
 
                 const resultado = await res.json();
                 if (resultado.duplicada) {
-                    mostrarAvisoNeutral(fb, '✔️ RESPUESTA YA REGISTRADA • AVANZANDO...');
+                    mostrarFeedbackGlass('neutral', 'RESPUESTA YA REGISTRADA • AVANZANDO...');
                 } else if (resultado.es_correcta) {
-                    fb.className = 'p-3 rounded-xl text-center font-orbitron text-xs font-bold bg-emerald-500/20 border border-emerald-400 text-emerald-300';
                     const rachaAct = Number(resultado.racha_actual) || 0;
-                    fb.textContent = rachaAct >= 3
-                        ? `✅ ¡CORRECTO! +${resultado.puntos_sumados} PUNTOS • 🔥 RACHA x${rachaAct}`
-                        : `✅ ¡CORRECTO! +${resultado.puntos_sumados} PUNTOS`;
+                    const msgOk = rachaAct >= 3
+                        ? `¡CORRECTO! +${resultado.puntos_sumados} PUNTOS • 🔥 RACHA x${rachaAct}`
+                        : `¡CORRECTO! +${resultado.puntos_sumados} PUNTOS`;
+                    mostrarFeedbackGlass('success', msgOk);
                 } else {
-                    fb.className = 'p-3 rounded-xl text-center font-orbitron text-xs font-bold bg-rose-500/20 border border-rose-500 text-rose-300';
                     const baseMsg = (letraElegida === 'tiempo_agotado' || resultado.fuera_de_tiempo)
-                        ? '⏰ ¡TIEMPO AGOTADO! AVANZANDO A LA SIGUIENTE...'
-                        : '❌ RESPUESTA INCORRECTA • AVANZANDO...';
-                    fb.textContent = resultado.racha_perdida
+                        ? '¡TIEMPO AGOTADO! AVANZANDO A LA SIGUIENTE...'
+                        : 'RESPUESTA INCORRECTA • AVANZANDO...';
+                    const msgErr = resultado.racha_perdida
                         ? `${baseMsg} • 💔 Racha perdida (Máxima: ${Number(resultado.racha_maxima) || 0})`
                         : baseMsg;
+                    mostrarFeedbackGlass('error', msgErr);
                 }
 
                 setTimeout(() => {
@@ -718,7 +801,7 @@
                 // Error de red: no se sabe si llegó; se resincroniza (si llegó, el servidor responde "ya registrada")
                 const fb = document.getElementById('feedback-respuesta');
                 fb.classList.remove('hidden');
-                mostrarAvisoNeutral(fb, '📡 SIN CONEXIÓN • REINTENTANDO...');
+                mostrarFeedbackGlass('neutral', 'SIN CONEXIÓN • REINTENTANDO...');
                 setTimeout(() => {
                     preguntaActualId = null;
                     enviandoRespuesta = false;
@@ -727,9 +810,37 @@
             }
         }
 
+        function mostrarFeedbackGlass(variante, texto) {
+            const fb = document.getElementById('feedback-respuesta');
+            const fbIcono = document.getElementById('feedback-respuesta-icono');
+            const fbTexto = document.getElementById('feedback-respuesta-texto');
+            if (!fb || !fbTexto) return;
+
+            const estilos = {
+                success: {
+                    clase: 'backdrop-blur-md p-3.5 rounded-2xl border text-center font-orbitron text-xs sm:text-sm font-bold flex items-center justify-center gap-2.5 bg-emerald-500/20 border-emerald-400/80 text-emerald-100 shadow-[0_0_24px_rgba(16,185,129,0.28)]',
+                    svg: '<svg class="w-5 h-5 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+                },
+                error: {
+                    clase: 'backdrop-blur-md p-3.5 rounded-2xl border text-center font-orbitron text-xs sm:text-sm font-bold flex items-center justify-center gap-2.5 bg-rose-500/20 border-rose-400/80 text-rose-100 shadow-[0_0_22px_rgba(244,63,94,0.25)]',
+                    svg: '<svg class="w-5 h-5 text-rose-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+                },
+                neutral: {
+                    clase: 'backdrop-blur-md p-3.5 rounded-2xl border text-center font-orbitron text-xs sm:text-sm font-bold flex items-center justify-center gap-2.5 bg-amber-500/20 border-amber-400/80 text-amber-100 shadow-[0_0_20px_rgba(251,191,36,0.22)]',
+                    svg: '<svg class="w-5 h-5 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+                }
+            }[variante] || {
+                clase: 'backdrop-blur-md p-3.5 rounded-2xl border text-center font-orbitron text-xs sm:text-sm font-bold flex items-center justify-center gap-2.5 bg-amber-500/20 border-amber-400/80 text-amber-100',
+                svg: ''
+            };
+
+            fb.className = estilos.clase;
+            if (fbIcono) fbIcono.innerHTML = estilos.svg;
+            fbTexto.textContent = texto;
+        }
+
         function mostrarAvisoNeutral(fb, texto) {
-            fb.className = 'p-3 rounded-xl text-center font-orbitron text-xs font-bold bg-amber-500/20 border border-amber-400 text-amber-200';
-            fb.textContent = texto;
+            mostrarFeedbackGlass('neutral', texto);
         }
 
         function reportarSalidaPantalla() {
@@ -766,9 +877,26 @@
             } catch (e) {}
         }
 
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden && !esRecargaPagina && enPreguntaActiva && preguntaActualId && !enviandoRespuesta) {
+        function dispararEscudoSalidaSiActiva() {
+            if (!esRecargaPagina && enPreguntaActiva && preguntaActualId && !enviandoRespuesta) {
                 reportarSalidaPantalla();
+            }
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                dispararEscudoSalidaSiActiva();
+            }
+        });
+
+        window.addEventListener('blur', dispararEscudoSalidaSiActiva);
+        window.addEventListener('pagehide', dispararEscudoSalidaSiActiva);
+
+        document.addEventListener('keyup', (e) => {
+            const key = String(e.key || '');
+            const capturaWindowsMac = (e.metaKey || e.ctrlKey) && e.shiftKey && key.toLowerCase() === 's';
+            if (key === 'PrintScreen' || capturaWindowsMac) {
+                dispararEscudoSalidaSiActiva();
             }
         });
 
@@ -779,11 +907,10 @@
             sincronizarJuego();
         }
 
-        const esAccesoQrRegistro = new URLSearchParams(window.location.search).get('registro') === '1';
         let registroAutoActivado = false;
 
         function activarRegistroDirectoSiAplica() {
-            if (!esAccesoQrRegistro || registroAutoActivado) {
+            if (registroAutoActivado) {
                 return;
             }
             registroAutoActivado = true;

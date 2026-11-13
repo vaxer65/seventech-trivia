@@ -39,7 +39,7 @@ class EspectadorController extends Controller
             $baseOrigen = rtrim($request->getSchemeAndHttpHost(), '/');
         }
 
-        $urlRegistroQr = $baseOrigen . '/jugar?registro=1';
+        $urlRegistroQr = $baseOrigen . '/jugar';
 
         return view('espectador.index', compact('urlRegistroQr', 'mostrarAvisoLocalhost'));
     }
