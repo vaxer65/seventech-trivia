@@ -11,7 +11,7 @@
     }
 
     body {
-        background-color: #c4cedb;
+        background-color: #04060d;
         color: #f8fafc;
         font-family: var(--font-main);
         font-weight: 500;
@@ -126,12 +126,20 @@
     }
 
     .circuit-bg {
-        background-color: #c4cedb;
+        background-color: #04060d;
         background-image:
-            radial-gradient(rgba(15, 23, 42, 0.10) 1px, transparent 1px),
-            linear-gradient(135deg, #dce3ec 0%, #c4cedb 50%, #b3bfce 100%);
-        background-size: 36px 36px, 100% 100%;
+            radial-gradient(circle at 50% 20%, #0d1629 0%, #060913 70%, #04060d 100%);
+        background-size: 100% 100%;
         background-attachment: fixed;
+    }
+
+    #canvas-fondo-interactivo {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        pointer-events: none;
     }
 
     .neon-card, .neon-border, .card {
@@ -235,3 +243,236 @@
         }
     }
 </style>
+
+<script>
+    (function () {
+        if (window.__fondoInteractivoInit) return;
+        window.__fondoInteractivoInit = true;
+
+        function iniciarFondoInteractivo() {
+            let canvas = document.getElementById('canvas-fondo-interactivo');
+            if (!canvas) {
+                canvas = document.createElement('canvas');
+                canvas.id = 'canvas-fondo-interactivo';
+                canvas.setAttribute('aria-hidden', 'true');
+                document.body.prepend(canvas);
+            }
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+            const pointer = { x: 0, y: 0, active: false };
+            const pointerRadius = 160;
+            const paletas = [
+                '16, 185, 129',  // Esmeralda (#10b981)
+                '0, 229, 255',   // Cian (#00e5ff)
+                '192, 132, 252', // Violeta (#c084fc)
+            ];
+
+            let width = 0;
+            let height = 0;
+            let dpr = 1;
+            let maxLinkDist = 145;
+            let nodos = [];
+            let particulas = [];
+            let rafId = null;
+            let tiempo = 0;
+
+            function crearEscena() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+
+                canvas.width = Math.floor(width * dpr);
+                canvas.height = Math.floor(height * dpr);
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+                const esMovil = width < 768;
+                const cantidadNodos = esMovil ? 24 : 55;
+                const cantidadParticulas = esMovil ? 18 : 35;
+                maxLinkDist = esMovil ? 115 : 145;
+
+                nodos = Array.from({ length: cantidadNodos }, (_, idx) => ({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 0.36,
+                    vy: (Math.random() - 0.5) * 0.36,
+                    r: 1.3 + Math.random() * 1.4,
+                    rgb: idx % 3 === 0 ? paletas[1] : paletas[0],
+                }));
+
+                particulas = Array.from({ length: cantidadParticulas }, (_, idx) => ({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 0.28,
+                    vy: -0.14 - Math.random() * 0.25,
+                    r: 1.5 + Math.random() * 2.2,
+                    rgb: paletas[idx % paletas.length],
+                    alpha: 0.28 + Math.random() * 0.38,
+                    fase: Math.random() * Math.PI * 2,
+                }));
+            }
+
+            function dibujarFrame(animar) {
+                ctx.clearRect(0, 0, width, height);
+                tiempo += 0.014;
+
+                // Capa 1: Partículas ambientales luminosas en flujo suave con estela sutil
+                for (let i = 0; i < particulas.length; i++) {
+                    const p = particulas[i];
+                    if (animar) {
+                        p.x += p.vx + Math.sin(tiempo + p.fase) * 0.14;
+                        p.y += p.vy;
+                        if (p.y < -12) { p.y = height + 12; p.x = Math.random() * width; }
+                        if (p.x < -12) p.x = width + 12;
+                        if (p.x > width + 12) p.x = -12;
+                    }
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(p.x - p.vx * 10, p.y - p.vy * 10);
+                    ctx.lineTo(p.x, p.y);
+                    ctx.strokeStyle = `rgba(${p.rgb}, ${p.alpha * 0.45})`;
+                    ctx.lineWidth = p.r * 0.85;
+                    ctx.stroke();
+
+                    ctx.shadowBlur = 9;
+                    ctx.shadowColor = `rgba(${p.rgb}, 0.75)`;
+                    ctx.fillStyle = `rgba(${p.rgb}, ${p.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // Capa 2: Constelación geométrica reactiva al puntero
+                for (let i = 0; i < nodos.length; i++) {
+                    const n = nodos[i];
+                    if (animar) {
+                        n.x += n.vx;
+                        n.y += n.vy;
+                        if (n.x < 0 || n.x > width) n.vx *= -1;
+                        if (n.y < 0 || n.y > height) n.vy *= -1;
+                    }
+                }
+
+                const maxDistSq = maxLinkDist * maxLinkDist;
+                const pointerDistSqMax = pointerRadius * pointerRadius;
+
+                for (let i = 0; i < nodos.length; i++) {
+                    const a = nodos[i];
+                    for (let j = i + 1; j < nodos.length; j++) {
+                        const b = nodos[j];
+                        const dx = a.x - b.x;
+                        const dy = a.y - b.y;
+                        const d2 = dx * dx + dy * dy;
+                        if (d2 < maxDistSq) {
+                            const alpha = (1 - Math.sqrt(d2) / maxLinkDist) * 0.22;
+                            ctx.strokeStyle = `rgba(16, 185, 129, ${alpha.toFixed(3)})`;
+                            ctx.lineWidth = 0.85;
+                            ctx.beginPath();
+                            ctx.moveTo(a.x, a.y);
+                            ctx.lineTo(b.x, b.y);
+                            ctx.stroke();
+                        }
+                    }
+
+                    let cercaCursor = false;
+                    if (pointer.active) {
+                        const pdx = a.x - pointer.x;
+                        const pdy = a.y - pointer.y;
+                        const pd2 = pdx * pdx + pdy * pdy;
+                        if (pd2 < pointerDistSqMax) {
+                            cercaCursor = true;
+                            const factor = 1 - Math.sqrt(pd2) / pointerRadius;
+                            ctx.strokeStyle = `rgba(0, 229, 255, ${(factor * 0.42).toFixed(3)})`;
+                            ctx.lineWidth = 1.05;
+                            ctx.beginPath();
+                            ctx.moveTo(a.x, a.y);
+                            ctx.lineTo(pointer.x, pointer.y);
+                            ctx.stroke();
+                        }
+                    }
+
+                    ctx.fillStyle = cercaCursor ? 'rgba(0, 229, 255, 0.82)' : `rgba(${a.rgb}, 0.52)`;
+                    ctx.beginPath();
+                    ctx.arc(a.x, a.y, cercaCursor ? a.r + 0.9 : a.r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function bucle() {
+                if (document.hidden || reducedMotion.matches) {
+                    rafId = null;
+                    return;
+                }
+                dibujarFrame(true);
+                rafId = window.requestAnimationFrame(bucle);
+            }
+
+            function iniciarBucle() {
+                if (rafId !== null) return;
+                if (reducedMotion.matches) {
+                    dibujarFrame(false);
+                    return;
+                }
+                if (!document.hidden) {
+                    rafId = window.requestAnimationFrame(bucle);
+                }
+            }
+
+            function detenerBucle() {
+                if (rafId !== null) {
+                    window.cancelAnimationFrame(rafId);
+                    rafId = null;
+                }
+            }
+
+            crearEscena();
+            iniciarBucle();
+
+            window.addEventListener('mousemove', (e) => {
+                pointer.x = e.clientX;
+                pointer.y = e.clientY;
+                pointer.active = true;
+            }, { passive: true });
+
+            window.addEventListener('mouseleave', () => {
+                pointer.active = false;
+            }, { passive: true });
+
+            let resizeTimer = null;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    crearEscena();
+                    if (reducedMotion.matches) {
+                        dibujarFrame(false);
+                    }
+                }, 150);
+            }, { passive: true });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    detenerBucle();
+                } else {
+                    iniciarBucle();
+                }
+            });
+
+            if (typeof reducedMotion.addEventListener === 'function') {
+                reducedMotion.addEventListener('change', () => {
+                    detenerBucle();
+                    iniciarBucle();
+                });
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', iniciarFondoInteractivo);
+        } else {
+            iniciarFondoInteractivo();
+        }
+    })();
+</script>

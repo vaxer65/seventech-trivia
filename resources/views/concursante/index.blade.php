@@ -16,6 +16,7 @@
 </head>
 <body class="circuit-bg min-h-screen flex flex-col justify-between p-3 sm:p-5 relative overflow-x-hidden"
       oncontextmenu="return false;" oncopy="return false;" oncut="return false;" onpaste="return false;">
+    <canvas id="canvas-fondo-interactivo" aria-hidden="true"></canvas>
 
     <!-- ESCUDO ANTI-IA / ANTI-CAPTURAS -->
     <div id="cortina-anti-ia" class="hidden fixed inset-0 z-50 bg-[#07101E]/98 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
@@ -35,7 +36,7 @@
     </div>
 
     <!-- CABECERA DEL CONCURSANTE -->
-    <header class="w-full max-w-lg mx-auto neon-border rounded-2xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2.5 bg-[#0f172a]/95">
+    <header class="w-full max-w-lg mx-auto neon-border rounded-2xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2.5 bg-[#0f172a]/95 relative z-10">
         <a href="/" title="Volver al Portal Principal" class="flex items-center gap-2.5 sm:gap-3 hover:opacity-90 transition min-w-0 shrink-0">
             <img src="/favicon.svg" alt="Seven Tech" class="w-10 h-10 rounded-xl border border-emerald-400/70 shadow-[0_0_12px_rgba(16,185,129,0.28)] shrink-0">
             <div class="min-w-0">
@@ -65,7 +66,7 @@
     </header>
 
     <!-- CONTENEDOR CENTRAL DINÁMICO -->
-    <main class="w-full max-w-lg mx-auto my-auto py-4">
+    <main class="w-full max-w-lg mx-auto my-auto py-4 relative z-10">
 
         <!-- 1. PANTALLA DE REGISTRO O RECUPERACIÓN CON PIN -->
         <section id="vista-registro" class="hidden neon-border rounded-2xl p-4 sm:p-5 bg-[#0f172a]/95 space-y-4">
@@ -250,7 +251,7 @@
 
     @include('partials.ui-feedback')
 
-    <footer class="text-center font-orbitron text-[10px] text-slate-700 font-bold py-2">
+    <footer class="text-center font-orbitron text-[10px] text-slate-300 font-bold py-2 relative z-10">
         Seven Tech Community • Protección Anti-IA Activa
     </footer>
 

@@ -19,7 +19,8 @@
         }
     </style>
 </head>
-<body class="circuit-bg min-h-screen p-4 md:p-6">
+<body class="circuit-bg min-h-screen p-4 md:p-6 relative overflow-x-hidden">
+    <canvas id="canvas-fondo-interactivo" aria-hidden="true"></canvas>
 
     <!-- BANNER DE RECONEXIÓN EN PANTALLA GIGANTE (U3) -->
     <div id="banner-conexion-espectador" class="hidden fixed top-0 inset-x-0 z-50 bg-rose-600/95 text-white font-orbitron text-sm md:text-base font-bold text-center py-2.5 px-4 shadow-lg">
@@ -27,7 +28,7 @@
     </div>
 
     <!-- CABECERA HUD DE TRANSMISIÓN EN VIVO -->
-    <header class="max-w-7xl mx-auto rounded-xl p-4 mb-5 flex flex-wrap items-center justify-between neon-border backdrop-blur-md">
+    <header class="max-w-7xl mx-auto rounded-xl p-4 mb-5 flex flex-wrap items-center justify-between neon-border backdrop-blur-md relative z-10">
         <div class="flex items-center gap-4">
             <a href="/" title="Ir al Portal Principal">
                 <img src="/favicon.svg" alt="Seven Tech" class="w-14 h-14 rounded-xl border border-emerald-400/70 shadow-[0_0_15px_rgba(16,185,129,0.35)]">
@@ -65,7 +66,7 @@
     <div id="banner-eventos-vivo"
          role="status"
          aria-live="polite"
-         class="max-w-7xl mx-auto mb-5 rounded-xl px-4 py-2.5 neon-border flex items-center justify-between gap-3 bg-[#0f172a]/95 transition-colors">
+         class="max-w-7xl mx-auto mb-5 rounded-xl px-4 py-2.5 neon-border flex items-center justify-between gap-3 bg-[#0f172a]/95 transition-colors relative z-10">
         <div class="flex items-center gap-2.5 min-w-0">
             <span id="banner-eventos-badge" class="font-orbitron text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 shrink-0">
                 ● EN DIRECTO
@@ -80,7 +81,7 @@
     </div>
 
     <!-- BANNER QR DINÁMICO (SOLO EN ESTADO 'REGISTRO') -->
-    <section id="panel-qr-registro" class="max-w-7xl mx-auto mb-6 neon-border p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 bg-[#0f172a]/95">
+    <section id="panel-qr-registro" class="max-w-7xl mx-auto mb-6 neon-border p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 bg-[#0f172a]/95 relative z-10">
         <div class="space-y-1 text-center md:text-left">
             <span class="font-orbitron text-[10px] uppercase px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 rounded">
                  // ACCESO ABIERTO A CONCURSANTES
@@ -102,13 +103,13 @@
     </section>
 
     <!-- PODIO DE GANADORES CON LAURELES ESTILO CYBERPUNK -->
-    <section id="seccion-podio" class="hidden max-w-7xl mx-auto mb-8 neon-border p-6 md:p-8 rounded-2xl bg-gradient-to-b from-[#0F2342] to-[#07101E] text-center">
+    <section id="seccion-podio" class="hidden max-w-7xl mx-auto mb-8 neon-border p-6 md:p-8 rounded-2xl bg-gradient-to-b from-[#0F2342] to-[#07101E] text-center relative z-10">
         <p class="font-orbitron text-xs uppercase tracking-[0.3em] text-[#00E5FF] mb-1">// RESULTADOS OFICIALES DEL TORNEO //</p>
         <h2 class="cyber-title text-3xl md:text-5xl mb-8">PODIO DE CAMPEONES</h2>
         <div id="contenedor-laureles-podio" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center"></div>
     </section>
 
-    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
         
         <!-- COLUMNA IZQUIERDA (2/3): PISTA DE CARRERAS 2D PRO -->
         <section class="lg:col-span-2 rounded-xl p-5 neon-border flex flex-col">

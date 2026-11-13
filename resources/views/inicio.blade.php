@@ -6,9 +6,10 @@
     <title>Seven Tech - Portal Principal de Trivia</title>
     @include('partials.cyberpunk-head')
 </head>
-<body class="circuit-bg min-h-screen flex flex-col justify-between p-6">
+<body class="circuit-bg min-h-screen flex flex-col justify-between p-6 relative overflow-x-hidden">
+    <canvas id="canvas-fondo-interactivo" aria-hidden="true"></canvas>
 
-    <main class="max-w-5xl w-full mx-auto my-auto text-center space-y-10">
+    <main class="max-w-5xl w-full mx-auto my-auto text-center space-y-10 relative z-10">
         
         <!-- LOGO + TÍTULO CYBERPUNK CON BORDE ESMERALDA -->
         <div class="space-y-4">
@@ -22,7 +23,7 @@
                 <div>
                     <h1 class="cyber-title text-5xl sm:text-6xl md:text-7xl">SEVEN TECH</h1>
                 </div>
-                <p class="text-slate-800 font-semibold text-lg mt-3 max-w-xl mx-auto">Selecciona tu modo de acceso para ingresar a la plataforma oficial de trivia tecnológica.</p>
+                <p class="text-slate-200 font-semibold text-lg mt-3 max-w-xl mx-auto">Selecciona tu modo de acceso para ingresar a la plataforma oficial de trivia tecnológica.</p>
             </div>
         </div>
 
@@ -116,7 +117,7 @@
         @endif
     </main>
 
-    <footer class="text-center text-xs text-slate-700 font-bold py-4">
+    <footer class="text-center text-xs text-slate-300 font-bold py-4 relative z-10">
         SEVEN TECH COMMUNITY • AUDITORIO CENI UEB 2026
     </footer>
 

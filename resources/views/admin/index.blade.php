@@ -13,11 +13,12 @@
         }
     </style>
 </head>
-<body class="circuit-bg min-h-screen p-4 md:p-6">
+<body class="circuit-bg min-h-screen p-4 md:p-6 relative overflow-x-hidden">
+    <canvas id="canvas-fondo-interactivo" aria-hidden="true"></canvas>
 
     @if(!$autorizado)
         <!-- PANTALLA DE LOGIN ADMIN -->
-        <div class="max-w-md mx-auto mt-20 card rounded-2xl p-6 shadow-2xl">
+        <div class="max-w-md mx-auto mt-20 card rounded-2xl p-6 shadow-2xl relative z-10">
             <h1 class="text-2xl font-black text-[#00E5FF] mb-1">🔐 Admin Seven Tech</h1>
             <p class="text-xs text-slate-300 mb-5">Ingresa la clave maestra para controlar la trivia en vivo.</p>
 
@@ -41,7 +42,7 @@
             $partidaBloqueada = in_array($config->estado_juego, ['en_curso', 'pausado', 'desempate'], true);
         @endphp
         <!-- PANEL DE CONTROL COMPLETO -->
-        <header class="max-w-7xl mx-auto flex flex-wrap justify-between items-center card rounded-2xl p-4 mb-6">
+        <header class="max-w-7xl mx-auto flex flex-wrap justify-between items-center card rounded-2xl p-4 mb-6 relative z-10">
             <div class="flex items-center gap-3">
                 <a href="/" title="Ir al Portal Principal">
                     <img src="/favicon.svg" alt="Seven Tech" class="w-11 h-11 rounded-xl">
@@ -71,17 +72,17 @@
         </header>
 
         @if(session('ok'))
-            <div class="max-w-7xl mx-auto mb-6 p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-200 text-sm font-bold">
+            <div class="max-w-7xl mx-auto mb-6 p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-200 text-sm font-bold relative z-10">
                 ✅ {{ session('ok') }}
             </div>
         @endif
         @if($errors->any())
-            <div class="max-w-7xl mx-auto mb-6 p-3.5 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-200 text-sm font-bold">
+            <div class="max-w-7xl mx-auto mb-6 p-3.5 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-200 text-sm font-bold relative z-10">
                 ⚠️ {{ $errors->first() }}
             </div>
         @endif
 
-        <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
 
             <!-- 1. CONTROL DE ESTADO DEL EVENTO Y DESEMPATE -->
             <section class="card rounded-2xl p-5 space-y-5">
@@ -388,7 +389,7 @@
         </main>
 
         <!-- 3.5 AUDITORÍA DE EQUIPOS E INTEGRANTES REALES (EXCLUSIVO ADMIN - OCULTO EN ESPECTADOR) -->
-        <section class="max-w-7xl mx-auto mt-6 card rounded-2xl p-5">
+        <section class="max-w-7xl mx-auto mt-6 card rounded-2xl p-5 relative z-10">
             <div class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-3 mb-4">
                 <div>
                     <h2 class="text-lg font-extrabold text-[#00E5FF]">👥 Equipos Registrados y Nombres Reales ({{ $equipos->count() }})</h2>
@@ -454,7 +455,7 @@
         </section>
 
         <!-- 4. GESTOR COMPLETO DEL BANCO DE PREGUNTAS -->
-        <section class="max-w-7xl mx-auto mt-6 card rounded-2xl p-5">
+        <section class="max-w-7xl mx-auto mt-6 card rounded-2xl p-5 relative z-10">
             <div class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-3 mb-4 gap-3">
                 <div>
                     <h2 class="text-lg font-extrabold text-[#00E5FF]">4. Banco de Preguntas Registradas ({{ $preguntas->count() }})</h2>
@@ -592,7 +593,7 @@
         </section>
 
         <!-- 5. HISTORIAL DE EVENTOS PASADOS (SALÓN DE LA FAMA) -->
-        <section class="max-w-7xl mx-auto mt-6 card rounded-2xl p-5">
+        <section class="max-w-7xl mx-auto mt-6 card rounded-2xl p-5 relative z-10">
             <h2 class="text-lg font-extrabold text-[#00E5FF] border-b border-slate-800 pb-2 mb-4">
                 🏛️ 5. Historial de Eventos y Ganadores ({{ $historial->count() }})
             </h2>
@@ -637,7 +638,7 @@
 
         <!-- 6. MODO ENSAYO / SIMULADOR AUTOMÁTICO DE FLUJO COMPLETO (solo entorno local) -->
         @if(app()->isLocal())
-        <section class="max-w-7xl mx-auto mt-6 mb-10">
+        <section class="max-w-7xl mx-auto mt-6 mb-10 relative z-10">
             <details class="card rounded-2xl p-4 border border-dashed border-slate-700 group">
                 <summary class="cursor-pointer flex flex-wrap items-center justify-between gap-2 list-none">
                     <div class="flex items-center gap-3">
