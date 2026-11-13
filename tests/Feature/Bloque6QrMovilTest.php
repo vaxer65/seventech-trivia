@@ -38,9 +38,9 @@ class Bloque6QrMovilTest extends TestCase
 
         $respLan = $this->get('http://0.0.0.0:8000/espectador');
         $respLan->assertOk()
-            ->assertViewHas('urlRegistroQr', 'http://192.168.100.42:8000/jugar?registro=1')
+            ->assertViewHas('urlRegistroQr', 'http://192.168.100.42:8000/jugar')
             ->assertViewHas('mostrarAvisoLocalhost', false)
-            ->assertSee('http://192.168.100.42:8000/jugar?registro=1', false);
+            ->assertSee('http://192.168.100.42:8000/jugar', false);
     }
 
     public function test_espectador_muestra_aviso_si_no_hay_ip_lan_en_localhost(): void
@@ -57,7 +57,7 @@ class Bloque6QrMovilTest extends TestCase
 
         $respLocal = $this->get('http://localhost:8000/espectador');
         $respLocal->assertOk()
-            ->assertViewHas('urlRegistroQr', 'http://localhost:8000/jugar?registro=1')
+            ->assertViewHas('urlRegistroQr', 'http://localhost:8000/jugar')
             ->assertViewHas('mostrarAvisoLocalhost', true);
     }
 
@@ -66,19 +66,19 @@ class Bloque6QrMovilTest extends TestCase
         $response = $this->get('https://trivia-seventech.softecsa.com/espectador');
 
         $response->assertOk()
-            ->assertViewHas('urlRegistroQr', 'https://trivia-seventech.softecsa.com/jugar?registro=1')
+            ->assertViewHas('urlRegistroQr', 'https://trivia-seventech.softecsa.com/jugar')
             ->assertViewHas('mostrarAvisoLocalhost', false)
-            ->assertSee('https://trivia-seventech.softecsa.com/jugar?registro=1', false)
+            ->assertSee('https://trivia-seventech.softecsa.com/jugar', false)
             ->assertSee('id="aviso-qr-localhost" class="hidden ', false);
     }
 
-    public function test_vista_jugar_soporta_parametro_registro_y_controles_tactiles_moviles(): void
+    public function test_vista_jugar_soporta_registro_por_defecto_y_controles_tactiles_moviles(): void
     {
-        $response = $this->get('/jugar?registro=1');
+        $response = $this->get('/jugar');
 
         $response->assertOk()
             ->assertSee('activarRegistroDirectoSiAplica', false)
-            ->assertSee("get('registro') === '1'", false)
+            ->assertSee("cambiarTab('nuevo')", false)
             ->assertSee('min-h-[48px]', false)
             ->assertSee('truncate max-w-[105px] sm:max-w-[180px]', false)
             ->assertSee('text-base', false);
