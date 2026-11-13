@@ -123,22 +123,22 @@
             </div>
 
             <!-- Cabecera de Etapas con colores neón -->
-            <div class="grid grid-cols-4 text-center font-orbitron text-xs md:text-sm font-bold uppercase mb-4 bg-[#07101E] p-3 rounded-xl border border-slate-800 shadow-inner">
-                <div class="text-emerald-400 border-r border-slate-800 flex flex-col items-center">
-                    <span>🟢 ETAPA 1</span>
-                    <span class="text-xs text-slate-300 font-normal">CALENTAMIENTO</span>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-orbitron text-[10px] sm:text-xs md:text-sm font-bold uppercase mb-4 bg-[#07101E] p-2.5 sm:p-3 rounded-xl border border-slate-800 shadow-inner">
+                <div class="text-emerald-400 border border-slate-800/90 sm:border-0 sm:border-r sm:border-slate-800 rounded-lg sm:rounded-none py-1.5 sm:py-0 px-1 flex flex-col items-center justify-center min-w-0">
+                    <span class="truncate max-w-full">🟢 ETAPA 1</span>
+                    <span class="text-[10px] sm:text-xs text-slate-300 font-normal truncate max-w-full">CALENTAMIENTO</span>
                 </div>
-                <div class="text-[#00E5FF] border-r border-slate-800 flex flex-col items-center">
-                    <span>🔵 ETAPA 2</span>
-                    <span class="text-xs text-slate-300 font-normal">VEL. CRUCERO</span>
+                <div class="text-[#00E5FF] border border-slate-800/90 sm:border-0 sm:border-r sm:border-slate-800 rounded-lg sm:rounded-none py-1.5 sm:py-0 px-1 flex flex-col items-center justify-center min-w-0">
+                    <span class="truncate max-w-full">🔵 ETAPA 2</span>
+                    <span class="text-[10px] sm:text-xs text-slate-300 font-normal truncate max-w-full">VEL. CRUCERO</span>
                 </div>
-                <div class="text-amber-400 border-r border-slate-800 flex flex-col items-center">
-                    <span>🟠 ETAPA 3</span>
-                    <span class="text-xs text-slate-300 font-normal">RECTA PRO</span>
+                <div class="text-amber-400 border border-slate-800/90 sm:border-0 sm:border-r sm:border-slate-800 rounded-lg sm:rounded-none py-1.5 sm:py-0 px-1 flex flex-col items-center justify-center min-w-0">
+                    <span class="truncate max-w-full">🟠 ETAPA 3</span>
+                    <span class="text-[10px] sm:text-xs text-slate-300 font-normal truncate max-w-full">RECTA PRO</span>
                 </div>
-                <div class="text-rose-400 flex flex-col items-center">
-                    <span>🏆 META FINAL</span>
-                    <span class="text-xs text-slate-300 font-normal">BANDERA A CUADROS</span>
+                <div class="text-rose-400 border border-slate-800/90 sm:border-0 rounded-lg sm:rounded-none py-1.5 sm:py-0 px-1 flex flex-col items-center justify-center min-w-0">
+                    <span class="truncate max-w-full">🏆 META FINAL</span>
+                    <span class="text-[10px] sm:text-xs text-slate-300 font-normal truncate max-w-full">BANDERA A CUADROS</span>
                 </div>
             </div>
 

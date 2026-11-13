@@ -144,8 +144,8 @@
 
     .neon-card, .neon-border, .card {
         background-color: rgba(15, 23, 42, 0.94);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border: 1px solid rgba(16, 185, 129, 0.45);
         box-shadow: 0 12px 30px rgba(15, 23, 42, 0.24),
                     0 0 18px rgba(16, 185, 129, 0.14),
@@ -318,7 +318,7 @@
                 ctx.clearRect(0, 0, width, height);
                 tiempo += 0.014;
 
-                // Capa 1: Partículas ambientales luminosas en flujo suave con estela sutil
+                // Capa 1: Partículas ambientales luminosas en flujo suave (halo dual ligero sin filtro costoso)
                 for (let i = 0; i < particulas.length; i++) {
                     const p = particulas[i];
                     if (animar) {
@@ -329,21 +329,22 @@
                         if (p.x > width + 12) p.x = -12;
                     }
 
-                    ctx.save();
                     ctx.beginPath();
                     ctx.moveTo(p.x - p.vx * 10, p.y - p.vy * 10);
                     ctx.lineTo(p.x, p.y);
-                    ctx.strokeStyle = `rgba(${p.rgb}, ${p.alpha * 0.45})`;
+                    ctx.strokeStyle = `rgba(${p.rgb}, ${(p.alpha * 0.42).toFixed(3)})`;
                     ctx.lineWidth = p.r * 0.85;
                     ctx.stroke();
 
-                    ctx.shadowBlur = 9;
-                    ctx.shadowColor = `rgba(${p.rgb}, 0.75)`;
+                    ctx.fillStyle = `rgba(${p.rgb}, ${(p.alpha * 0.22).toFixed(3)})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r * 2.1, 0, Math.PI * 2);
+                    ctx.fill();
+
                     ctx.fillStyle = `rgba(${p.rgb}, ${p.alpha})`;
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.restore();
                 }
 
                 // Capa 2: Constelación geométrica reactiva al puntero
@@ -402,12 +403,18 @@
                 }
             }
 
-            function bucle() {
+            const intervaloFrameMs = 28; // ~35 FPS para bajo consumo de CPU/GPU
+            let ultimoFrameTs = 0;
+
+            function bucle(ts) {
                 if (document.hidden || reducedMotion.matches) {
                     rafId = null;
                     return;
                 }
-                dibujarFrame(true);
+                if (!ultimoFrameTs || (ts - ultimoFrameTs) >= intervaloFrameMs) {
+                    ultimoFrameTs = ts || performance.now();
+                    dibujarFrame(true);
+                }
                 rafId = window.requestAnimationFrame(bucle);
             }
 
@@ -418,6 +425,7 @@
                     return;
                 }
                 if (!document.hidden) {
+                    ultimoFrameTs = 0;
                     rafId = window.requestAnimationFrame(bucle);
                 }
             }

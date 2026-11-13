@@ -77,12 +77,22 @@ class Bloque10FondoInteractivoTest extends TestCase
             ->assertSee("window.addEventListener('mousemove'", false)
             ->assertSee('const cantidadNodos = esMovil ? 24 : 55;', false)
             ->assertSee('const cantidadParticulas = esMovil ? 18 : 35;', false)
+            ->assertSee('const intervaloFrameMs = 28;', false)
+            ->assertSee('backdrop-filter: blur(8px);', false)
+            ->assertDontSee('shadowBlur', false)
             ->assertSee('text-slate-200', false)
             ->assertSee('text-slate-300', false);
+
+        $this->get('/espectador')
+            ->assertOk()
+            ->assertSee('grid-cols-2 sm:grid-cols-4 gap-2', false)
+            ->assertSee('CALENTAMIENTO', false)
+            ->assertSee('VEL. CRUCERO', false);
 
         $this->get('/jugar')
             ->assertOk()
             ->assertSee('Seven Tech Community • Protección Anti-IA Activa', false)
+            ->assertSee('flex flex-col gap-3', false)
             ->assertSee('text-slate-300', false);
     }
 }

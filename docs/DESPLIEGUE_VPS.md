@@ -4,6 +4,20 @@ Esta guía sustituye definitivamente al antiguo flujo en hosting compartido / cP
 
 ---
 
+## 0. Checklist de Datos a Solicitar Antes del Despliegue
+
+Antes de iniciar la configuración en producción, recopila con el proveedor de infraestructura o dueño del servidor:
+
+1. **Dominio / Subdominio y DNS:** Nombre final (ej. `trivia.tudominio.com`) y confirmación de registro `A` / `AAAA` apuntando a la IP pública del VPS (y si pasa por Cloudflare o proxy CDN, sus rangos IP para `TRUSTED_PROXIES`).
+2. **Acceso al Servidor:** IP pública, usuario SSH con privilegios `sudo` (o clave privada `.pem`) o método alternativo de entrega si no hay SSH/Git (ver Sección 9).
+3. **Sistema y Servicios:** Confirmación de Ubuntu 24.04 LTS (o similar), puertos `80` y `443` abiertos en firewall/grupo de seguridad para tráfico web y emisión SSL Let's Encrypt.
+4. **Credenciales y Parámetros Privados:**
+   - Contraseña nueva para el usuario MySQL dedicado (`seventech_user`).
+   - Contraseña elegida para el Administrador del torneo (para generar su hash bcrypt `ADMIN_PASSWORD_HASH` en producción).
+   - Confirmación de uso de Redis local (`127.0.0.1:6379`) o endpoint/contraseña si es gestionado.
+
+---
+
 ## 1. Preparación Base del VPS (Ubuntu 24.04 LTS)
 
 Conéctate por SSH como usuario con privilegios `sudo` y actualiza paquetes:
@@ -209,8 +223,41 @@ sudo systemctl reload php8.3-fpm
 ## 8. Checklist Previo al Torneo en Auditorio
 
 1. Verificar que `https://trivia.tudominio.com/up` devuelve HTTP `200`.
-2. Entrar a `https://trivia.tudominio.com/espectador` y comprobar que el código QR apunta a `https://trivia.tudominio.com/jugar?registro=1`.
+2. Entrar a `https://trivia.tudominio.com/espectador` y comprobar que el código QR apunta a `https://trivia.tudominio.com/jugar`.
 3. Escanear el QR con un teléfono conectado al Wi-Fi del auditorio y validar registro de equipo con 2 integrantes.
 4. Entrar a `/admin` verificando la clave bcrypt y comprobar que la **Calculadora del Torneo** muestra semáforo en **🟢 Duración óptima**.
 5. Confirmar que `redis-cli info clients` y `tail -n 20 storage/logs/laravel.log` están limpios antes de abrir el registro oficial.
+
+---
+
+## 9. Despliegue Alternativo sin Git/SSH Directo (Paquete `.zip` + Volcado `.sql`)
+
+Si el proveedor no habilita `git clone` directo en el servidor o solicita un paquete cerrado para cargar por panel/SFTP:
+
+### 9.1. Empaquetado limpio del código (sin `.env`, caché local ni `.git`)
+
+Desde la raíz del proyecto local (después de `composer install --no-dev --optimize-autoloader` en un directorio temporal o excluyendo desarrollo):
+
+```bash
+zip -r seventech-trivia-release.zip . \
+  -x ".git/*" ".env" "node_modules/*" "storage/logs/*.log" \
+     "storage/framework/cache/data/*" "storage/framework/sessions/*" \
+     "storage/framework/views/*.php" "tests/*"
+```
+
+> Si subes sin ejecutar Composer en el servidor, asegúrate de incluir `vendor/` generado con `composer install --no-dev --optimize-autoloader` para **PHP 8.3** y limpiar caches antes (`php artisan optimize:clear`).
+
+### 9.2. Generación de volcado inicial `.sql` (solo estructura + banco de 360 preguntas)
+
+Si el administrador de BD requiere importar un `.sql` inicial en lugar de correr `php artisan migrate && php artisan db:seed`:
+
+```bash
+# Desde entorno local ya migrado y sembrado (sin datos sensibles ni historial de prueba)
+mysqldump -u TU_USUARIO -p --single-transaction --routines --triggers \
+  seventech_trivia > seventech_trivia_inicial.sql
+```
+
+> [!WARNING]
+> Verifica que la base exportada no contenga equipos ni contraseñas personales y recuerda generar el `.env` de producción en el servidor con un `APP_KEY` nuevo (`php artisan key:generate`) y un `ADMIN_PASSWORD_HASH` propio antes de publicar.
+
 

@@ -36,23 +36,25 @@
     </div>
 
     <!-- CABECERA DEL CONCURSANTE -->
-    <header class="w-full max-w-lg mx-auto neon-border rounded-2xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2.5 bg-[#0f172a]/95 relative z-10">
-        <a href="/" title="Volver al Portal Principal" class="flex items-center gap-2.5 sm:gap-3 hover:opacity-90 transition min-w-0 shrink-0">
-            <img src="/favicon.svg" alt="Seven Tech" class="w-10 h-10 rounded-xl border border-emerald-400/70 shadow-[0_0_12px_rgba(16,185,129,0.28)] shrink-0">
-            <div class="min-w-0">
-                <h1 class="cyber-title text-base sm:text-xl leading-none">SEVEN TECH</h1>
-                <p class="font-orbitron text-[10px] text-slate-300 mt-1">Seven Tech Trivia 2026</p>
-            </div>
-        </a>
+    <header class="w-full max-w-lg mx-auto neon-border rounded-2xl p-3 sm:p-4 flex flex-col gap-3 bg-[#0f172a]/95 relative z-10">
+        <div class="flex items-center justify-between gap-3 w-full">
+            <a href="/" title="Volver al Portal Principal" class="flex items-center gap-2.5 sm:gap-3 hover:opacity-90 transition min-w-0">
+                <img src="/favicon.svg" alt="Seven Tech" class="w-10 h-10 rounded-xl border border-emerald-400/70 shadow-[0_0_12px_rgba(16,185,129,0.28)] shrink-0">
+                <div class="min-w-0">
+                    <h1 class="cyber-title text-base sm:text-xl leading-none">SEVEN TECH</h1>
+                    <p class="font-orbitron text-[10px] text-slate-300 mt-1">Seven Tech Trivia 2026</p>
+                </div>
+            </a>
+        </div>
 
-        <!-- Información del equipo activo + Reloj Global + Botón Salir -->
-        <div id="info-equipo-header" class="hidden flex flex-wrap sm:flex-nowrap items-center justify-end gap-1.5 sm:gap-2 min-w-0 ml-auto">
+        <!-- Fila inferior: Información del equipo activo + Reloj Global + Botón Salir -->
+        <div id="info-equipo-header" class="hidden flex flex-wrap items-center justify-between gap-2 w-full pt-2.5 border-t border-slate-800/80">
             <div class="text-center bg-[#0b1322] px-2.5 py-1.5 rounded-xl border border-slate-700/80 shrink-0">
                 <span class="font-orbitron block text-[8px] text-slate-400 uppercase tracking-wider">Torneo</span>
                 <span id="reloj-global-movil" class="font-orbitron text-xs font-bold text-amber-400 whitespace-nowrap">--:--</span>
             </div>
-            <div class="text-right bg-[#0b1322] px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-500/45 min-w-0">
-                <p id="header-nombre-equipo" class="text-xs font-bold text-white leading-tight truncate max-w-[105px] sm:max-w-[180px]"></p>
+            <div class="text-center sm:text-right bg-[#0b1322] px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-500/45 min-w-0 flex-1 sm:flex-initial">
+                <p id="header-nombre-equipo" class="text-xs font-bold text-white leading-tight truncate max-w-[105px] sm:max-w-[180px] mx-auto sm:ml-auto sm:mr-0"></p>
                 <p id="header-puntaje" class="font-orbitron text-xs text-emerald-300 font-bold whitespace-nowrap">0 PTS</p>
             </div>
             <button type="button" onclick="cerrarSesionEquipo()" title="Salir del Equipo" aria-label="Salir del Equipo"
@@ -60,7 +62,7 @@
                 <svg class="w-4 h-4 shrink-0 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
                 </svg>
-                <span class="hidden sm:inline">Salir</span>
+                <span>Salir</span>
             </button>
         </div>
     </header>

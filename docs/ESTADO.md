@@ -2,9 +2,9 @@
 
 ## 1. Estado Actual
 
-- **Rama activa:** `bloque-10-fondo-interactivo` (creada desde `desarrollo` tras integrar `bloque-9-pulido-ux-espectador`; **Bloques 0 al 10 100% Completados**).
+- **Rama activa:** Integrado y liberado en `desarrollo` y `main` desde `bloque-10-fondo-interactivo` (**Bloques 0 al 10 + Pulido Final 100% Completados**).
 - **Entorno en producción objetivo:** **Servidor dedicado / VPS propio** (Ubuntu 24.04 + Nginx + PHP-FPM 8.3 + MySQL 8 + Redis; guía en [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md); se descarta cPanel).
-- **Suite de pruebas:** **49 tests pasando (4,529 aserciones)** contra `seventech_trivia_test`:
+- **Suite de pruebas:** **50 tests pasando (4,751 aserciones)** contra `seventech_trivia_test`:
   - `Tests\Unit\ExampleTest` (1 test)
   - `Tests\Feature\ExampleTest` (1 test)
   - `Tests\Feature\Bloque1SeguridadTest` (10 tests: ocultación de respuesta correcta, rechazo de pregunta no asignada `409`, mismo orden por `semilla_partida`, tiempo medido en servidor, idempotencia `UNIQUE(equipo_id, pregunta_id)`, sesión por cookie sin `equipo_id` en request, límite 2–5 integrantes, `rate limiting` del PIN `429`, protección de `/admin/*` incluyendo `/admin/preguntas/importar`, y regeneración de `semilla_partida`).
@@ -17,7 +17,8 @@
   - `Tests\Feature\Bloque7CalculadoraTiempoTest` (4 tests: renderizado SSR del estimador y semáforo Verde, cambios a Rojo y Ámbar con duraciones cortas, fórmula exacta `60% + 2s` / `100% + 2s` + colchón de 2 preguntas de Muerte Súbita con autoguardado JSON hasta `600` min, y respeto del candado `en_curso` en `#btn-aplicar-tiempo-recomendado`).
   - `Tests\Feature\Bloque8VpsConcurrenciaTest` (3 tests: rechazo estricto de texto plano y exigencia de bcrypt en `AdminController::login()` bajo `APP_ENV=production`, simulación integral de 45 equipos concurrentes en las 3 etapas normales + Muerte Súbita verificando puntajes/rachas/cero duplicados/ranking, y cumplimiento de presupuesto `≤ 7 queries` en `/api/estado-juego` y `≤ 4 queries` en `/api/carrera-en-vivo`).
   - `Tests\Feature\Bloque9PulidoUxEspectadorTest` (5 tests: rediseño, QR limpio `/jugar` sin `?registro=1`, banner `#banner-eventos-vivo` y formatos de tiempo enteros/llamas sin `🏅`, validación HTML5 nativa + modal `<dialog>` + escudo Anti-IA con `blur`/`pagehide`/`PrintScreen` en `/jugar`, desactivación de autoguardado en `#form-configuracion` + descarga/reimportación de plantillas CSV/JSON en `/admin`, rechazo transaccional de archivos CSV/JSON malformados sin inserciones parciales, y prioridad de ranking puntaje -> aciertos -> menor tiempo).
-  - `Tests\Feature\Bloque10FondoInteractivoTest` (2 tests: renderizado de `<canvas id="canvas-fondo-interactivo">` en `/`, `/jugar`, `/espectador` y `/admin`, degradado oscuro profundo `#0d1629 -> #04060d`, bordes esmeralda `brilloEsmeraldaSuave`, capas `relative z-10`, optimización DPR `<= 1.5`, pausa en `document.hidden`, `prefers-reduced-motion: reduce`, densidad adaptativa móvil/escritorio y contraste claro `text-slate-200`/`text-slate-300`).
+  - `Tests\Feature\Bloque10FondoInteractivoTest` (2 tests: renderizado de `<canvas id="canvas-fondo-interactivo">` en `/`, `/jugar`, `/espectador` y `/admin`, degradado oscuro profundo `#0d1629 -> #04060d`, bordes esmeralda `brilloEsmeraldaSuave`, capas `relative z-10`, optimización DPR `<= 1.5`, throttle `~35 FPS` (`28ms`), `backdrop-filter: blur(8px)` sin `shadowBlur`, pausa en `document.hidden`, `prefers-reduced-motion: reduce`, cabecera en 2 filas (`flex flex-col gap-3`) en `/jugar` y rejilla responsive `grid-cols-2 sm:grid-cols-4` en `/espectador`).
+  - `Tests\Feature\FlujoCompletoE2ETest` (1 test integral de punta a punta con `DatabaseSeeder` completo de 360 preguntas y 10 módulos: vistas públicas, descarga de plantillas e importación JSON/CSV en `/admin`, registro de equipos, 3 etapas normales con permutación visual y escudo anti-IA `reportar-salida-pantalla`, Muerte Súbita y ranking final en `/api/carrera-en-vivo`).
 
 ---
 
@@ -112,4 +113,4 @@ git status
 
 ## 8. Próximo Paso
 
-- **Proyecto completado al 100% (Bloques 0 al 10) en ramas de desarrollo.** Cuando desees liberar a producción en el VPS dedicado: revisar e integrar `bloque-10-fondo-interactivo` → `desarrollo` → `main` bajo tu autorización explícita y seguir [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md).
+- **Proyecto completado, documentado e integrado en `desarrollo` y `main` (Bloques 0 al 10 + Pulido Final).** Listo para despliegue en producción sobre VPS dedicado siguiendo [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md) y [`README.md`](file:///home/vaxer/seventech-trivia/README.md).
