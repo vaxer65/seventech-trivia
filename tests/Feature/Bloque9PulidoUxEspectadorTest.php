@@ -82,8 +82,8 @@ class Bloque9PulidoUxEspectadorTest extends TestCase
         $resp = $this->get('/jugar');
 
         $resp->assertOk()
-            ->assertSee('setCustomValidity', false)
-            ->assertSee('reportValidity', false)
+            ->assertSee('novalidate', false)
+            ->assertSee('validarFormularioConcursante', false)
             ->assertDontSee('id="alerta-error"', false)
             ->assertDontSee('error-reg-nombre_equipo', false)
             ->assertDontSee('error-rec-pin_recuperacion', false)

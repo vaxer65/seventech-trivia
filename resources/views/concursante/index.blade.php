@@ -47,11 +47,15 @@
             </a>
         </div>
 
-        <!-- Fila inferior: Información del equipo activo + Reloj Global + Botón Salir -->
+        <!-- Fila inferior: Información del equipo activo + Puesto en Vivo + Reloj Global + Botón Salir -->
         <div id="info-equipo-header" class="hidden flex flex-wrap items-center justify-between gap-2 w-full pt-2.5 border-t border-slate-800/80">
             <div class="text-center bg-[#0b1322] px-2.5 py-1.5 rounded-xl border border-slate-700/80 shrink-0">
                 <span class="font-orbitron block text-[8px] text-slate-400 uppercase tracking-wider">Torneo</span>
                 <span id="reloj-global-movil" class="font-orbitron text-xs font-bold text-amber-400 whitespace-nowrap">--:--</span>
+            </div>
+            <div class="text-center bg-[#0b1322] px-2.5 py-1.5 rounded-xl border border-amber-400/45 shrink-0">
+                <span class="font-orbitron block text-[8px] text-amber-300 uppercase tracking-wider">Puesto</span>
+                <span id="header-puesto-equipo" class="font-orbitron text-xs font-bold text-amber-300 whitespace-nowrap">--</span>
             </div>
             <div class="text-center sm:text-right bg-[#0b1322] px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-500/45 min-w-0 flex-1 sm:flex-initial">
                 <p id="header-nombre-equipo" class="text-xs font-bold text-white leading-tight truncate max-w-[105px] sm:max-w-[180px] mx-auto sm:ml-auto sm:mr-0"></p>
@@ -83,9 +87,9 @@
                 </button>
             </div>
 
-            <!-- Formulario Nuevo Equipo (validación nativa con setCustomValidity/reportValidity) -->
-            <form id="form-registro" class="space-y-4">
-                <div>
+            <!-- Formulario Nuevo Equipo (validación inline por campo + toast suave) -->
+            <form id="form-registro" novalidate class="space-y-4">
+                <div data-campo-grupo>
                     <label for="reg-nombre-equipo" class="block font-orbitron text-[11px] text-emerald-300 uppercase font-bold mb-1">Nombre del Equipo *</label>
                     <input type="text" id="reg-nombre-equipo" name="nombre_equipo" required minlength="2" maxlength="40" autocomplete="organization" placeholder="Ej: CyberTitans"
                            class="w-full min-h-[48px] bg-[#0b1322] border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-base text-slate-100 placeholder-slate-500 outline-none transition">
@@ -104,12 +108,12 @@
                     <p class="text-[11px] text-slate-400 mb-2">⚠️ Ingresa el <b>Nombre y Apellido real</b> de cada participante (son privados y solo visibles para el jurado/administrador).</p>
 
                     <div id="lista-integrantes" class="space-y-2.5">
-                        <div>
+                        <div data-campo-grupo>
                             <label for="reg-integrante-1" class="sr-only">Nombre y Apellido del Capitán</label>
                             <input type="text" id="reg-integrante-1" name="integrantes[]" required minlength="3" autocomplete="name" placeholder="Nombre y Apellido del Capitán *"
                                    class="w-full min-h-[48px] bg-[#0b1322] border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-base text-slate-100 placeholder-slate-500 outline-none transition">
                         </div>
-                        <div>
+                        <div data-campo-grupo>
                             <label for="reg-integrante-2" class="sr-only">Nombre y Apellido del Integrante 2</label>
                             <input type="text" id="reg-integrante-2" name="integrantes[]" required minlength="3" autocomplete="name" placeholder="Nombre y Apellido del Integrante 2 *"
                                    class="w-full min-h-[48px] bg-[#0b1322] border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-base text-slate-100 placeholder-slate-500 outline-none transition">
@@ -124,14 +128,14 @@
             </form>
 
             <!-- Formulario Recuperar Sesión con PIN -->
-            <form id="form-recuperar" class="hidden space-y-4">
+            <form id="form-recuperar" novalidate class="hidden space-y-4">
                 <p class="text-xs text-slate-300">Si se cerró tu navegador o cambiaste de teléfono, ingresa el nombre de tu equipo y tu PIN de 4 dígitos:</p>
-                <div>
+                <div data-campo-grupo>
                     <label for="rec-nombre-equipo" class="block font-orbitron text-[11px] text-emerald-300 uppercase font-bold mb-1">Nombre Exacto del Equipo</label>
                     <input type="text" id="rec-nombre-equipo" name="nombre_equipo" required minlength="2" maxlength="40" autocomplete="organization" placeholder="Ej: CyberTitans"
                            class="w-full min-h-[48px] bg-[#0b1322] border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-base text-slate-100 placeholder-slate-500 outline-none transition">
                 </div>
-                <div>
+                <div data-campo-grupo>
                     <label for="rec-pin" class="block font-orbitron text-[11px] text-amber-400 uppercase font-bold mb-1">🔑 PIN de Recuperación (4 dígitos)</label>
                     <input type="text" id="rec-pin" name="pin_recuperacion" required pattern="\d{4}" minlength="4" maxlength="4" placeholder="Ej: 4829" inputmode="numeric" autocomplete="one-time-code"
                            class="w-full min-h-[48px] bg-[#0b1322] border border-amber-400/60 focus:border-amber-300 rounded-xl px-3.5 py-2.5 font-orbitron text-base sm:text-lg tracking-widest text-amber-300 text-center placeholder-slate-500 outline-none transition">
@@ -220,14 +224,22 @@
                 Tu equipo ha completado la carrera de <b>Seven Tech</b>. Mira la pantalla gigante del auditorio para conocer el podio oficial.
             </p>
 
-            <div class="grid grid-cols-2 gap-3 bg-[#0b1322] p-4 rounded-xl border border-emerald-500/45">
-                <div>
-                    <p class="font-orbitron text-[10px] text-slate-400 uppercase">Puntaje Final</p>
-                    <p id="puntaje-final-texto" class="font-orbitron text-2xl sm:text-3xl font-bold text-emerald-400 mt-1">0 PTS</p>
+            <div id="final-puesto-equipo" class="px-4 py-3 rounded-xl bg-amber-500/15 border border-amber-400/60 font-orbitron text-sm sm:text-base font-extrabold text-amber-300 tracking-wide">
+                🏁 Calculando puesto final...
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 sm:gap-3 bg-[#0b1322] p-3.5 sm:p-4 rounded-xl border border-emerald-500/45">
+                <div class="min-w-0">
+                    <p class="font-orbitron text-[9px] sm:text-[10px] text-slate-400 uppercase">Puntaje Final</p>
+                    <p id="puntaje-final-texto" class="font-orbitron text-lg sm:text-2xl font-bold text-emerald-400 mt-1 truncate">0 PTS</p>
                 </div>
-                <div class="border-l border-slate-800">
-                    <p class="font-orbitron text-[10px] text-slate-400 uppercase">Aciertos</p>
-                    <p id="aciertos-final-texto" class="font-orbitron text-2xl sm:text-3xl font-bold text-emerald-300 mt-1">0</p>
+                <div class="border-l border-slate-800 min-w-0 pl-1">
+                    <p class="font-orbitron text-[9px] sm:text-[10px] text-slate-400 uppercase">Aciertos</p>
+                    <p id="aciertos-final-texto" class="font-orbitron text-lg sm:text-2xl font-bold text-emerald-300 mt-1">0</p>
+                </div>
+                <div class="border-l border-slate-800 min-w-0 pl-1">
+                    <p class="font-orbitron text-[9px] sm:text-[10px] text-slate-400 uppercase">Tiempo</p>
+                    <p id="tiempo-final-texto" class="font-orbitron text-lg sm:text-2xl font-bold text-cyan-300 mt-1 whitespace-nowrap">0s</p>
                 </div>
             </div>
 
@@ -319,55 +331,124 @@
             document.getElementById('tab-pin').className = !esNuevo
                 ? 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold bg-amber-400 text-slate-950 transition'
                 : 'min-h-[48px] py-3 rounded-lg font-orbitron text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition';
-            limpiarErroresNativosForm(document.getElementById(esNuevo ? 'form-registro' : 'form-recuperar'));
+            limpiarErroresFormulario(document.getElementById(esNuevo ? 'form-registro' : 'form-recuperar'));
         }
 
-        function vincularValidacionNativaInput(input) {
+        function obtenerGrupoCampo(input) {
+            return input ? (input.closest('[data-campo-grupo]') || input.parentElement) : null;
+        }
+
+        function limpiarErrorCampo(input) {
+            if (!input) return;
+            input.removeAttribute('aria-invalid');
+            input.classList.remove('border-rose-400/80', 'ring-2', 'ring-rose-500/20');
+            if (input.id === 'rec-pin') {
+                input.classList.add('border-amber-400/60');
+            } else {
+                input.classList.add('border-slate-700');
+            }
+            const grupo = obtenerGrupoCampo(input);
+            const msg = grupo ? grupo.querySelector('.error-inline-campo') : null;
+            if (msg) msg.remove();
+        }
+
+        function limpiarErroresFormulario(form) {
+            if (!form) return;
+            form.querySelectorAll('input').forEach(limpiarErrorCampo);
+        }
+
+        function aplicarErrorCampo(input, mensaje, mostrarToast = true) {
+            if (!input) return;
+            limpiarErrorCampo(input);
+            input.setAttribute('aria-invalid', 'true');
+            input.classList.remove('border-slate-700', 'border-amber-400/60');
+            input.classList.add('border-rose-400/80', 'ring-2', 'ring-rose-500/20');
+
+            const grupo = obtenerGrupoCampo(input);
+            if (grupo) {
+                const p = document.createElement('p');
+                p.className = 'error-inline-campo text-xs text-rose-300 mt-1.5 leading-snug';
+                p.setAttribute('role', 'alert');
+                p.textContent = mensaje;
+                grupo.appendChild(p);
+            }
+
+            if (mostrarToast && typeof window.mostrarToast === 'function') {
+                window.mostrarToast(mensaje, 'error');
+            }
+            input.focus();
+        }
+
+        function vincularLimpiezaErrorInput(input) {
             if (!input || input.dataset.validacionVinculada === '1') return;
             input.dataset.validacionVinculada = '1';
+            input.addEventListener('input', () => limpiarErrorCampo(input));
+        }
 
-            input.addEventListener('invalid', () => {
-                input.setAttribute('aria-invalid', 'true');
-                if (input.validity.customError) return;
+        function validarFormularioConcursante(form) {
+            if (!form) return false;
+            limpiarErroresFormulario(form);
 
-                if (input.validity.valueMissing) {
-                    if (input.id === 'rec-pin') {
-                        input.setCustomValidity('Ingresa tu PIN numérico de 4 dígitos.');
-                    } else if (input.name === 'integrantes[]') {
-                        input.setCustomValidity('Ingresa el nombre y apellido de este integrante.');
-                    } else {
-                        input.setCustomValidity('Ingresa el nombre de tu equipo.');
-                    }
-                } else if (input.validity.patternMismatch && input.id === 'rec-pin') {
-                    input.setCustomValidity('El PIN debe contener exactamente 4 dígitos numéricos.');
-                } else if (input.validity.tooShort) {
-                    input.setCustomValidity(`Ingresa al menos ${input.minLength} caracteres.`);
+            const errores = [];
+            if (form.id === 'form-registro') {
+                const inpEquipo = document.getElementById('reg-nombre-equipo');
+                const valEquipo = String(inpEquipo?.value || '').trim();
+                if (valEquipo.length < 2) {
+                    errores.push({
+                        input: inpEquipo,
+                        mensaje: valEquipo === ''
+                            ? 'Ingresa el nombre de tu equipo.'
+                            : 'El nombre del equipo debe tener al menos 2 caracteres.',
+                    });
                 }
-            });
 
-            input.addEventListener('input', () => {
-                input.setCustomValidity('');
-                input.removeAttribute('aria-invalid');
-            });
+                const integrantesInputs = Array.from(form.querySelectorAll('input[name="integrantes[]"]'));
+                integrantesInputs.forEach((inp, idx) => {
+                    const val = String(inp.value || '').trim();
+                    const palabras = val.split(/\s+/).filter(Boolean);
+                    if (val === '') {
+                        errores.push({
+                            input: inp,
+                            mensaje: `Ingresa el Nombre y Apellido del integrante ${idx + 1}.`,
+                        });
+                    } else if (palabras.length < 2 || val.length < 3) {
+                        errores.push({
+                            input: inp,
+                            mensaje: 'Ingresa Nombre y Apellido real separados por espacio (ej: Valentín Valle).',
+                        });
+                    }
+                });
+            } else if (form.id === 'form-recuperar') {
+                const inpNombre = document.getElementById('rec-nombre-equipo');
+                const valNombre = String(inpNombre?.value || '').trim();
+                if (valNombre.length < 2) {
+                    errores.push({
+                        input: inpNombre,
+                        mensaje: 'Ingresa el nombre exacto de tu equipo.',
+                    });
+                }
+
+                const inpPin = document.getElementById('rec-pin');
+                const valPin = String(inpPin?.value || '').trim();
+                if (!/^\d{4}$/.test(valPin)) {
+                    errores.push({
+                        input: inpPin,
+                        mensaje: 'Ingresa un PIN numérico válido de 4 dígitos.',
+                    });
+                }
+            }
+
+            if (errores.length === 0) return true;
+
+            // Pintar todos los errores inline y enfocar + notificar el primero
+            for (let i = errores.length - 1; i >= 1; i--) {
+                aplicarErrorCampo(errores[i].input, errores[i].mensaje, false);
+            }
+            aplicarErrorCampo(errores[0].input, errores[0].mensaje, true);
+            return false;
         }
 
-        function limpiarErroresNativosForm(form) {
-            if (!form) return;
-            form.querySelectorAll('input').forEach(inp => {
-                inp.setCustomValidity('');
-                inp.removeAttribute('aria-invalid');
-            });
-        }
-
-        function aplicarErrorNativoCampo(input, mensaje) {
-            if (!input) return;
-            input.setCustomValidity(mensaje);
-            input.setAttribute('aria-invalid', 'true');
-            input.focus();
-            input.reportValidity();
-        }
-
-        document.querySelectorAll('#form-registro input, #form-recuperar input').forEach(vincularValidacionNativaInput);
+        document.querySelectorAll('#form-registro input, #form-recuperar input').forEach(vincularLimpiezaErrorInput);
 
         function agregarCampoIntegrante() {
             const contenedor = document.getElementById('lista-integrantes');
@@ -378,6 +459,9 @@
             }
             const indice = total + 1;
             const inputId = `reg-integrante-${indice}`;
+
+            const grupo = document.createElement('div');
+            grupo.setAttribute('data-campo-grupo', '');
 
             const fila = document.createElement('div');
             fila.className = 'flex items-center gap-2';
@@ -396,17 +480,18 @@
             input.autocomplete = 'name';
             input.placeholder = `Nombre y Apellido del Integrante ${indice} *`;
             input.className = 'w-full min-h-[48px] bg-[#0b1322] border border-slate-700 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-base text-slate-100 placeholder-slate-500 outline-none transition';
-            vincularValidacionNativaInput(input);
+            vincularLimpiezaErrorInput(input);
 
             const btnQuitar = document.createElement('button');
             btnQuitar.type = 'button';
             btnQuitar.setAttribute('aria-label', `Quitar integrante ${indice}`);
             btnQuitar.className = 'min-w-[48px] min-h-[48px] rounded-xl bg-slate-800/80 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-400/60 text-slate-300 hover:text-rose-200 font-bold text-sm transition shrink-0';
             btnQuitar.textContent = '✕';
-            btnQuitar.addEventListener('click', () => fila.remove());
+            btnQuitar.addEventListener('click', () => grupo.remove());
 
             fila.append(label, input, btnQuitar);
-            contenedor.appendChild(fila);
+            grupo.appendChild(fila);
+            contenedor.appendChild(grupo);
             input.focus();
         }
 
@@ -416,13 +501,7 @@
             const btn = document.getElementById('btn-registrar');
             if (btn.disabled) return;
 
-            limpiarErroresNativosForm(form);
-            if (!form.checkValidity()) {
-                const primeroInvalido = form.querySelector(':invalid');
-                if (primeroInvalido) {
-                    primeroInvalido.focus();
-                    primeroInvalido.reportValidity();
-                }
+            if (!validarFormularioConcursante(form)) {
                 return;
             }
 
@@ -430,7 +509,7 @@
             const integrantesInputs = Array.from(form.querySelectorAll('input[name="integrantes[]"]'));
             const integrantesValores = integrantesInputs.map(inp => inp.value.trim()).filter(v => v !== '');
             if (integrantesValores.length < 2) {
-                aplicarErrorNativoCampo(integrantesInputs[0], 'Debes ingresar al menos 2 integrantes.');
+                aplicarErrorCampo(integrantesInputs[0], 'Debes ingresar al menos 2 integrantes.');
                 return;
             }
 
@@ -455,13 +534,13 @@
                     const inpNombre = document.getElementById('reg-nombre-equipo');
                     const errIntKey = keys.find(k => k === 'integrantes' || k.startsWith('integrantes.'));
                     if (data.errors?.nombre_equipo || (!errIntKey && primerError.toLowerCase().includes('equipo'))) {
-                        aplicarErrorNativoCampo(inpNombre, data.errors?.nombre_equipo?.[0] || primerError);
+                        aplicarErrorCampo(inpNombre, data.errors?.nombre_equipo?.[0] || primerError);
                     } else if (errIntKey || primerError.toLowerCase().includes('integrante') || primerError.toLowerCase().includes('participante') || primerError.toLowerCase().includes('nombre y apellido')) {
                         const matchIdx = errIntKey ? errIntKey.match(/^integrantes\.(\d+)$/) : null;
                         const targetInput = (matchIdx && integrantesInputs[Number(matchIdx[1])]) || integrantesInputs[0];
-                        aplicarErrorNativoCampo(targetInput, data.errors?.[errIntKey]?.[0] || primerError);
+                        aplicarErrorCampo(targetInput, data.errors?.[errIntKey]?.[0] || primerError);
                     } else {
-                        aplicarErrorNativoCampo(inpNombre, primerError);
+                        aplicarErrorCampo(inpNombre, primerError);
                     }
                     return;
                 }
@@ -479,13 +558,7 @@
             const btn = document.getElementById('btn-recuperar');
             if (btn && btn.disabled) return;
 
-            limpiarErroresNativosForm(form);
-            if (!form.checkValidity()) {
-                const primeroInvalido = form.querySelector(':invalid');
-                if (primeroInvalido) {
-                    primeroInvalido.focus();
-                    primeroInvalido.reportValidity();
-                }
+            if (!validarFormularioConcursante(form)) {
                 return;
             }
 
@@ -504,11 +577,11 @@
                 if (!res.ok) {
                     const msg = data.errors ? Object.values(data.errors)[0][0] : (data.error || 'No se pudo recuperar el equipo.');
                     if (data.errors?.nombre_equipo) {
-                        aplicarErrorNativoCampo(document.getElementById('rec-nombre-equipo'), data.errors.nombre_equipo[0]);
+                        aplicarErrorCampo(document.getElementById('rec-nombre-equipo'), data.errors.nombre_equipo[0]);
                     } else if (data.errors?.pin_recuperacion) {
-                        aplicarErrorNativoCampo(document.getElementById('rec-pin'), data.errors.pin_recuperacion[0]);
+                        aplicarErrorCampo(document.getElementById('rec-pin'), data.errors.pin_recuperacion[0]);
                     } else {
-                        aplicarErrorNativoCampo(document.getElementById('rec-pin'), msg);
+                        aplicarErrorCampo(document.getElementById('rec-pin'), msg);
                     }
                     return;
                 }
@@ -585,6 +658,14 @@
                 document.getElementById('header-nombre-equipo').textContent = data.equipo.nombre_equipo;
                 document.getElementById('header-puntaje').textContent = `${data.equipo.puntaje_total} PTS`;
 
+                const elHeaderPuesto = document.getElementById('header-puesto-equipo');
+                const posActual = Number(data.posicion_actual) || null;
+                const totalEquipos = Number(data.total_equipos) || null;
+                if (elHeaderPuesto && posActual && totalEquipos) {
+                    const icono = posActual === 1 ? '🥇' : (posActual === 2 ? '🥈' : (posActual === 3 ? '🥉' : '🏁'));
+                    elHeaderPuesto.textContent = `${icono} #${posActual} / ${totalEquipos}`;
+                }
+
                 const bannerRacha = document.getElementById('banner-racha-movil');
                 const rachaActual = Number(data.equipo.racha_actual) || 0;
                 if (bannerRacha) {
@@ -619,6 +700,27 @@
                     preguntaActualId = null;
                     document.getElementById('puntaje-final-texto').textContent = `${data.equipo.puntaje_total} PTS`;
                     document.getElementById('aciertos-final-texto').textContent = `${data.equipo.aciertos_totales ?? 0}`;
+
+                    const totalSegFinal = Math.max(0, Math.round((Number(data.equipo.tiempo_acumulado_ms) || 0) / 1000));
+                    const minsFinal = Math.floor(totalSegFinal / 60);
+                    const segsFinal = totalSegFinal % 60;
+                    const elTiempoFinal = document.getElementById('tiempo-final-texto');
+                    if (elTiempoFinal) {
+                        elTiempoFinal.textContent = minsFinal > 0 ? `${minsFinal}m ${segsFinal}s` : `${segsFinal}s`;
+                    }
+
+                    const elFinalPuesto = document.getElementById('final-puesto-equipo');
+                    if (elFinalPuesto && posActual && totalEquipos) {
+                        const etiquetaOrdinal = posActual === 1
+                            ? `🏆 ¡1.ER PUESTO DE ${totalEquipos} EQUIPOS!`
+                            : (posActual === 2
+                                ? `🥈 ¡2.º PUESTO DE ${totalEquipos} EQUIPOS!`
+                                : (posActual === 3
+                                    ? `🥉 ¡3.ER PUESTO DE ${totalEquipos} EQUIPOS!`
+                                    : `🏁 PUESTO #${posActual} DE ${totalEquipos} EQUIPOS`));
+                        elFinalPuesto.textContent = etiquetaOrdinal;
+                    }
+
                     document.getElementById('titulo-meta').textContent = data.estado_juego === 'finalizado'
                         ? '¡TORNEO FINALIZADO!'
                         : '¡CRUZASTE LA META!';

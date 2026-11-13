@@ -2,9 +2,9 @@
 
 ## 1. Estado Actual
 
-- **Rama activa:** Integrado y liberado en `desarrollo` y `main` desde `bloque-10-fondo-interactivo` (**Bloques 0 al 10 + Pulido Final 100% Completados**).
+- **Rama activa:** Integrado y liberado en `desarrollo` y `main` desde `bloque-11-validacion-puesto-jugador` (**Bloques 0 al 11 100% Completados**).
 - **Entorno en producción objetivo:** **Servidor dedicado / VPS propio** (Ubuntu 24.04 + Nginx + PHP-FPM 8.3 + MySQL 8 + Redis; guía en [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md); se descarta cPanel).
-- **Suite de pruebas:** **50 tests pasando (4,751 aserciones)** contra `seventech_trivia_test`:
+- **Suite de pruebas:** **52 tests pasando (4,782 aserciones)** contra `seventech_trivia_test`:
   - `Tests\Unit\ExampleTest` (1 test)
   - `Tests\Feature\ExampleTest` (1 test)
   - `Tests\Feature\Bloque1SeguridadTest` (10 tests: ocultación de respuesta correcta, rechazo de pregunta no asignada `409`, mismo orden por `semilla_partida`, tiempo medido en servidor, idempotencia `UNIQUE(equipo_id, pregunta_id)`, sesión por cookie sin `equipo_id` en request, límite 2–5 integrantes, `rate limiting` del PIN `429`, protección de `/admin/*` incluyendo `/admin/preguntas/importar`, y regeneración de `semilla_partida`).
@@ -19,10 +19,11 @@
   - `Tests\Feature\Bloque9PulidoUxEspectadorTest` (5 tests: rediseño, QR limpio `/jugar` sin `?registro=1`, banner `#banner-eventos-vivo` y formatos de tiempo enteros/llamas sin `🏅`, validación HTML5 nativa + modal `<dialog>` + escudo Anti-IA con `blur`/`pagehide`/`PrintScreen` en `/jugar`, desactivación de autoguardado en `#form-configuracion` + descarga/reimportación de plantillas CSV/JSON en `/admin`, rechazo transaccional de archivos CSV/JSON malformados sin inserciones parciales, y prioridad de ranking puntaje -> aciertos -> menor tiempo).
   - `Tests\Feature\Bloque10FondoInteractivoTest` (2 tests: renderizado de `<canvas id="canvas-fondo-interactivo">` en `/`, `/jugar`, `/espectador` y `/admin`, degradado oscuro profundo `#0d1629 -> #04060d`, bordes esmeralda `brilloEsmeraldaSuave`, capas `relative z-10`, optimización DPR `<= 1.5`, throttle `~35 FPS` (`28ms`), `backdrop-filter: blur(8px)` sin `shadowBlur`, pausa en `document.hidden`, `prefers-reduced-motion: reduce`, cabecera en 2 filas (`flex flex-col gap-3`) en `/jugar` y rejilla responsive `grid-cols-2 sm:grid-cols-4` en `/espectador`).
   - `Tests\Feature\FlujoCompletoE2ETest` (1 test integral de punta a punta con `DatabaseSeeder` completo de 360 preguntas y 10 módulos: vistas públicas, descarga de plantillas e importación JSON/CSV en `/admin`, registro de equipos, 3 etapas normales con permutación visual y escudo anti-IA `reportar-salida-pantalla`, Muerte Súbita y ranking final en `/api/carrera-en-vivo`).
+  - `Tests\Feature\Bloque11ValidacionPuestoJugadorTest` (2 tests: validación inline con `novalidate` + toast suave en `/jugar` para campos iniciales y dinámicos de Nombre + Apellido, insignias `#header-puesto-equipo` / `#final-puesto-equipo` / `#tiempo-final-texto`, cálculo exacto de `posicion_actual` y `total_equipos` en `GET /api/estado-juego` bajo desempates oficiales y cumplimiento del presupuesto `≤ 7 queries`).
 
 ---
 
-## 2. Mapa y Checklist de Bloques (0 a 10)
+## 2. Mapa y Checklist de Bloques (0 a 11)
 
 - [x] **Bloque 0 (`bloque-0-limpieza`) — Completado:** Inventario y limpieza de archivos temporales/no usados, actualización de `.gitignore`, registro de correcciones de producción en `desarrollo`, alineación de [`docs/STACK.md`](file:///home/vaxer/seventech-trivia/docs/STACK.md) y [`docs/DESPLIEGUE.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE.md), reglas permanentes en [`GEMINI.md`](file:///home/vaxer/seventech-trivia/GEMINI.md) y creación de [`docs/ESTADO.md`](file:///home/vaxer/seventech-trivia/docs/ESTADO.md).
 - [x] **Bloque 1 (`bloque-1-reinicio`) — Completado:** Reinicio 100% atómico en `AdminController::reiniciarJuego()` sin `TRUNCATE` (`query()->delete()`), orden estricto de locks (`ConfiguracionEvento::lockForUpdate()` antes que `Equipo`), renovación garantizada de `semilla_partida`, blindaje contra peticiones en vuelo en `ConcursanteController` y preservación del Salón de la Fama (`historial_eventos`).

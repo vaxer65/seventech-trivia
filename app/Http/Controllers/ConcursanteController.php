@@ -140,11 +140,31 @@ class ConcursanteController extends Controller
     public function obtenerEstadoYPregunta(Request $request)
     {
         $token = $request->session()->get('equipo_token');
-        $equipo = $token ? Equipo::where('token_sesion', $token)->first() : null;
+        $equipo = $token
+            ? Equipo::query()
+                ->select('equipos.*')
+                ->selectRaw('(SELECT COUNT(*) FROM equipos) AS total_equipos_calc')
+                ->selectRaw(
+                    '(SELECT COUNT(*) + 1 FROM equipos AS o WHERE ' .
+                    'o.puntaje_total > equipos.puntaje_total ' .
+                    'OR (o.puntaje_total = equipos.puntaje_total AND o.aciertos_totales > equipos.aciertos_totales) ' .
+                    'OR (o.puntaje_total = equipos.puntaje_total AND o.aciertos_totales = equipos.aciertos_totales AND o.tiempo_acumulado_ms < equipos.tiempo_acumulado_ms) ' .
+                    'OR (o.puntaje_total = equipos.puntaje_total AND o.aciertos_totales = equipos.aciertos_totales AND o.tiempo_acumulado_ms = equipos.tiempo_acumulado_ms AND o.id < equipos.id)) AS posicion_actual_calc'
+                )
+                ->where('token_sesion', $token)
+                ->first()
+            : null;
 
         if (!$equipo) {
             return response()->json(['autenticado' => false]);
         }
+
+        $rankingInfo = [
+            'posicion_actual' => max(1, (int) $equipo->posicion_actual_calc),
+            'total_equipos'   => max(1, (int) $equipo->total_equipos_calc),
+        ];
+        $equipo->offsetUnset('posicion_actual_calc');
+        $equipo->offsetUnset('total_equipos_calc');
 
         $config = ConfiguracionEvento::first();
         $this->cerrarSiVencioRelojGlobal($config);
@@ -156,6 +176,8 @@ class ConcursanteController extends Controller
                 'estado_juego'      => $config->estado_juego,
                 'segundos_globales' => $config->segundos_globales_restantes,
                 'equipo'            => $equipo,
+                'posicion_actual'   => $rankingInfo['posicion_actual'],
+                'total_equipos'     => $rankingInfo['total_equipos'],
                 'pregunta'          => null,
             ]);
         }
@@ -167,6 +189,8 @@ class ConcursanteController extends Controller
                 'estado_juego'      => 'esperando_desempate',
                 'segundos_globales' => null,
                 'equipo'            => $equipo,
+                'posicion_actual'   => $rankingInfo['posicion_actual'],
+                'total_equipos'     => $rankingInfo['total_equipos'],
             ]);
         }
 
@@ -203,13 +227,13 @@ class ConcursanteController extends Controller
                 }
                 $equipo->refresh();
             }
-            return $this->respuestaCarreraCompletada($equipo, $config);
+            return $this->respuestaCarreraCompletada($equipo, $config, $rankingInfo);
         }
 
         $nivel = $asignacion['nivel'];
         $pregunta = $asignacion['pregunta'];
         if (!$pregunta) {
-            return $this->respuestaCarreraCompletada($equipo, $config);
+            return $this->respuestaCarreraCompletada($equipo, $config, $rankingInfo);
         }
 
         $necesitaActualizarFase = ($config->estado_juego === 'en_curso' && $equipo->fase_actual !== $nivel->orden_dificultad);
@@ -274,6 +298,8 @@ class ConcursanteController extends Controller
             'estado_juego'      => $config->estado_juego,
             'segundos_globales' => $config->segundos_globales_restantes,
             'equipo'            => $equipo,
+            'posicion_actual'   => $rankingInfo['posicion_actual'],
+            'total_equipos'     => $rankingInfo['total_equipos'],
             'nivel'             => $nivel,
             'progreso_fase'     => ($asignacion['contestadas'] + 1) . ' / ' . $nivel->cantidad_preguntas,
             'pregunta'          => $pregunta,
@@ -670,13 +696,15 @@ class ConcursanteController extends Controller
         return $perm[$mapaIndice[$letra]];
     }
 
-    private function respuestaCarreraCompletada(Equipo $equipo, ConfiguracionEvento $config)
+    private function respuestaCarreraCompletada(Equipo $equipo, ConfiguracionEvento $config, array $rankingInfo = [])
     {
         return response()->json([
             'autenticado'       => true,
             'estado_juego'      => 'carrera_completada',
             'segundos_globales' => $config->segundos_globales_restantes,
             'equipo'            => $equipo,
+            'posicion_actual'   => $rankingInfo['posicion_actual'] ?? null,
+            'total_equipos'     => $rankingInfo['total_equipos'] ?? null,
         ]);
     }
 
