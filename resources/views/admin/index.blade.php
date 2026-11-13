@@ -6,16 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Seven Tech - Panel de Administración</title>
     @include('partials.cyberpunk-head')
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
     <style>
-        .notyf__toast {
-            border-radius: 12px !important;
-            border: 1px solid rgba(0, 229, 255, 0.45);
-            box-shadow: 0 0 20px rgba(0, 229, 255, 0.2) !important;
-            font-family: 'Rajdhani', sans-serif !important;
-            font-weight: 700 !important;
-        }
         [data-lockable="true"]:disabled {
             opacity: 0.55;
             cursor: not-allowed;
@@ -69,8 +60,10 @@
                 </a>
                 <form method="POST" action="/admin/logout">
                     @csrf
-                    <button type="submit" class="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/60 text-rose-200 text-xs font-bold flex items-center gap-1.5 transition">
-                        <span>🚪</span>
+                    <button type="submit" class="px-4 py-2.5 rounded-xl bg-slate-800/75 hover:bg-emerald-500/20 backdrop-blur-md border border-emerald-400/50 text-emerald-100 text-xs font-bold flex items-center gap-1.5 transition">
+                        <svg class="w-4 h-4 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
+                        </svg>
                         <span>Cerrar Sesión</span>
                     </button>
                 </form>
@@ -198,7 +191,11 @@
                         </button>
                     </div>
 
-                    <button type="submit" class="w-full py-2.5 rounded-xl bg-[#00E5FF] text-[#07101E] font-black text-xs uppercase">
+                    <div id="aviso-cambios-config" role="status" class="hidden p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/60 text-amber-200 text-[11px] font-bold">
+                        ⚠️ Hay cambios sin aplicar. Pulsa "Guardar y Aplicar en Vivo" para publicarlos.
+                    </div>
+
+                    <button type="submit" id="btn-guardar-config" class="w-full min-h-[48px] py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase transition">
                         Guardar y Aplicar en Vivo
                     </button>
                 </form>
@@ -240,7 +237,11 @@
 
                 <!-- Reiniciar Juego -->
                 <div class="pt-3 border-t border-slate-800">
-                    <form method="POST" action="/admin/reiniciar" onsubmit="return confirm('¿Seguro que deseas reiniciar los puntajes de la partida?');">
+                    <form method="POST" action="/admin/reiniciar"
+                          data-confirm-title="Reiniciar partida"
+                          data-confirm-message="¿Seguro que deseas reiniciar los puntajes de la partida?"
+                          data-confirm-cta="Reiniciar"
+                          data-confirm-variant="danger">
                         @csrf
                         <label class="flex items-center gap-2 text-xs text-slate-300 mb-2">
                             <input type="checkbox" name="borrar_equipos" value="1"> Eliminar también todos los equipos registrados
@@ -254,33 +255,33 @@
 
             <!-- 2. ESCALABILIDAD: EDITAR ETAPAS Y CREAR MÓDULOS -->
             <section class="card rounded-2xl p-5 space-y-5">
-                <h2 class="text-base font-extrabold text-[#00E5FF] border-b border-slate-800 pb-2">2. Configurar Etapas de la Carrera</h2>
+                <h2 class="text-base font-extrabold text-emerald-300 border-b border-slate-800 pb-2">2. Configurar Etapas de la Carrera</h2>
                 <div id="aviso-bloqueo-etapas" class="{{ $partidaBloqueada ? '' : 'hidden' }} p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/50 text-amber-200 text-[11px] font-bold">
                     🔒 Bloqueado mientras hay una partida en curso/pausa
                 </div>
+                <p class="text-[11px] text-slate-400">Las etapas se guardan automáticamente tras cada edición y actualizan el estimador de tiempo en directo.</p>
                 <div class="space-y-3">
                     @foreach($niveles as $niv)
                         <form method="POST" action="/admin/nivel/{{ $niv->id }}"
                               data-es-desempate="{{ $niv->es_desempate ? '1' : '0' }}"
                               data-nivel-nombre="{{ $niv->nombre }}"
-                              class="form-nivel-admin bg-[#07101E] p-3 rounded-xl border border-slate-800 space-y-2">
+                              class="form-nivel-admin bg-[#0b1322] p-3 rounded-xl border border-slate-800 space-y-2">
                             @csrf
-                            <input type="text" name="nombre" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->nombre }}" class="w-full bg-transparent font-bold text-xs text-[#00E5FF] border-b border-slate-800 pb-1">
+                            <input type="text" name="nombre" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->nombre }}" class="w-full bg-transparent font-bold text-xs text-emerald-300 border-b border-slate-800 pb-1">
                             <div class="grid grid-cols-3 gap-2 text-xs">
                                 <div>
                                     <span class="text-[10px] text-slate-400">Preguntas</span>
-                                    <input type="number" name="cantidad_preguntas" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->cantidad_preguntas }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
+                                    <input type="number" name="cantidad_preguntas" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->cantidad_preguntas }}" class="w-full bg-[#162033] rounded px-2 py-1 text-white">
                                 </div>
                                 <div>
                                     <span class="text-[10px] text-slate-400">Puntos c/u</span>
-                                    <input type="number" name="puntos_por_acierto" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->puntos_por_acierto }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
+                                    <input type="number" name="puntos_por_acierto" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->puntos_por_acierto }}" class="w-full bg-[#162033] rounded px-2 py-1 text-white">
                                 </div>
                                 <div>
                                     <span class="text-[10px] text-slate-400">Segundos</span>
-                                    <input type="number" name="tiempo_limite_seg" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->tiempo_limite_seg }}" class="w-full bg-[#0F2342] rounded px-2 py-1 text-white">
+                                    <input type="number" name="tiempo_limite_seg" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} value="{{ $niv->tiempo_limite_seg }}" class="w-full bg-[#162033] rounded px-2 py-1 text-white">
                                 </div>
                             </div>
-                            <button type="submit" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full py-1.5 rounded-lg bg-cyan-500/20 text-[#00E5FF] font-bold text-xs">Actualizar Etapa</button>
                         </form>
                     @endforeach
                 </div>
@@ -348,14 +349,36 @@
                 </form>
 
                 <!-- Importador Masivo CSV / JSON -->
-                <div class="pt-3 border-t border-slate-800">
-                    <h3 class="text-xs font-bold uppercase text-[#00E5FF] mb-1.5">📥 Importar Lote de Preguntas (.JSON / .CSV)</h3>
-                    <p class="text-[11px] text-slate-400 mb-2">Sube un archivo JSON o CSV para agregar preguntas sin duplicar las existentes.</p>
+                <div class="pt-3 border-t border-slate-800 space-y-2.5">
+                    <h3 class="text-xs font-bold uppercase text-emerald-300">📥 Importar Lote de Preguntas (.JSON / .CSV)</h3>
+                    <p class="text-[11px] text-slate-400">Sube un archivo JSON o CSV válido para agregar preguntas sin duplicar las existentes.</p>
+
+                    <div class="p-2.5 rounded-xl bg-[#0b1322] border border-emerald-500/30 text-[11px] text-slate-300 space-y-1">
+                        <p class="font-bold text-emerald-300">📋 Columnas requeridas:</p>
+                        <p class="font-mono text-[10px] text-slate-200 leading-relaxed break-words">
+                            modulo, nivel, enunciado, opcion_a, opcion_b, opcion_c, opcion_d, respuesta_correcta, es_amena
+                        </p>
+                        <p class="text-[10px] text-slate-400">
+                            <b class="text-slate-200">nivel:</b> 1, 2, 3 o Desempate • <b class="text-slate-200">respuesta_correcta:</b> a | b | c | d • <b class="text-slate-200">es_amena:</b> 0 | 1 (o true/false)
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="/admin/preguntas/plantilla/csv" download="plantilla_preguntas.csv"
+                           class="min-h-[42px] py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-emerald-500/15 border border-emerald-400/50 text-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                            ⬇️ Plantilla CSV
+                        </a>
+                        <a href="/admin/preguntas/plantilla/json" download="plantilla_preguntas.json"
+                           class="min-h-[42px] py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-emerald-500/15 border border-emerald-400/50 text-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                            ⬇️ Plantilla JSON
+                        </a>
+                    </div>
+
                     <form method="POST" action="/admin/preguntas/importar" enctype="multipart/form-data" class="space-y-2 text-xs">
                         @csrf
                         <input type="file" name="archivo" accept=".json,.csv,.txt" required data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }}
-                               class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-slate-300 text-xs">
-                        <button type="submit" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#07101E] font-black uppercase">
+                               class="w-full bg-[#0b1322] border border-slate-700 rounded-xl px-3 py-2 text-slate-300 text-xs">
+                        <button type="submit" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="w-full min-h-[44px] py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#07101E] font-black uppercase transition">
                             📤 Importar Archivo al Banco
                         </button>
                     </form>
@@ -415,7 +438,11 @@
 
                             <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px]">
                                 <span class="font-orbitron text-emerald-400 font-bold">{{ $eq->puntaje_total }} PTS • Etapa {{ $eq->fase_actual }}</span>
-                                <form method="POST" action="/admin/equipo/{{ $eq->id }}/eliminar" onsubmit="return confirm('¿Eliminar al equipo {{ $eq->nombre_equipo }}?');">
+                                <form method="POST" action="/admin/equipo/{{ $eq->id }}/eliminar"
+                                      data-confirm-title="Eliminar equipo"
+                                      data-confirm-message="¿Eliminar al equipo {{ $eq->nombre_equipo }}?"
+                                      data-confirm-cta="Dar de baja"
+                                      data-confirm-variant="danger">
                                     @csrf
                                     <button type="submit" class="text-rose-400 hover:underline font-bold">🗑️ Dar de baja</button>
                                 </form>
@@ -536,7 +563,11 @@
                                 </div>
                             </form>
 
-                            <form method="POST" action="/admin/pregunta/{{ $preg->id }}/eliminar" class="mt-2 text-right" onsubmit="return confirm('¿Eliminar esta pregunta definitivamente?');">
+                            <form method="POST" action="/admin/pregunta/{{ $preg->id }}/eliminar" class="mt-2 text-right"
+                                  data-confirm-title="Eliminar pregunta"
+                                  data-confirm-message="¿Eliminar esta pregunta definitivamente?"
+                                  data-confirm-cta="Eliminar pregunta"
+                                  data-confirm-variant="danger">
                                 @csrf
                                 <button type="submit" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} class="px-3 py-1 rounded-lg bg-rose-500/20 border border-rose-500 text-rose-300 text-xs font-bold hover:bg-rose-500/30">
                                     🗑️ Eliminar Pregunta
@@ -577,7 +608,11 @@
                                         <h3 class="font-bold text-base text-white">{{ $h->nombre_edicion }}</h3>
                                         <p class="font-orbitron text-[10px] text-[#00E5FF]">{{ $h->modulo_jugado }} • {{ $h->total_equipos }} Equipos • {{ $h->created_at->format('d/m/Y H:i') }}</p>
                                     </div>
-                                    <form method="POST" action="/admin/historial/{{ $h->id }}/eliminar" onsubmit="return confirm('¿Borrar este evento del historial?');">
+                                    <form method="POST" action="/admin/historial/{{ $h->id }}/eliminar"
+                                          data-confirm-title="Eliminar evento del historial"
+                                          data-confirm-message="¿Borrar este evento del historial?"
+                                          data-confirm-cta="Borrar"
+                                          data-confirm-variant="danger">
                                         @csrf
                                         <button class="text-xs text-rose-400 hover:underline">🗑️</button>
                                     </form>
@@ -647,7 +682,11 @@
                             </button>
                         </form>
 
-                        <form method="POST" action="/admin/reiniciar" onsubmit="return confirm('¿Limpiar todos los equipos de prueba y dejar el sistema en Registro listo para el evento real?');">
+                        <form method="POST" action="/admin/reiniciar"
+                              data-confirm-title="Limpiar simulación"
+                              data-confirm-message="¿Limpiar todos los equipos de prueba y dejar el sistema en Registro listo para el evento real?"
+                              data-confirm-cta="Limpiar todo"
+                              data-confirm-variant="danger">
                             @csrf
                             <input type="hidden" name="borrar_equipos" value="1">
                             <button type="submit" class="w-full h-full py-3 px-4 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-300 font-bold text-xs hover:bg-rose-500/30">
@@ -713,33 +752,14 @@
         </section>
         @endif
 
+        @include('partials.ui-feedback')
+
         <script>
-            const notyfAdmin = typeof Notyf !== 'undefined'
-                ? new Notyf({
-                    duration: 3200,
-                    position: { x: 'right', y: 'bottom' },
-                    dismissible: true,
-                    types: [
-                        { type: 'success', background: '#0F2342', icon: false },
-                        { type: 'error', background: '#7F1D1D', icon: false }
-                    ]
-                })
-                : null;
-
-            function mostrarToast(mensaje, tipo = 'success') {
-                if (notyfAdmin) {
-                    notyfAdmin.open({
-                        type: tipo === 'error' ? 'error' : 'success',
-                        message: (tipo === 'error' ? '⚠️ ' : '✅ ') + mensaje
-                    });
-                }
-            }
-
             @if(session('ok'))
-                mostrarToast(@json(session('ok')), 'success');
+                window.mostrarToast(@json(session('ok')), 'success');
             @endif
             @if($errors->any())
-                mostrarToast(@json($errors->first()), 'error');
+                window.mostrarToast(@json($errors->first()), 'error');
             @endif
 
             function debounceAdmin(fn, wait = 500) {
@@ -781,15 +801,17 @@
                         const errMsg = data.errors
                             ? Object.values(data.errors)[0][0]
                             : (data.error || data.message || 'No se pudo guardar el cambio.');
-                        mostrarToast(errMsg, 'error');
-                        return;
+                        window.mostrarToast(errMsg, 'error');
+                        return false;
                     }
-                    mostrarToast(data.mensaje || 'Cambios guardados en vivo.', 'success');
+                    window.mostrarToast(data.mensaje || 'Cambios guardados en vivo.', 'success');
                     if (typeof data.bloqueado === 'boolean') {
                         actualizarBloqueosUI(data.bloqueado, data.estado_juego);
                     }
+                    return true;
                 } catch (e) {
-                    mostrarToast('Error de conexión al guardar en vivo.', 'error');
+                    window.mostrarToast('Error de conexión al guardar en vivo.', 'error');
+                    return false;
                 }
             }
 
@@ -890,22 +912,40 @@
             }
 
             const formConfig = document.getElementById('form-configuracion');
+            const avisoCambiosConfig = document.getElementById('aviso-cambios-config');
+            const btnGuardarConfig = document.getElementById('btn-guardar-config');
+
+            function marcarConfigSinAplicar(hayCambios) {
+                if (avisoCambiosConfig) {
+                    avisoCambiosConfig.classList.toggle('hidden', !hayCambios);
+                }
+                if (btnGuardarConfig) {
+                    btnGuardarConfig.classList.toggle('ring-2', hayCambios);
+                    btnGuardarConfig.classList.toggle('ring-amber-400', hayCambios);
+                }
+            }
+
             if (formConfig) {
-                const guardarConfigDebounced = debounceAdmin(() => autoguardarFormulario(formConfig), 500);
+                // Sección 1: Sin autoguardado automático; requiere clic explícito en "Guardar y Aplicar en Vivo"
                 formConfig.querySelectorAll('select').forEach(sel => {
-                    sel.addEventListener('change', () => autoguardarFormulario(formConfig));
+                    sel.addEventListener('change', () => marcarConfigSinAplicar(true));
                 });
                 formConfig.querySelectorAll('input').forEach(inp => {
                     inp.addEventListener('input', () => {
                         if (inp.name === 'tiempo_total_minutos') {
                             recalcularDuracionTorneo();
                         }
-                        guardarConfigDebounced();
+                        marcarConfigSinAplicar(true);
                     });
                 });
-                formConfig.addEventListener('submit', e => {
+                formConfig.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    autoguardarFormulario(formConfig);
+                    if (btnGuardarConfig) btnGuardarConfig.disabled = true;
+                    const guardado = await autoguardarFormulario(formConfig);
+                    if (btnGuardarConfig) btnGuardarConfig.disabled = false;
+                    if (guardado) {
+                        marcarConfigSinAplicar(false);
+                    }
                 });
 
                 const btnAplicarRecomendado = document.getElementById('btn-aplicar-tiempo-recomendado');
@@ -917,7 +957,7 @@
                         if (!minRec) return;
                         inputTiempoTotal.value = minRec;
                         recalcularDuracionTorneo();
-                        autoguardarFormulario(formConfig);
+                        marcarConfigSinAplicar(true);
                     });
                 }
             }

@@ -60,6 +60,9 @@ Route::middleware('admin')->group(function () {
     Route::post('/admin/nivel/{id}', [AdminController::class, 'actualizarNivel'])->name('admin.nivel');
     Route::post('/admin/modulo', [AdminController::class, 'crearModulo'])->name('admin.modulo');
     Route::post('/admin/pregunta', [AdminController::class, 'crearPregunta'])->name('admin.pregunta');
+    Route::get('/admin/preguntas/plantilla/{formato}', [AdminController::class, 'descargarPlantillaPreguntas'])
+        ->whereIn('formato', ['csv', 'json'])
+        ->name('admin.pregunta.plantilla');
     Route::post('/admin/preguntas/importar', [AdminController::class, 'importarPreguntas'])->name('admin.pregunta.importar');
     Route::post('/admin/desempate', [AdminController::class, 'activarDesempate'])->name('admin.desempate');
     Route::post('/admin/reiniciar', [AdminController::class, 'reiniciarJuego'])->name('admin.reiniciar');

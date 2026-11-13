@@ -326,7 +326,118 @@ class AdminController extends Controller
         return $this->responderExitoAdmin($request, 'Pregunta agregada al banco exitosamente.');
     }
 
-    // Importar lote de preguntas desde archivo JSON o CSV con deduplicación automática
+    private function responderErrorImportacion(Request $request, string $mensaje)
+    {
+        if ($request->wantsJson()) {
+            return response()->json([
+                'ok'      => false,
+                'message' => $mensaje,
+                'errors'  => ['archivo' => [$mensaje]],
+            ], 422);
+        }
+
+        return back()->withErrors(['archivo' => $mensaje]);
+    }
+
+    /**
+     * Valida que las columnas/claves de una fila o cabecera cumplan el esquema requerido.
+     *
+     * @param array<int, string> $claves
+     * @return array<int, string> Lista de columnas obligatorias faltantes (vacía si es válida).
+     */
+    private function obtenerColumnasFaltantesImportacion(array $claves): array
+    {
+        $set = array_flip(array_map(fn ($c) => strtolower(trim((string) $c)), $claves));
+        $faltantes = [];
+
+        foreach (['enunciado', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'respuesta_correcta'] as $requerida) {
+            if (!isset($set[$requerida])) {
+                $faltantes[] = $requerida;
+            }
+        }
+
+        if (!isset($set['modulo']) && !isset($set['modulo_id'])) {
+            $faltantes[] = 'modulo';
+        }
+
+        if (!isset($set['nivel']) && !isset($set['nivel_id']) && !isset($set['etapa']) && !isset($set['orden_dificultad'])) {
+            $faltantes[] = 'nivel';
+        }
+
+        return $faltantes;
+    }
+
+    // Descargar plantilla oficial CSV o JSON para importación masiva de preguntas
+    public function descargarPlantillaPreguntas(Request $request, string $formato)
+    {
+        if (!$request->session()->get('es_admin_seventech')) abort(403);
+
+        $formatoLower = strtolower($formato);
+        if (!in_array($formatoLower, ['csv', 'json'], true)) {
+            abort(404);
+        }
+
+        $moduloEjemplo = Modulo::orderBy('id')->value('nombre') ?? 'Inteligencia Artificial';
+        $ejemplos = [
+            [
+                'modulo'             => $moduloEjemplo,
+                'nivel'              => 1,
+                'enunciado'          => '¿Qué protocolo cifra de forma segura la comunicación web HTTPS?',
+                'opcion_a'           => 'TLS (Transport Layer Security)',
+                'opcion_b'           => 'FTP plano',
+                'opcion_c'           => 'Telnet',
+                'opcion_d'           => 'SNMPv1',
+                'respuesta_correcta' => 'a',
+                'es_amena'           => false,
+            ],
+            [
+                'modulo'             => $moduloEjemplo,
+                'nivel'              => 2,
+                'enunciado'          => 'Pregunta amena: ¿Qué código de estado HTTP representa humorísticamente "Soy una tetera"?',
+                'opcion_a'           => '200 OK',
+                'opcion_b'           => '418 I\'m a teapot',
+                'opcion_c'           => '301 Moved Permanently',
+                'opcion_d'           => '502 Bad Gateway',
+                'respuesta_correcta' => 'b',
+                'es_amena'           => true,
+            ],
+        ];
+
+        if ($formatoLower === 'json') {
+            $json = json_encode($ejemplos, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
+            return response($json, 200, [
+                'Content-Type'        => 'application/json; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="plantilla_preguntas.json"',
+            ]);
+        }
+
+        $stream = fopen('php://temp', 'r+');
+        fwrite($stream, "\xEF\xBB\xBF");
+        fputcsv($stream, ['modulo', 'nivel', 'enunciado', 'opcion_a', 'opcion_b', 'opcion_c', 'opcion_d', 'respuesta_correcta', 'es_amena']);
+        foreach ($ejemplos as $fila) {
+            fputcsv($stream, [
+                $fila['modulo'],
+                $fila['nivel'],
+                $fila['enunciado'],
+                $fila['opcion_a'],
+                $fila['opcion_b'],
+                $fila['opcion_c'],
+                $fila['opcion_d'],
+                $fila['respuesta_correcta'],
+                $fila['es_amena'] ? '1' : '0',
+            ]);
+        }
+        rewind($stream);
+        $csv = (string) stream_get_contents($stream);
+        fclose($stream);
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="plantilla_preguntas.csv"',
+        ]);
+    }
+
+    // Importar lote de preguntas desde archivo JSON o CSV con deduplicación automática y validación estricta
     public function importarPreguntas(Request $request)
     {
         if (!$request->session()->get('es_admin_seventech')) abort(403);
@@ -341,6 +452,10 @@ class AdminController extends Controller
 
         $archivo = $request->file('archivo');
         $ext = strtolower((string) $archivo->getClientOriginalExtension());
+        if (!in_array($ext, ['json', 'csv', 'txt'], true)) {
+            return $this->responderErrorImportacion($request, 'Formato no soportado. Sube un archivo .CSV o .JSON válido.');
+        }
+
         $contenido = (string) file_get_contents($archivo->getRealPath());
         $contenido = preg_replace('/^\xEF\xBB\xBF/', '', $contenido); // Quitar BOM UTF-8 si existe
 
@@ -349,22 +464,49 @@ class AdminController extends Controller
 
         if ($ext === 'json' || str_starts_with($trimContenido, '[') || str_starts_with($trimContenido, '{')) {
             $decoded = json_decode($contenido, true);
-            if (!is_array($decoded)) {
-                return back()->withErrors(['archivo' => 'El archivo JSON no tiene un formato válido.']);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+                return $this->responderErrorImportacion($request, 'El archivo JSON no tiene una sintaxis válida.');
             }
-            $items = (isset($decoded['preguntas']) && is_array($decoded['preguntas'])) ? $decoded['preguntas'] : $decoded;
+            $lista = array_key_exists('preguntas', $decoded) ? $decoded['preguntas'] : $decoded;
+            if (!is_array($lista) || !array_is_list($lista) || count($lista) === 0) {
+                return $this->responderErrorImportacion($request, 'El archivo JSON debe contener una lista no vacía de preguntas.');
+            }
+
+            foreach ($lista as $idx => $entrada) {
+                if (!is_array($entrada)) {
+                    return $this->responderErrorImportacion($request, 'Estructura JSON inválida en el elemento #' . ($idx + 1) . ': debe ser un objeto.');
+                }
+                $faltantes = $this->obtenerColumnasFaltantesImportacion(array_keys($entrada));
+                if (!empty($faltantes)) {
+                    return $this->responderErrorImportacion(
+                        $request,
+                        'El archivo JSON no cumple el formato requerido (faltan: ' . implode(', ', $faltantes) . '). Descarga la plantilla oficial.'
+                    );
+                }
+                $filaNormalizada = [];
+                foreach ($entrada as $k => $v) {
+                    $filaNormalizada[strtolower(trim((string) $k))] = $v;
+                }
+                $items[] = $filaNormalizada;
+            }
         } else {
-            $lineas = preg_split('/\r\n|\r|\n/', trim($contenido));
-            if (!$lineas || count($lineas) < 2) {
-                return back()->withErrors(['archivo' => 'El archivo CSV está vacío o no incluye filas de datos.']);
+            $lineasBrutas = preg_split('/\r\n|\r|\n/', trim($contenido)) ?: [];
+            $lineas = array_values(array_filter($lineasBrutas, fn ($l) => trim((string) $l) !== ''));
+            if (count($lineas) < 2) {
+                return $this->responderErrorImportacion($request, 'El archivo CSV está vacío o no incluye filas de datos.');
             }
             $delimitador = (substr_count($lineas[0], ';') > substr_count($lineas[0], ',')) ? ';' : ',';
             $cabeceras = array_map(fn ($h) => strtolower(trim((string) $h)), str_getcsv(array_shift($lineas), $delimitador));
 
+            $faltantes = $this->obtenerColumnasFaltantesImportacion($cabeceras);
+            if (!empty($faltantes)) {
+                return $this->responderErrorImportacion(
+                    $request,
+                    'El archivo CSV no contiene las columnas obligatorias (' . implode(', ', $faltantes) . '). Descarga la plantilla oficial.'
+                );
+            }
+
             foreach ($lineas as $linea) {
-                if (trim($linea) === '') {
-                    continue;
-                }
                 $valores = str_getcsv($linea, $delimitador);
                 $fila = [];
                 foreach ($cabeceras as $idx => $col) {
@@ -391,12 +533,13 @@ class AdminController extends Controller
 
         $nuevas = [];
         $importadas = 0;
-        $omitidas = 0;
+        $duplicadas = 0;
+        $invalidas = 0;
         $now = now();
 
         foreach ($items as $item) {
             if (!is_array($item)) {
-                $omitidas++;
+                $invalidas++;
                 continue;
             }
 
@@ -433,13 +576,13 @@ class AdminController extends Controller
             $correcta = strtolower(trim((string) ($item['respuesta_correcta'] ?? '')));
 
             if (!$moduloId || !$nivelId || $enunciado === '' || $opA === '' || $opB === '' || $opC === '' || $opD === '' || !in_array($correcta, ['a', 'b', 'c', 'd'], true)) {
-                $omitidas++;
+                $invalidas++;
                 continue;
             }
 
             $claveEnunciado = mb_strtolower($enunciado, 'UTF-8');
             if (isset($existentes[$claveEnunciado])) {
-                $omitidas++;
+                $duplicadas++;
                 continue;
             }
 
@@ -463,10 +606,22 @@ class AdminController extends Controller
             $importadas++;
         }
 
-        foreach (array_chunk($nuevas, 50) as $chunk) {
-            Pregunta::insert($chunk);
+        if ($importadas === 0 && $duplicadas === 0 && $invalidas > 0) {
+            return $this->responderErrorImportacion(
+                $request,
+                "No se importó ninguna pregunta: {$invalidas} fila(s) contienen módulo, nivel, respuesta correcta (a-d) o campos vacíos inválidos."
+            );
         }
 
+        if (!empty($nuevas)) {
+            DB::transaction(function () use ($nuevas) {
+                foreach (array_chunk($nuevas, 50) as $chunk) {
+                    Pregunta::insert($chunk);
+                }
+            });
+        }
+
+        $omitidas = $duplicadas + $invalidas;
         return $this->responderExitoAdmin($request, "Importación completada: {$importadas} preguntas nuevas añadidas y {$omitidas} omitidas.");
     }
 
