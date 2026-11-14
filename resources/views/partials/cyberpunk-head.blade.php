@@ -205,11 +205,16 @@
     .ui-toast[popover] {
         position: fixed;
         inset: auto;
-        right: 1rem;
-        bottom: var(--toast-bottom, 1rem);
+        right: max(1rem, env(safe-area-inset-right));
+        bottom: calc(var(--toast-bottom, 1rem) + env(safe-area-inset-bottom));
         margin: 0;
         max-width: min(24rem, calc(100vw - 2rem));
         width: max-content;
+        max-height: calc((100vh - 4rem - env(safe-area-inset-bottom) - env(safe-area-inset-top)) / 3);
+        max-height: calc((100dvh - 4rem - env(safe-area-inset-bottom) - env(safe-area-inset-top)) / 3);
+        overflow-y: auto;
+        align-items: flex-start;
+        overflow-wrap: anywhere;
         border-radius: 0.9rem;
         border: 1px solid rgba(16, 185, 129, 0.55);
         background: rgba(15, 23, 42, 0.95);
