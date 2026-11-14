@@ -11,6 +11,7 @@ class AdvancedQuestionCatalogTest extends TestCase
     {
         return [
             'analysis' => ['etapa3_dificiles.php', 1],
+            'expert' => ['muerte_subita.php', 0],
         ];
     }
 
@@ -83,12 +84,12 @@ class AdvancedQuestionCatalogTest extends TestCase
     public function test_advanced_stems_are_distinct(): void
     {
         $stems = [];
-        foreach (['etapa3_dificiles.php'] as $file) {
+        foreach (['etapa3_dificiles.php', 'muerte_subita.php'] as $file) {
             foreach (require dirname(__DIR__, 2).'/database/seeders/data/'.$file as $row) {
                 $this->assertNotSame('', trim($row['enunciado']));
                 $stems[] = mb_strtolower(trim($row['enunciado']));
             }
         }
-        $this->assertCount(100, array_unique($stems));
+        $this->assertCount(200, array_unique($stems));
     }
 }
