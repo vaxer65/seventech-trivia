@@ -50,6 +50,14 @@ class FeedbackTest(BrowserTestCase):
         self.assert_toasts_fit()
 
     def assert_toasts_fit(self):
+        # Native resize/observer delivery is asynchronous even when timers use a virtual clock.
+        self.page.wait_for_function("""() => {
+            const boxes = [...document.querySelectorAll('.ui-toast')]
+                .map(item => item.getBoundingClientRect()).sort((a,b) => a.top-b.top);
+            return boxes.length === 3 && boxes.every((box,index) =>
+                box.top >= 0 && box.bottom <= innerHeight && box.left >= 0 && box.right <= innerWidth
+                && (!index || box.top-boxes[index-1].bottom >= 8));
+        }""", timeout=2000)
         boxes = sorted(self.page.locator('.ui-toast').evaluate_all('(items) => items.map(item => { const r = item.getBoundingClientRect(); return {top:r.top,bottom:r.bottom,left:r.left,right:r.right}; })'), key=lambda box: box['top'])
         viewport = self.page.viewport_size
         for box in boxes:

@@ -48,7 +48,7 @@
         </div>
 
         <!-- Fila inferior: Información del equipo activo + Puesto en Vivo + Reloj Global + Botón Salir -->
-        <div id="info-equipo-header" class="hidden flex flex-wrap items-center justify-between gap-2 w-full pt-2.5 border-t border-slate-800/80">
+        <div id="info-equipo-header" class="hidden grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-between gap-2 w-full pt-2.5 border-t border-slate-800/80">
             <div class="text-center bg-[#0b1322] px-2.5 py-1.5 rounded-xl border border-slate-700/80 shrink-0">
                 <span class="font-orbitron block text-[8px] text-slate-400 uppercase tracking-wider">Torneo</span>
                 <span id="reloj-global-movil" class="font-orbitron text-xs font-bold text-amber-400 whitespace-nowrap">--:--</span>
@@ -59,7 +59,7 @@
             </div>
             <div class="text-center sm:text-right bg-[#0b1322] px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-500/45 min-w-0 flex-1 sm:flex-initial">
                 <p id="header-nombre-equipo" class="text-xs font-bold text-white leading-tight truncate max-w-[105px] sm:max-w-[180px] mx-auto sm:ml-auto sm:mr-0"></p>
-                <p id="header-puntaje" class="font-orbitron text-xs text-emerald-300 font-bold whitespace-nowrap">0 PTS</p>
+                <p id="header-puntaje" class="font-orbitron text-xs text-emerald-300 font-bold break-words">0 PTS</p>
             </div>
             <button type="button" onclick="cerrarSesionEquipo()" title="Salir del Equipo" aria-label="Salir del Equipo"
                     class="min-h-[48px] px-3 py-2 rounded-xl bg-slate-800/70 hover:bg-emerald-500/20 backdrop-blur-md border border-emerald-400/45 text-xs font-orbitron font-bold text-emerald-200 hover:text-white shadow-[0_0_14px_rgba(16,185,129,0.16)] transition flex items-center gap-1.5 shrink-0 whitespace-nowrap">
@@ -228,18 +228,18 @@
                 🏁 Calculando puesto final...
             </div>
 
-            <div class="grid grid-cols-3 gap-2 sm:gap-3 bg-[#0b1322] p-3.5 sm:p-4 rounded-xl border border-emerald-500/45">
-                <div class="min-w-0">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 bg-[#0b1322] p-3.5 sm:p-4 rounded-xl border border-emerald-500/45">
+                <div class="col-span-2 sm:col-span-1 min-w-0 border-b border-slate-800 pb-3 sm:border-b-0 sm:pb-0">
                     <p class="font-orbitron text-[9px] sm:text-[10px] text-slate-400 uppercase">Puntaje Final</p>
-                    <p id="puntaje-final-texto" class="font-orbitron text-lg sm:text-2xl font-bold text-emerald-400 mt-1 truncate">0 PTS</p>
+                    <p id="puntaje-final-texto" class="font-orbitron text-lg sm:text-2xl font-bold text-emerald-400 mt-1 break-words">0 PTS</p>
                 </div>
-                <div class="border-l border-slate-800 min-w-0 pl-1">
+                <div class="sm:border-l border-slate-800 min-w-0 sm:pl-1">
                     <p class="font-orbitron text-[9px] sm:text-[10px] text-slate-400 uppercase">Aciertos</p>
-                    <p id="aciertos-final-texto" class="font-orbitron text-lg sm:text-2xl font-bold text-emerald-300 mt-1">0</p>
+                    <p id="aciertos-final-texto" class="font-orbitron text-lg sm:text-2xl font-bold text-emerald-300 mt-1 break-words">0</p>
                 </div>
                 <div class="border-l border-slate-800 min-w-0 pl-1">
                     <p class="font-orbitron text-[9px] sm:text-[10px] text-slate-400 uppercase">Tiempo</p>
-                    <p id="tiempo-final-texto" class="font-orbitron text-lg sm:text-2xl font-bold text-cyan-300 mt-1 whitespace-nowrap">0s</p>
+                    <p id="tiempo-final-texto" class="font-orbitron text-lg sm:text-2xl font-bold text-cyan-300 mt-1 break-words">0s</p>
                 </div>
             </div>
 
