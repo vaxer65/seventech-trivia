@@ -1,6 +1,6 @@
 # Deploy SevenTech Trivia with HTTPS
 Deploy commit 91bc5ef to the authorized VPS and serve trivia.softecsa.com with Let's Encrypt.
-Branch: deploy/trivia-https. Delivery: local documentation commit pending Git author identity, no push. Checks: platform requirements, HTTP/TLS/auth smoke tests, independent operational verification. Memory mirror pending: runtime identity unavailable.
+Branch: deploy/trivia-https. Delivery: initial deployment documentation recorded in commit a90d86d; no push occurred during that deployment. Checks: platform requirements, HTTP/TLS/auth smoke tests, independent operational verification. Memory mirror pending: runtime identity unavailable.
 
 ## Specs
 S1. "despliega la app de paso genera el ssl con letsencript" — deploy the existing application and issue a valid renewable certificate for trivia.softecsa.com. Assumption: generate distinct application and database secrets; preserve existing repository source.
@@ -30,3 +30,5 @@ L13. Independent verifier passed S1-S3: all 109 baseline files match, source is 
 L14. Remote operational files include /etc/nginx/sites-available/seventech-trivia, its sites-enabled symlink, /etc/php/8.4/fpm/pool.d/www.conf, /etc/mysql/mysql.conf.d/seventech-memory.cnf, /etc/apt/sources.list.d/ondrej-ubuntu-php-noble.sources, /etc/letsencrypt/live/trivia.softecsa.com/, /swapfile-seventech and its /etc/fstab entry. Deployed revision recorded in /var/lib/seventech/deployed-revision. Admin credential stored only in root-only access file and delivered directly to the user; no secret stored in Git or memory.
 L15. Local documentation covers T1-T4; commit attempt with message docs: record trivia production deployment failed because Git user.name/user.email are unconfigured. Do not invent the user's author identity. Documentation remains staged on deploy/trivia-https; no push or application source change. Memory mirror remains pending because the host has not registered an authoritative runtime session identity.
 L16. Parent spot-check after independent verification passed: nginx -t, active certbot.timer and HTTPS /up status 200. Deployment complete; only optional load/mobile checks, memory bookkeeping and the documentation commit remain pending.
+
+L17. Initial deployment notes and previously deployed UI/validation fixes were later recorded together in commit a90d86d as part of the user-requested GitHub PR. Authenticated Git identity is now configured; the original failed commit attempt remains historical context.
