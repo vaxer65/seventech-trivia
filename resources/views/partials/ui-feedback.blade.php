@@ -57,6 +57,10 @@
         const toastRegion = document.getElementById('toast-region');
         const toastAriaFallback = document.getElementById('toast-aria-fallback');
         const colaToastsDiferidos = [];
+        const maxToastsVisibles = 3;
+        const cancelarCierreToasts = new WeakMap();
+        const observadorToasts = typeof ResizeObserver === 'function'
+            ? new ResizeObserver(reposicionarToasts) : null;
         let contadorToasts = 0;
         let resolverConfirmacionActual = null;
         let elementoPrevioFoco = null;
@@ -75,7 +79,8 @@
         }
 
         function drenarColaToasts() {
-            while (colaToastsDiferidos.length > 0 && (!dialog || !dialog.open)) {
+            while (colaToastsDiferidos.length > 0 && (!dialog || !dialog.open)
+                && toastRegion && toastRegion.children.length < maxToastsVisibles) {
                 const siguiente = colaToastsDiferidos.shift();
                 window.mostrarToast(siguiente.mensaje, siguiente.tipo);
             }
@@ -146,16 +151,19 @@
         function reposicionarToasts() {
             if (!toastRegion) return;
             const activos = Array.from(toastRegion.querySelectorAll('.ui-toast')).reverse();
-            let offsetRem = 1;
+            let offset = 16;
             activos.forEach((toast) => {
-                toast.style.setProperty('--toast-bottom', `${offsetRem}rem`);
-                offsetRem += 4.35;
+                toast.style.setProperty('--toast-bottom', `${offset}px`);
+                offset += toast.offsetHeight + 10;
             });
         }
+        window.addEventListener('resize', reposicionarToasts);
 
         function ocultarToastElemento(toast, triggerControl) {
             if (!toast || toast.dataset.cerrando === '1') return;
             toast.dataset.cerrando = '1';
+            cancelarCierreToasts.get(toast)?.();
+            observadorToasts?.unobserve(toast);
             const estabaEnfocado = toast.contains(document.activeElement);
             try {
                 if (typeof toast.hidePopover === 'function') {
@@ -177,18 +185,19 @@
                     triggerControl.focus();
                 }
             }
+            drenarColaToasts();
         }
 
         window.mostrarToast = function (mensaje, tipo = 'success') {
-            if (dialog && dialog.open) {
-                colaToastsDiferidos.push({ mensaje, tipo });
-                return;
-            }
             if (!toastRegion) return;
-
-            const esError = tipo === 'error';
             const textoLimpio = String(mensaje || '').trim();
             if (!textoLimpio) return;
+            if ((dialog && dialog.open) || toastRegion.children.length >= maxToastsVisibles) {
+                colaToastsDiferidos.push({ mensaje: textoLimpio, tipo });
+                return;
+            }
+
+            const esError = tipo === 'error';
 
             const controlOrigen = document.activeElement;
             const toastId = `ui-toast-${++contadorToasts}`;
@@ -208,7 +217,8 @@
             icono.textContent = esError ? '⚠️' : '✅';
 
             const spanTexto = document.createElement('span');
-            spanTexto.className = 'leading-snug break-words';
+            spanTexto.className = 'leading-snug min-w-0';
+            spanTexto.style.overflowWrap = 'anywhere';
             spanTexto.textContent = textoLimpio;
 
             cuerpo.appendChild(icono);
@@ -219,7 +229,7 @@
             btnCerrar.setAttribute('popovertarget', toastId);
             btnCerrar.setAttribute('popovertargetaction', 'hide');
             btnCerrar.setAttribute('aria-label', 'Cerrar notificación');
-            btnCerrar.className = 'min-w-[36px] min-h-[36px] rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center shrink-0 transition';
+            btnCerrar.className = 'min-w-[44px] min-h-[44px] rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center shrink-0 transition';
             btnCerrar.textContent = '✕';
             btnCerrar.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -230,7 +240,7 @@
             toast.appendChild(btnCerrar);
             toastRegion.appendChild(toast);
 
-            const soportaPopover = Object.hasOwn(HTMLElement.prototype, 'popover') && typeof toast.showPopover === 'function';
+            const soportaPopover = ('popover' in HTMLElement.prototype) && typeof toast.showPopover === 'function';
             if (soportaPopover) {
                 try {
                     toast.showPopover();
@@ -241,6 +251,7 @@
                 toast.classList.add(':popover-open');
             }
             reposicionarToasts();
+            observadorToasts?.observe(toast);
 
             if (typeof document.ariaNotify === 'function') {
                 document.ariaNotify(textoLimpio);
@@ -249,22 +260,32 @@
                 requestAnimationFrame(() => { toastAriaFallback.textContent = textoLimpio; });
             }
 
-            if (!esError) {
-                let timerToast = null;
-                const programarCierre = () => {
-                    clearTimeout(timerToast);
-                    timerToast = setTimeout(() => {
-                        if (!toast.matches(':focus-within') && !toast.matches(':hover')) {
-                            ocultarToastElemento(toast, controlOrigen);
-                        }
-                    }, 4800);
-                };
-                toast.addEventListener('mouseenter', () => clearTimeout(timerToast));
-                toast.addEventListener('mouseleave', programarCierre);
-                toast.addEventListener('focusin', () => clearTimeout(timerToast));
-                toast.addEventListener('focusout', programarCierre);
+            let timerToast = null;
+            let sobreToastConRaton = false;
+            const permiteHover = window.matchMedia('(hover: hover) and (pointer: fine)');
+            const cancelarCierre = () => clearTimeout(timerToast);
+            const programarCierre = () => {
+                cancelarCierre();
+                if (!toast.isConnected || sobreToastConRaton || toast.contains(document.activeElement)) return;
+                timerToast = setTimeout(() => {
+                    ocultarToastElemento(toast, controlOrigen);
+                }, esError ? 8000 : 4800);
+            };
+            cancelarCierreToasts.set(toast, cancelarCierre);
+            toast.addEventListener('pointerenter', (e) => {
+                if (e.pointerType !== 'mouse' || !permiteHover.matches) return;
+                sobreToastConRaton = true;
+                cancelarCierre();
+            });
+            toast.addEventListener('pointerleave', () => {
+                sobreToastConRaton = false;
                 programarCierre();
-            }
+            });
+            toast.addEventListener('focusin', cancelarCierre);
+            toast.addEventListener('focusout', (e) => {
+                if (!toast.contains(e.relatedTarget)) requestAnimationFrame(programarCierre);
+            });
+            programarCierre();
         };
 
         document.addEventListener('submit', async (e) => {

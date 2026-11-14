@@ -462,15 +462,15 @@
                     <p class="text-xs text-slate-400">Ordenadas por Módulo y Etapa (Fase 1 → Fase 2 → Fase 3 → Desempate).</p>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2 text-xs">
-                    <select id="filtro-modulo" onchange="filtrarPreguntasAdmin()" class="bg-[#07101E] border border-slate-700 rounded-xl px-3 py-1.5 text-white">
+                <div class="flex w-full min-w-0 flex-col gap-2 text-xs sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+                    <select id="filtro-modulo" onchange="filtrarPreguntasAdmin()" class="w-full min-w-0 max-w-full sm:w-auto bg-[#07101E] border border-slate-700 rounded-xl px-3 py-1.5 text-white">
                         <option value="todos">📁 Todos los Módulos</option>
                         @foreach($modulos as $m)
                             <option value="mod-{{ $m->id }}">{{ $m->nombre }}</option>
                         @endforeach
                     </select>
 
-                    <select id="filtro-nivel" onchange="filtrarPreguntasAdmin()" class="bg-[#07101E] border border-slate-700 rounded-xl px-3 py-1.5 text-[#00E5FF] font-bold">
+                    <select id="filtro-nivel" onchange="filtrarPreguntasAdmin()" class="w-full min-w-0 max-w-full sm:w-auto bg-[#07101E] border border-slate-700 rounded-xl px-3 py-1.5 text-[#00E5FF] font-bold">
                         <option value="todos">⚡ Todas las Etapas</option>
                         @foreach($niveles as $n)
                             <option value="niv-{{ $n->id }}">{{ $n->nombre }}</option>
@@ -484,8 +484,8 @@
                     <details class="item-pregunta-admin bg-[#07101E] border border-slate-800 rounded-xl p-3 group"
                              data-modulo="mod-{{ $preg->modulo_id }}"
                              data-nivel="niv-{{ $preg->nivel_id }}">
-                        <summary class="cursor-pointer flex items-center justify-between gap-3 text-sm font-bold text-white list-none">
-                            <div class="flex flex-wrap items-center gap-2 flex-1">
+                        <summary class="cursor-pointer flex flex-col items-start sm:flex-row sm:items-center justify-between gap-3 text-sm font-bold text-white list-none">
+                            <div class="flex w-full min-w-0 flex-wrap items-center gap-2 flex-1 break-words">
                                 <span class="font-orbitron text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">
                                     #{{ $index + 1 }}
                                 </span>
