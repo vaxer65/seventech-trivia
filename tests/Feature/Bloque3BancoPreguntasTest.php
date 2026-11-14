@@ -16,7 +16,7 @@ class Bloque3BancoPreguntasTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_seeder_crea_10_modulos_modo_global_y_360_preguntas_sin_duplicados_y_balanceadas(): void
+    public function test_seeder_crea_10_modulos_modo_global_y_400_preguntas_sin_duplicados_y_balanceadas(): void
     {
         $this->seed(DatabaseSeeder::class);
 
@@ -28,42 +28,47 @@ class Bloque3BancoPreguntasTest extends TestCase
         $config = ConfiguracionEvento::firstOrFail();
         $this->assertNull($config->modulo_activo_id);
 
-        // 3. 360 preguntas en total (110 + 110 + 100 + 40)
-        $this->assertSame(360, Pregunta::count());
+        // 3. 400 preguntas en total (100 + 100 + 100 + 100)
+        $this->assertSame(400, Pregunta::count());
 
         $niveles = Nivel::orderBy('orden_dificultad')->get()->keyBy('orden_dificultad');
-        $this->assertSame(110, Pregunta::where('nivel_id', $niveles[1]->id)->count());
-        $this->assertSame(110, Pregunta::where('nivel_id', $niveles[2]->id)->count());
+        $this->assertSame(100, Pregunta::where('nivel_id', $niveles[1]->id)->count());
+        $this->assertSame(100, Pregunta::where('nivel_id', $niveles[2]->id)->count());
         $this->assertSame(100, Pregunta::where('nivel_id', $niveles[3]->id)->count());
-        $this->assertSame(40, Pregunta::where('nivel_id', $niveles[4]->id)->count());
+        $this->assertSame(100, Pregunta::where('nivel_id', $niveles[4]->id)->count());
 
-        // 4. Preguntas amenas por etapa: 15 en Etapa 1, 15 en Etapa 2, 15 en Etapa 3, 0 en Muerte Súbita
-        $this->assertSame(15, Pregunta::where('nivel_id', $niveles[1]->id)->where('es_amena', true)->count());
-        $this->assertSame(15, Pregunta::where('nivel_id', $niveles[2]->id)->where('es_amena', true)->count());
-        $this->assertSame(15, Pregunta::where('nivel_id', $niveles[3]->id)->where('es_amena', true)->count());
+        // 4. Preguntas amenas por etapa: 10 en Etapa 1, 10 en Etapa 2, 10 en Etapa 3, 0 en Muerte Súbita
+        $this->assertSame(10, Pregunta::where('nivel_id', $niveles[1]->id)->where('es_amena', true)->count());
+        $this->assertSame(10, Pregunta::where('nivel_id', $niveles[2]->id)->where('es_amena', true)->count());
+        $this->assertSame(10, Pregunta::where('nivel_id', $niveles[3]->id)->where('es_amena', true)->count());
         $this->assertSame(0, Pregunta::where('nivel_id', $niveles[4]->id)->where('es_amena', true)->count());
 
-        // Cada módulo tiene al menos 1 pregunta amena en cada etapa normal (1, 2 y 3)
+        // Cada módulo tiene 10 preguntas por nivel y 1 amena en cada etapa normal.
         foreach (Modulo::all() as $modulo) {
+            $this->assertSame(40, Pregunta::where('modulo_id', $modulo->id)->count());
+            foreach ([1, 2, 3, 4] as $orden) {
+                $this->assertSame(10, Pregunta::where('modulo_id', $modulo->id)
+                    ->where('nivel_id', $niveles[$orden]->id)->count());
+            }
             foreach ([1, 2, 3] as $orden) {
                 $amenasModNivel = Pregunta::where('modulo_id', $modulo->id)
                     ->where('nivel_id', $niveles[$orden]->id)
                     ->where('es_amena', true)
                     ->count();
-                $this->assertGreaterThanOrEqual(1, $amenasModNivel, "El módulo {$modulo->nombre} debe tener al menos 1 amena en etapa {$orden}");
+                $this->assertSame(1, $amenasModNivel, "El módulo {$modulo->nombre} debe tener 1 amena en etapa {$orden}");
             }
         }
 
-        // 5. Balance exacto 25% de respuestas correctas (90 A, 90 B, 90 C, 90 D)
+        // 5. Balance exacto 25% de respuestas correctas (100 A, 100 B, 100 C, 100 D)
         foreach (['a', 'b', 'c', 'd'] as $letra) {
-            $this->assertSame(90, Pregunta::where('respuesta_correcta', $letra)->count());
+            $this->assertSame(100, Pregunta::where('respuesta_correcta', $letra)->count());
         }
 
         // 6. Cero enunciados duplicados
         $enunciados = Pregunta::pluck('enunciado')
             ->map(fn ($e) => mb_strtolower(trim((string) $e), 'UTF-8'))
             ->all();
-        $this->assertCount(360, array_unique($enunciados));
+        $this->assertCount(400, array_unique($enunciados));
     }
 
     public function test_cada_etapa_normal_entrega_exactamente_una_pregunta_amena_y_el_resto_tecnicas(): void
@@ -75,13 +80,13 @@ class Bloque3BancoPreguntasTest extends TestCase
         $nivelDesempate = Nivel::where('es_desempate', true)->firstOrFail();
 
         $equipoA = Equipo::create([
-            'nombre_equipo'    => 'EquipoAlpha',
-            'token_sesion'     => str_repeat('a', 60),
+            'nombre_equipo' => 'EquipoAlpha',
+            'token_sesion' => str_repeat('a', 60),
             'pin_recuperacion' => '1111',
         ]);
         $equipoB = Equipo::create([
-            'nombre_equipo'    => 'EquipoBeta',
-            'token_sesion'     => str_repeat('b', 60),
+            'nombre_equipo' => 'EquipoBeta',
+            'token_sesion' => str_repeat('b', 60),
             'pin_recuperacion' => '2222',
         ]);
 
@@ -94,8 +99,8 @@ class Bloque3BancoPreguntasTest extends TestCase
             }
 
             $config->refresh()->update([
-                'estado_juego'    => 'en_curso',
-                'fin_evento_at'   => now()->addMinutes(15),
+                'estado_juego' => 'en_curso',
+                'fin_evento_at' => now()->addMinutes(15),
                 'semilla_partida' => $semilla,
             ]);
 
@@ -113,7 +118,7 @@ class Bloque3BancoPreguntasTest extends TestCase
                 $secuenciaA[] = $pid;
 
                 $this->postJson('/api/enviar-respuesta', [
-                    'pregunta_id'    => $pid,
+                    'pregunta_id' => $pid,
                     'opcion_elegida' => 'a',
                 ])->assertOk();
             }
@@ -124,7 +129,7 @@ class Bloque3BancoPreguntasTest extends TestCase
                 $pid = (int) $this->getJson('/api/estado-juego')->assertOk()->json('pregunta.id');
                 $secuenciaB[] = $pid;
                 $this->postJson('/api/enviar-respuesta', [
-                    'pregunta_id'    => $pid,
+                    'pregunta_id' => $pid,
                     'opcion_elegida' => 'a',
                 ])->assertOk();
             }
@@ -168,7 +173,7 @@ class Bloque3BancoPreguntasTest extends TestCase
             $this->assertFalse((bool) $p->es_amena);
 
             $this->postJson('/api/enviar-respuesta', [
-                'pregunta_id'    => $pid,
+                'pregunta_id' => $pid,
                 'opcion_elegida' => 'a',
             ])->assertOk();
         }
@@ -180,15 +185,15 @@ class Bloque3BancoPreguntasTest extends TestCase
 
         $config = ConfiguracionEvento::firstOrFail();
         $config->update([
-            'estado_juego'     => 'en_curso',
-            'fin_evento_at'    => now()->addMinutes(15),
-            'semilla_partida'  => 'semilla_multimodulo_2026',
+            'estado_juego' => 'en_curso',
+            'fin_evento_at' => now()->addMinutes(15),
+            'semilla_partida' => 'semilla_multimodulo_2026',
             'modulo_activo_id' => null,
         ]);
 
         $equipo = Equipo::create([
-            'nombre_equipo'    => 'GlobalRunners',
-            'token_sesion'     => str_repeat('g', 60),
+            'nombre_equipo' => 'GlobalRunners',
+            'token_sesion' => str_repeat('g', 60),
             'pin_recuperacion' => '3333',
         ]);
 
@@ -210,11 +215,11 @@ class Bloque3BancoPreguntasTest extends TestCase
         $this->withSession(['es_admin_seventech' => true])->post('/admin/reiniciar')->assertRedirect();
         $this->withSession(['es_admin_seventech' => true])
             ->post('/admin/configuracion', [
-                'estado_juego'           => 'en_curso',
-                'modulo_activo_id'       => $moduloEspecifico->id,
+                'estado_juego' => 'en_curso',
+                'modulo_activo_id' => $moduloEspecifico->id,
                 'max_integrantes_equipo' => 5,
                 'max_equipos_permitidos' => 30,
-                'tiempo_total_minutos'   => 15,
+                'tiempo_total_minutos' => 15,
             ])->assertRedirect();
 
         $this->assertSame($moduloEspecifico->id, $config->fresh()->modulo_activo_id);
@@ -235,11 +240,11 @@ class Bloque3BancoPreguntasTest extends TestCase
         $this->withSession(['es_admin_seventech' => true])->post('/admin/reiniciar')->assertRedirect();
         $this->withSession(['es_admin_seventech' => true])
             ->post('/admin/configuracion', [
-                'estado_juego'           => 'registro',
-                'modulo_activo_id'       => '',
+                'estado_juego' => 'registro',
+                'modulo_activo_id' => '',
                 'max_integrantes_equipo' => 5,
                 'max_equipos_permitidos' => 30,
-                'tiempo_total_minutos'   => 15,
+                'tiempo_total_minutos' => 15,
             ])->assertRedirect();
 
         $this->assertNull($config->fresh()->modulo_activo_id);
@@ -255,58 +260,58 @@ class Bloque3BancoPreguntasTest extends TestCase
 
         $jsonPayload = json_encode([
             [
-                'modulo'             => $modulo->nombre,
-                'orden_dificultad'   => 1,
-                'enunciado'          => '¿Pregunta importada JSON única número 1?',
-                'opcion_a'           => 'Opción 1A',
-                'opcion_b'           => 'Opción 1B',
-                'opcion_c'           => 'Opción 1C',
-                'opcion_d'           => 'Opción 1D',
+                'modulo' => $modulo->nombre,
+                'orden_dificultad' => 1,
+                'enunciado' => '¿Pregunta importada JSON única número 1?',
+                'opcion_a' => 'Opción 1A',
+                'opcion_b' => 'Opción 1B',
+                'opcion_c' => 'Opción 1C',
+                'opcion_d' => 'Opción 1D',
                 'respuesta_correcta' => 'c',
-                'es_amena'           => true,
+                'es_amena' => true,
             ],
             [
-                'modulo_id'          => $modulo->id,
-                'nivel_id'           => $nivel1->id,
-                'enunciado'          => '¿Pregunta importada JSON única número 2?',
-                'opcion_a'           => 'Opción 2A',
-                'opcion_b'           => 'Opción 2B',
-                'opcion_c'           => 'Opción 2C',
-                'opcion_d'           => 'Opción 2D',
+                'modulo_id' => $modulo->id,
+                'nivel_id' => $nivel1->id,
+                'enunciado' => '¿Pregunta importada JSON única número 2?',
+                'opcion_a' => 'Opción 2A',
+                'opcion_b' => 'Opción 2B',
+                'opcion_c' => 'Opción 2C',
+                'opcion_d' => 'Opción 2D',
                 'respuesta_correcta' => 'd',
-                'es_amena'           => false,
+                'es_amena' => false,
             ],
             // Duplicada con una ya existente en BD (con mayúsculas/espacios distintos)
             [
-                'modulo_id'          => $modulo->id,
-                'nivel_id'           => $nivel1->id,
-                'enunciado'          => '  ' . mb_strtoupper($existente->enunciado, 'UTF-8') . '  ',
-                'opcion_a'           => 'A',
-                'opcion_b'           => 'B',
-                'opcion_c'           => 'C',
-                'opcion_d'           => 'D',
+                'modulo_id' => $modulo->id,
+                'nivel_id' => $nivel1->id,
+                'enunciado' => '  '.mb_strtoupper($existente->enunciado, 'UTF-8').'  ',
+                'opcion_a' => 'A',
+                'opcion_b' => 'B',
+                'opcion_c' => 'C',
+                'opcion_d' => 'D',
                 'respuesta_correcta' => 'a',
             ],
             // Duplicada dentro del mismo archivo JSON
             [
-                'modulo_id'          => $modulo->id,
-                'nivel_id'           => $nivel1->id,
-                'enunciado'          => '¿pregunta importada json única número 1?',
-                'opcion_a'           => 'A',
-                'opcion_b'           => 'B',
-                'opcion_c'           => 'C',
-                'opcion_d'           => 'D',
+                'modulo_id' => $modulo->id,
+                'nivel_id' => $nivel1->id,
+                'enunciado' => '¿pregunta importada json única número 1?',
+                'opcion_a' => 'A',
+                'opcion_b' => 'B',
+                'opcion_c' => 'C',
+                'opcion_d' => 'D',
                 'respuesta_correcta' => 'a',
             ],
             // Inválida por respuesta_correcta fuera de a..d
             [
-                'modulo_id'          => $modulo->id,
-                'nivel_id'           => $nivel1->id,
-                'enunciado'          => '¿Pregunta inválida?',
-                'opcion_a'           => 'A',
-                'opcion_b'           => 'B',
-                'opcion_c'           => 'C',
-                'opcion_d'           => 'D',
+                'modulo_id' => $modulo->id,
+                'nivel_id' => $nivel1->id,
+                'enunciado' => '¿Pregunta inválida?',
+                'opcion_a' => 'A',
+                'opcion_b' => 'B',
+                'opcion_c' => 'C',
+                'opcion_d' => 'D',
                 'respuesta_correcta' => 'z',
             ],
         ]);
@@ -315,7 +320,7 @@ class Bloque3BancoPreguntasTest extends TestCase
 
         // Sin sesión de admin debe rechazar con 403
         $this->post('/admin/preguntas/importar', ['archivo' => $archivoJson])->assertForbidden();
-        $this->assertSame(360, Pregunta::count());
+        $this->assertSame(400, Pregunta::count());
 
         // Con sesión de admin importa las 2 válidas y omite las 3 duplicadas/inválidas
         $this->withSession(['es_admin_seventech' => true])
@@ -323,7 +328,7 @@ class Bloque3BancoPreguntasTest extends TestCase
             ->assertRedirect()
             ->assertSessionHas('ok');
 
-        $this->assertSame(362, Pregunta::count());
+        $this->assertSame(402, Pregunta::count());
         $pJson1 = Pregunta::where('enunciado', '¿Pregunta importada JSON única número 1?')->firstOrFail();
         $this->assertTrue((bool) $pJson1->es_amena);
         $this->assertSame('c', $pJson1->getRawOriginal('respuesta_correcta'));
@@ -343,7 +348,7 @@ class Bloque3BancoPreguntasTest extends TestCase
             ->assertRedirect()
             ->assertSessionHas('ok');
 
-        $this->assertSame(364, Pregunta::count());
+        $this->assertSame(404, Pregunta::count());
         $pCsv1 = Pregunta::where('enunciado', '¿Pregunta importada desde CSV número 1?')->firstOrFail();
         $this->assertTrue((bool) $pCsv1->es_amena);
         $this->assertSame('b', $pCsv1->getRawOriginal('respuesta_correcta'));
