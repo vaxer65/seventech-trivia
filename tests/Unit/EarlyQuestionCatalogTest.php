@@ -22,7 +22,7 @@ class EarlyQuestionCatalogTest extends TestCase
             'Cultura Geek, Historia de la Computación & Gaming',
         ];
         $statements = [];
-        foreach (['etapa1_faciles.php'] as $file) {
+        foreach (['etapa1_faciles.php', 'etapa2_medias.php'] as $file) {
             $questions = require $root.'/database/seeders/data/'.$file;
             self::assertCount(100, $questions, $file);
             $letters = array_fill_keys(['a', 'b', 'c', 'd'], 0);
