@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\AdminController;
+use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\NoIndexAdminMiddleware;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,8 +25,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 $middleware->trustProxies(at: $proxies);
             }
         }
+
+        $middleware->append(SecurityHeadersMiddleware::class);
+
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureAdmin::class,
+            'admin'         => EnsureAdmin::class,
+            'admin.noindex' => NoIndexAdminMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -31,13 +39,14 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $manejar419Admin = function (Request $request) {
-            if (!$request->is('admin') && !$request->is('admin/*')) {
+            $adminPrefix = AdminController::adminPrefix();
+            if (!$request->is($adminPrefix) && !$request->is($adminPrefix . '/*')) {
                 return null;
             }
             if ($request->wantsJson() || $request->expectsJson()) {
                 return response()->json(['error' => 'Tu sesión expiró. Recarga la página para continuar.'], 419);
             }
-            return redirect('/admin')->withErrors([
+            return redirect('/' . $adminPrefix)->withErrors([
                 'password' => 'Tu sesión expiró por inactividad. Ingresa nuevamente.',
             ]);
         };

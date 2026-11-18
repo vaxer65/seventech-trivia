@@ -10,11 +10,10 @@ class EnsureAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->session()->get('es_admin_seventech')) {
+        if (!$request->session()->get('es_admin_seventech') && !$request->session()->get('es_admin')) {
             abort(403);
         }
 
         return $next($request);
     }
 }
-

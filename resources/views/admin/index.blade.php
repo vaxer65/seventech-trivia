@@ -17,25 +17,52 @@
     <canvas id="canvas-fondo-interactivo" aria-hidden="true"></canvas>
 
     @if(!$autorizado)
-        <!-- PANTALLA DE LOGIN ADMIN -->
+        <!-- PANTALLA DE LOGIN ADMIN (PASO 1: CONTRASEÑA / PASO 2: GOOGLE AUTHENTICATOR 2FA) -->
         <div class="max-w-md mx-auto mt-20 card rounded-2xl p-6 shadow-2xl relative z-10">
-            <h1 class="text-2xl font-black text-[#00E5FF] mb-1">🔐 Admin Seven Tech</h1>
-            <p class="text-xs text-slate-300 mb-5">Ingresa la clave maestra para controlar la trivia en vivo.</p>
+            @if(!empty($pendiente2fa))
+                <h1 class="text-2xl font-black text-emerald-300 mb-1">📲 Verificación 2FA</h1>
+                <p class="text-xs text-slate-300 mb-5">Contraseña validada. Ingresa el código de 6 dígitos de tu app <b>Google Authenticator</b> para acceder al panel.</p>
 
-            <form method="POST" action="/admin/login" class="space-y-4">
-                @csrf
-                <div>
-                    <label class="text-xs font-bold text-slate-300">Contraseña Maestra</label>
-                    <input type="password" name="password" required placeholder="Contraseña de administrador"
-                           class="w-full mt-1 bg-[#07101E] border {{ $errors->has('password') ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-[#00E5FF]' }} rounded-xl px-4 py-3 text-sm text-white outline-none">
-                    @error('password')
-                        <p class="mt-1.5 text-xs font-bold text-rose-400">⚠️ {{ $message }}</p>
-                    @enderror
-                </div>
-                <button type="submit" class="w-full py-3 rounded-xl bg-[#00E5FF] text-[#07101E] font-black text-sm uppercase">
-                    Entrar al Panel de Control
-                </button>
-            </form>
+                <form method="POST" action="/{{ $adminPrefix }}/2fa/verificar" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label for="codigo_2fa_login" class="text-xs font-bold text-slate-300">Código TOTP (6 dígitos)</label>
+                        <input id="codigo_2fa_login" type="text" name="codigo_2fa" required autofocus inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000"
+                               class="w-full mt-1 bg-[#07101E] border {{ $errors->has('codigo_2fa') ? 'border-rose-500 focus:border-rose-500' : 'border-emerald-500/60 focus:border-emerald-400' }} rounded-xl px-4 py-3 text-center tracking-[0.35em] font-orbitron text-lg text-white outline-none">
+                        @error('codigo_2fa')
+                            <p class="mt-1.5 text-xs font-bold text-rose-400">⚠️ {{ $message }}</p>
+                        @enderror
+                    </div>
+                    <button type="submit" class="w-full min-h-[48px] py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase transition">
+                        Verificar Código 2FA
+                    </button>
+                </form>
+
+                <form method="POST" action="/{{ $adminPrefix }}/logout" class="mt-3 text-center">
+                    @csrf
+                    <button type="submit" class="text-xs text-slate-400 hover:text-slate-200 underline">
+                        Cancelar y volver a ingresar contraseña
+                    </button>
+                </form>
+            @else
+                <h1 class="text-2xl font-black text-[#00E5FF] mb-1">🔐 Admin Seven Tech</h1>
+                <p class="text-xs text-slate-300 mb-5">Ingresa la clave maestra para controlar la trivia en vivo.</p>
+
+                <form method="POST" action="/{{ $adminPrefix }}/login" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label class="text-xs font-bold text-slate-300">Contraseña Maestra</label>
+                        <input type="password" name="password" required placeholder="Contraseña de administrador"
+                               class="w-full mt-1 bg-[#07101E] border {{ $errors->has('password') ? 'border-rose-500 focus:border-rose-500' : 'border-slate-700 focus:border-[#00E5FF]' }} rounded-xl px-4 py-3 text-sm text-white outline-none">
+                        @error('password')
+                            <p class="mt-1.5 text-xs font-bold text-rose-400">⚠️ {{ $message }}</p>
+                        @enderror
+                    </div>
+                    <button type="submit" class="w-full min-h-[48px] py-3 rounded-xl bg-[#00E5FF] text-[#07101E] font-black text-sm uppercase">
+                        Entrar al Panel de Control
+                    </button>
+                </form>
+            @endif
         </div>
     @else
         @php
@@ -59,7 +86,7 @@
                 <a href="/jugar" target="_blank" class="px-3.5 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-xs font-bold">
                     🎮 Abrir Vista Concursante
                 </a>
-                <form method="POST" action="/admin/logout">
+                <form method="POST" action="/{{ $adminPrefix }}/logout">
                     @csrf
                     <button type="submit" class="px-4 py-2.5 rounded-xl bg-slate-800/75 hover:bg-emerald-500/20 backdrop-blur-md border border-emerald-400/50 text-emerald-100 text-xs font-bold flex items-center gap-1.5 transition">
                         <svg class="w-4 h-4 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -82,6 +109,79 @@
             </div>
         @endif
 
+        <!-- GESTIÓN COMPACTA DE SEGURIDAD 2FA (GOOGLE AUTHENTICATOR OFFLINE) -->
+        <section id="seccion-seguridad-2fa" class="max-w-7xl mx-auto mb-6 card rounded-2xl p-4 sm:p-5 relative z-10">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <h2 class="text-sm sm:text-base font-extrabold text-emerald-300">🔐 Seguridad 2FA (Google Authenticator)</h2>
+                    @if($tiene2faActivo)
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-orbitron font-bold bg-emerald-500/20 border border-emerald-400 text-emerald-300">
+                            2FA Activo
+                        </span>
+                    @else
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-orbitron font-bold bg-slate-800 border border-slate-600 text-slate-300">
+                            Opcional / Desactivado
+                        </span>
+                    @endif
+                </div>
+
+                @if(!$tiene2faActivo && empty($setup2faQrSvg))
+                    <form method="POST" action="/{{ $adminPrefix }}/2fa/preparar">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400 text-emerald-200 text-xs font-bold transition">
+                            📲 Configurar Google Authenticator
+                        </button>
+                    </form>
+                @endif
+            </div>
+
+            @if(!$tiene2faActivo && !empty($setup2faQrSvg))
+                <div class="mt-4 pt-4 border-t border-slate-800 grid grid-cols-1 md:grid-cols-[auto,1fr] gap-5 items-center">
+                    <div class="bg-white p-3 rounded-xl inline-block mx-auto md:mx-0 shadow">
+                        {!! $setup2faQrSvg !!}
+                    </div>
+                    <div class="space-y-3">
+                        <p class="text-xs text-slate-300">
+                            Escanea este código QR con <b>Google Authenticator</b> (o ingresa la clave manual Base32):
+                        </p>
+                        <div class="p-2.5 rounded-xl bg-[#07101E] border border-slate-700 font-mono text-xs text-amber-300 break-all select-all">
+                            {{ $setup2faSecret }}
+                        </div>
+                        <form method="POST" action="/{{ $adminPrefix }}/2fa/activar" class="flex flex-wrap items-center gap-2.5">
+                            @csrf
+                            <input type="text" name="codigo_2fa" required inputmode="numeric" pattern="\d{6}" maxlength="6" placeholder="Código 6 dígitos" autocomplete="one-time-code"
+                                   class="bg-[#07101E] border border-emerald-500/60 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 font-orbitron text-sm tracking-widest text-white w-44 outline-none">
+                            <button type="submit" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase transition">
+                                ✅ Confirmar y Activar 2FA
+                            </button>
+                        </form>
+                        <form method="POST" action="/{{ $adminPrefix }}/2fa/preparar" class="inline-block">
+                            @csrf
+                            <button type="submit" class="text-[11px] text-slate-400 hover:text-cyan-300 underline">
+                                🔄 Regenerar secreto y QR
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @elseif($tiene2faActivo)
+                <details class="mt-3 pt-3 border-t border-slate-800/80">
+                    <summary class="cursor-pointer text-xs text-slate-300 hover:text-amber-300 font-semibold">
+                        ⚙️ Desactivar o rotar clave 2FA actual (requiere contraseña y código vigente)
+                    </summary>
+                    <form method="POST" action="/{{ $adminPrefix }}/2fa/desactivar" class="mt-3 flex flex-wrap items-center gap-2.5 text-xs">
+                        @csrf
+                        <input type="password" name="password" required placeholder="Contraseña maestra actual"
+                               class="bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-white outline-none">
+                        <input type="text" name="codigo_2fa" required inputmode="numeric" pattern="\d{6}" maxlength="6" placeholder="Código 2FA vigente" autocomplete="one-time-code"
+                               class="bg-[#07101E] border border-amber-400/60 rounded-xl px-3 py-2 font-orbitron tracking-widest text-white w-44 outline-none">
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-rose-600/90 hover:bg-rose-500 text-white font-bold uppercase transition">
+                            Desactivar 2FA
+                        </button>
+                    </form>
+                </details>
+            @endif
+        </section>
+
         <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
 
             <!-- 1. CONTROL DE ESTADO DEL EVENTO Y DESEMPATE -->
@@ -92,7 +192,7 @@
                     🔒 Bloqueado mientras hay una partida en curso/pausa (solo editable en Registro o Finalizado).
                 </div>
 
-                <form id="form-configuracion" method="POST" action="/admin/configuracion" class="space-y-3">
+                <form id="form-configuracion" method="POST" action="/{{ $adminPrefix }}/configuracion" class="space-y-3">
                     @csrf
                     <div>
                         <label class="text-xs font-bold text-slate-300">Estado de la Trivia</label>
@@ -204,7 +304,7 @@
                 <!-- Botón de Muerte Súbita (Desempate) -->
                 <div class="pt-3 border-t border-slate-800">
                     <h3 class="text-xs font-bold uppercase text-rose-400 mb-2">🔥 Sistema de Desempate</h3>
-                    <form method="POST" action="/admin/desempate">
+                    <form method="POST" action="/{{ $adminPrefix }}/desempate">
                         @csrf
                         <p class="text-xs text-slate-400 mb-2">Selecciona equipos específicos abajo o actívalo directo para que compitan los mejores empatados:</p>
                         <div class="max-h-28 overflow-y-auto space-y-1 mb-3 bg-[#07101E] p-2 rounded-xl border border-slate-800">
@@ -226,7 +326,7 @@
                 <!-- Archivar en Historial de Eventos antes de reiniciar -->
                 <div class="pt-3 border-t border-slate-800">
                     <h3 class="text-xs font-bold uppercase text-emerald-400 mb-2">🏛️ Guardar en Historial de Eventos</h3>
-                    <form method="POST" action="/admin/historial/guardar" class="space-y-2">
+                    <form method="POST" action="/{{ $adminPrefix }}/historial/guardar" class="space-y-2">
                         @csrf
                         <input type="text" name="nombre_edicion" placeholder="Ej: 1er Torneo Seven Tech - Nov 2026"
                                class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
@@ -238,7 +338,7 @@
 
                 <!-- Reiniciar Juego -->
                 <div class="pt-3 border-t border-slate-800">
-                    <form method="POST" action="/admin/reiniciar"
+                    <form method="POST" action="/{{ $adminPrefix }}/reiniciar"
                           data-confirm-title="Reiniciar partida"
                           data-confirm-message="¿Seguro que deseas reiniciar los puntajes de la partida?"
                           data-confirm-cta="Reiniciar"
@@ -263,7 +363,7 @@
                 <p class="text-[11px] text-slate-400">Las etapas se guardan automáticamente tras cada edición y actualizan el estimador de tiempo en directo.</p>
                 <div class="space-y-3">
                     @foreach($niveles as $niv)
-                        <form method="POST" action="/admin/nivel/{{ $niv->id }}"
+                        <form method="POST" action="/{{ $adminPrefix }}/nivel/{{ $niv->id }}"
                               data-es-desempate="{{ $niv->es_desempate ? '1' : '0' }}"
                               data-nivel-nombre="{{ $niv->nombre }}"
                               class="form-nivel-admin bg-[#0b1322] p-3 rounded-xl border border-slate-800 space-y-2">
@@ -290,7 +390,7 @@
                 <!-- Crear Nuevo Módulo -->
                 <div class="pt-3 border-t border-slate-800">
                     <h3 class="text-xs font-bold uppercase text-[#00E5FF] mb-2">➕ Agregar Nuevo Módulo/Categoría</h3>
-                    <form method="POST" action="/admin/modulo" class="space-y-2">
+                    <form method="POST" action="/{{ $adminPrefix }}/modulo" class="space-y-2">
                         @csrf
                         <input type="text" name="nombre" required data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} placeholder="Nombre del módulo (Ej: Robótica e IoT)" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
                         <input type="text" name="descripcion" data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }} placeholder="Descripción corta" class="w-full bg-[#07101E] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
@@ -305,7 +405,7 @@
                 <div id="aviso-bloqueo-banco" class="{{ $partidaBloqueada ? '' : 'hidden' }} p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/50 text-amber-200 text-[11px] font-bold">
                     🔒 Bloqueado mientras hay una partida en curso/pausa
                 </div>
-                <form method="POST" action="/admin/pregunta" class="space-y-2.5 text-xs">
+                <form method="POST" action="/{{ $adminPrefix }}/pregunta" class="space-y-2.5 text-xs">
                     @csrf
                     <div>
                         <label class="text-slate-300 font-bold">Módulo</label>
@@ -365,17 +465,17 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
-                        <a href="/admin/preguntas/plantilla/csv" download="plantilla_preguntas.csv"
+                        <a href="/{{ $adminPrefix }}/preguntas/plantilla/csv" download="plantilla_preguntas.csv"
                            class="min-h-[42px] py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-emerald-500/15 border border-emerald-400/50 text-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
                             ⬇️ Plantilla CSV
                         </a>
-                        <a href="/admin/preguntas/plantilla/json" download="plantilla_preguntas.json"
+                        <a href="/{{ $adminPrefix }}/preguntas/plantilla/json" download="plantilla_preguntas.json"
                            class="min-h-[42px] py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-emerald-500/15 border border-emerald-400/50 text-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
                             ⬇️ Plantilla JSON
                         </a>
                     </div>
 
-                    <form method="POST" action="/admin/preguntas/importar" enctype="multipart/form-data" class="space-y-2 text-xs">
+                    <form method="POST" action="/{{ $adminPrefix }}/preguntas/importar" enctype="multipart/form-data" class="space-y-2 text-xs">
                         @csrf
                         <input type="file" name="archivo" accept=".json,.csv,.txt" required data-lockable="true" {{ $partidaBloqueada ? 'disabled' : '' }}
                                class="w-full bg-[#0b1322] border border-slate-700 rounded-xl px-3 py-2 text-slate-300 text-xs">
@@ -439,7 +539,7 @@
 
                             <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px]">
                                 <span class="font-orbitron text-emerald-400 font-bold">{{ $eq->puntaje_total }} PTS • Etapa {{ $eq->fase_actual }}</span>
-                                <form method="POST" action="/admin/equipo/{{ $eq->id }}/eliminar"
+                                <form method="POST" action="/{{ $adminPrefix }}/equipo/{{ $eq->id }}/eliminar"
                                       data-confirm-title="Eliminar equipo"
                                       data-confirm-message="¿Eliminar al equipo {{ $eq->nombre_equipo }}?"
                                       data-confirm-cta="Dar de baja"
@@ -511,7 +611,7 @@
                         </summary>
 
                         <div class="mt-3 pt-3 border-t border-slate-800">
-                            <form method="POST" action="/admin/pregunta/{{ $preg->id }}/editar" class="space-y-2 text-xs">
+                            <form method="POST" action="/{{ $adminPrefix }}/pregunta/{{ $preg->id }}/editar" class="space-y-2 text-xs">
                                 @csrf
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                                     <div>
@@ -564,7 +664,7 @@
                                 </div>
                             </form>
 
-                            <form method="POST" action="/admin/pregunta/{{ $preg->id }}/eliminar" class="mt-2 text-right"
+                            <form method="POST" action="/{{ $adminPrefix }}/pregunta/{{ $preg->id }}/eliminar" class="mt-2 text-right"
                                   data-confirm-title="Eliminar pregunta"
                                   data-confirm-message="¿Eliminar esta pregunta definitivamente?"
                                   data-confirm-cta="Eliminar pregunta"
@@ -609,7 +709,7 @@
                                         <h3 class="font-bold text-base text-white">{{ $h->nombre_edicion }}</h3>
                                         <p class="font-orbitron text-[10px] text-[#00E5FF]">{{ $h->modulo_jugado }} • {{ $h->total_equipos }} Equipos • {{ $h->created_at->format('d/m/Y H:i') }}</p>
                                     </div>
-                                    <form method="POST" action="/admin/historial/{{ $h->id }}/eliminar"
+                                    <form method="POST" action="/{{ $adminPrefix }}/historial/{{ $h->id }}/eliminar"
                                           data-confirm-title="Eliminar evento del historial"
                                           data-confirm-message="¿Borrar este evento del historial?"
                                           data-confirm-cta="Borrar"
@@ -669,21 +769,21 @@
                             🎬 1. Piloto Automático (Simular Todo)
                         </button>
 
-                        <form method="POST" action="/admin/simular-equipos">
+                        <form method="POST" action="/{{ $adminPrefix }}/simular-equipos">
                             @csrf
                             <button type="submit" class="w-full h-full py-3 px-4 rounded-xl bg-indigo-500/20 border border-indigo-400 text-indigo-200 font-bold text-xs hover:bg-indigo-500/30">
                                 🤖 2. Solo Generar 5 Equipos
                             </button>
                         </form>
 
-                        <form method="POST" action="/admin/simular-avance">
+                        <form method="POST" action="/{{ $adminPrefix }}/simular-avance">
                             @csrf
                             <button type="submit" class="w-full h-full py-3 px-4 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-200 font-bold text-xs hover:bg-amber-500/30">
                                 🎲 3. Avanzar +1 Pregunta
                             </button>
                         </form>
 
-                        <form method="POST" action="/admin/reiniciar"
+                        <form method="POST" action="/{{ $adminPrefix }}/reiniciar"
                               data-confirm-title="Limpiar simulación"
                               data-confirm-message="¿Limpiar todos los equipos de prueba y dejar el sistema en Registro listo para el evento real?"
                               data-confirm-cta="Limpiar todo"
@@ -713,7 +813,7 @@
 
                         try {
                             status.textContent = 'Fase 1: Registrando 5 equipos...';
-                            await fetch("/admin/simular-equipos", {
+                            await fetch("/{{ $adminPrefix }}/simular-equipos", {
                                 method: 'POST',
                                 headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' }
                             });
@@ -725,7 +825,7 @@
 
                             while (continuar && paso <= 18) {
                                 status.textContent = `Corriendo en vivo: Turno #${paso} de 15... (Mira /espectador)`;
-                                const res = await fetch("/admin/simular-avance", {
+                                const res = await fetch("/{{ $adminPrefix }}/simular-avance", {
                                     method: 'POST',
                                     headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' }
                                 });

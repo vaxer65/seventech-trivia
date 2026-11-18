@@ -132,10 +132,18 @@ REDIS_PORT=6379
 
 TRUSTED_PROXIES=127.0.0.1
 ADMIN_PASSWORD_HASH='$2y$12$PEGAR_AQUI_EL_HASH_CON_COMILLAS_SIMPLES'
+ADMIN_ROUTE_PREFIX=panel-privado-st26
+# Opcional: respaldo en .env para 2FA (normalmente se configura desde el panel en BD cifrada)
+# ADMIN_2FA_SECRET=
 ```
 
 > [!IMPORTANT]
-> Mantén `ADMIN_PASSWORD_HASH` siempre entre **comillas simples (`'...'`)** para evitar que el shell o Dotenv interpreten los signos `$` del hash bcrypt. Si usas Cloudflare delante de Nginx, añade sus IPs en `TRUSTED_PROXIES`.
+> Mantén `ADMIN_PASSWORD_HASH` siempre entre **comillas simples (`'...'`)** para evitar que el shell o Dotenv interpreten los signos `$` del hash bcrypt. Si usas Cloudflare delante de Nginx, añade sus IPs en `TRUSTED_PROXIES`. Definido `ADMIN_ROUTE_PREFIX` (ej. `panel-privado-st26`), `/admin` dejará de existir (`404`) y todas las rutas administrativas responderán exclusivamente bajo esa URL privada con `X-Robots-Tag: noindex, nofollow, noarchive`. La portada `/` tampoco expone enlaces al panel admin.
+
+### 4.1. Seguridad 2FA (Google Authenticator Offline) y Cabeceras Globales
+
+- **Doble Factor Offline (`pragmarx/google2fa` + `bacon/bacon-qr-code`):** Una vez dentro de `https://trivia.tudominio.com/<ADMIN_ROUTE_PREFIX>`, ve a **"🔐 Seguridad 2FA (Google Authenticator)"**, genera el QR SVG local, escanéalo desde Google Authenticator y confírmalo con el código de 6 dígitos. El secreto queda cifrado en base de datos (`configuracion_eventos.admin_2fa_secret` mediante `Crypt::encryptString()`), sin servicios externos.
+- **Cabeceras HTTP de Seguridad:** `SecurityHeadersMiddleware` inyecta globalmente `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=()` y `Strict-Transport-Security: max-age=31536000; includeSubDomains` en conexiones HTTPS.
 
 ---
 
@@ -225,7 +233,7 @@ sudo systemctl reload php8.3-fpm
 1. Verificar que `https://trivia.tudominio.com/up` devuelve HTTP `200`.
 2. Entrar a `https://trivia.tudominio.com/espectador` y comprobar que el código QR apunta a `https://trivia.tudominio.com/jugar`.
 3. Escanear el QR con un teléfono conectado al Wi-Fi del auditorio y validar registro de equipo con 2 integrantes.
-4. Entrar a `/admin` verificando la clave bcrypt y comprobar que la **Calculadora del Torneo** muestra semáforo en **🟢 Duración óptima**.
+4. Entrar a `/<ADMIN_ROUTE_PREFIX>` (ej. `/panel-privado-st26`) verificando la clave bcrypt + Google Authenticator 2FA y comprobar que la **Calculadora del Torneo** muestra semáforo en **🟢 Duración óptima**.
 5. Confirmar que `redis-cli info clients` y `tail -n 20 storage/logs/laravel.log` están limpios antes de abrir el registro oficial.
 
 ---

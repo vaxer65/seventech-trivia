@@ -27,8 +27,8 @@
             </div>
         </div>
 
-        <!-- TARJETAS DE SELECCIÓN DE ROL -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+        <!-- TARJETAS DE SELECCIÓN DE ROL (ACCESO PÚBLICO SIN EXPONER PANEL ADMIN) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto text-left">
 
             <!-- 1. CONCURSANTE -->
             <a href="/jugar" class="neon-card p-6 rounded-2xl hover:border-[#00E5FF] hover:-translate-y-1.5 transition duration-300 flex flex-col justify-between group">
@@ -58,22 +58,6 @@
                 </div>
                 <div class="mt-6 pt-3 border-t border-slate-800 flex items-center justify-between text-emerald-400 font-orbitron text-xs font-bold">
                     <span>VER CARRERA EN VIVO</span>
-                    <span class="group-hover:translate-x-1 transition">→</span>
-                </div>
-            </a>
-
-            <!-- 3. ADMINISTRADOR -->
-            <a href="/admin" class="neon-card p-6 rounded-2xl hover:border-amber-400 hover:-translate-y-1.5 transition duration-300 flex flex-col justify-between group">
-                <div>
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-4xl">🔐</span>
-                        <span class="font-orbitron text-[10px] px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-400/50">CONTROL TOTAL</span>
-                    </div>
-                    <h2 class="text-2xl font-bold text-white group-hover:text-amber-400 transition">ADMINISTRADOR</h2>
-                    <p class="text-slate-300 text-sm mt-2">Centro de mando protegido con clave para iniciar la carrera, gestionar etapas, módulos y activar la Muerte Súbita.</p>
-                </div>
-                <div class="mt-6 pt-3 border-t border-slate-800 flex items-center justify-between text-amber-400 font-orbitron text-xs font-bold">
-                    <span>PANEL DE CONTROL</span>
                     <span class="group-hover:translate-x-1 transition">→</span>
                 </div>
             </a>

@@ -12,18 +12,101 @@ use App\Models\Integrante;
 use App\Models\RespuestaEquipo;
 use App\Models\Entrega;
 use App\Models\HistorialEvento;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use PragmaRX\Google2FA\Google2FA;
 
 class AdminController extends Controller
 {
     // La clave de admin se valida contra el hash de ADMIN_PASSWORD_HASH (config/app.php); nunca en el código
 
+    public static function adminPrefix(): string
+    {
+        $prefix = trim((string) config('app.admin_route_prefix', 'admin'), '/');
+        return $prefix !== '' ? $prefix : 'admin';
+    }
+
+    private function estaAutorizadoAdmin(Request $request): bool
+    {
+        return (bool) ($request->session()->get('es_admin_seventech') || $request->session()->get('es_admin'));
+    }
+
+    private function validarPasswordAdmin(string $password): bool
+    {
+        $hash = trim((string) config('app.admin_password_hash'), " \t\n\r\0\x0B'\"");
+        $esBcrypt = str_starts_with($hash, '$2y$')
+            || str_starts_with($hash, '$2b$')
+            || str_starts_with($hash, '$2a$');
+
+        if ($hash === '') {
+            return false;
+        }
+
+        if ($esBcrypt) {
+            try {
+                return Hash::check($password, $hash);
+            } catch (\Throwable $e) {
+                return false;
+            }
+        }
+
+        if (app()->environment(['local', 'testing'])) {
+            // Solo para compatibilidad controlada en local/testing; en producción exige bcrypt
+            return hash_equals($hash, $password);
+        }
+
+        return false;
+    }
+
+    private function obtenerSecreto2faVigente(?ConfiguracionEvento $config): ?string
+    {
+        if ($config) {
+            return $config->obtenerSecreto2fa();
+        }
+        $envSecret = trim((string) config('app.admin_2fa_secret', ''));
+        return $envSecret !== '' ? $envSecret : null;
+    }
+
+    private function generarQr2faSvg(string $secreto): array
+    {
+        $google2fa = new Google2FA();
+        $url = $google2fa->getQRCodeUrl('SevenTech Trivia', 'Admin', $secreto);
+        $renderer = new ImageRenderer(
+            new RendererStyle(220),
+            new SvgImageBackEnd()
+        );
+        $svg = (new Writer($renderer))->writeString($url);
+
+        return [
+            'url'     => $url,
+            'svg'     => $svg,
+            'secreto' => $secreto,
+        ];
+    }
+
     public function index(Request $request)
     {
-        $autorizado = $request->session()->get('es_admin_seventech', false);
+        $adminPrefix = self::adminPrefix();
+        $autorizado = $this->estaAutorizadoAdmin($request);
+        $pendiente2fa = !$autorizado && (bool) $request->session()->get('admin_2fa_pendiente', false);
         $config = ConfiguracionEvento::first();
+        $tiene2faActivo = $this->obtenerSecreto2faVigente($config) !== null;
+
+        $setup2faSecret = '';
+        $setup2faQrSvg = null;
+        if ($autorizado) {
+            $setup2faSecret = trim((string) $request->session()->get('admin_2fa_setup_secret', ''));
+            if ($setup2faSecret !== '') {
+                $setup2faQrSvg = $this->generarQr2faSvg($setup2faSecret)['svg'];
+            }
+        }
+
         $modulos = Modulo::withCount('preguntas')->get();
         $niveles = Nivel::orderBy('orden_dificultad', 'asc')->get();
 
@@ -41,7 +124,21 @@ class AdminController extends Controller
         $historial = HistorialEvento::latest()->get();
         $estimacionDuracion = self::calcularEstimacionDuracion($niveles, (int) ($config?->tiempo_total_minutos ?? 15));
 
-        return view('admin.index', compact('autorizado', 'config', 'modulos', 'niveles', 'preguntas', 'equipos', 'historial', 'estimacionDuracion'));
+        return view('admin.index', compact(
+            'autorizado',
+            'pendiente2fa',
+            'adminPrefix',
+            'tiene2faActivo',
+            'setup2faSecret',
+            'setup2faQrSvg',
+            'config',
+            'modulos',
+            'niveles',
+            'preguntas',
+            'equipos',
+            'historial',
+            'estimacionDuracion'
+        ));
     }
 
     /**
@@ -116,38 +213,162 @@ class AdminController extends Controller
 
     public function login(Request $request)
     {
-        $hash = trim((string) config('app.admin_password_hash'), " \t\n\r\0\x0B'\"");
         $password = (string) $request->input('password');
-        $esBcrypt = str_starts_with($hash, '$2y$')
-            || str_starts_with($hash, '$2b$')
-            || str_starts_with($hash, '$2a$');
+        $request->session()->forget('admin_2fa_pendiente');
+
+        if (!$this->validarPasswordAdmin($password)) {
+            return back()->withErrors(['password' => 'Contraseña de administrador incorrecta.']);
+        }
+
+        $config = ConfiguracionEvento::first();
+        $secreto2fa = $this->obtenerSecreto2faVigente($config);
+
+        $request->session()->regenerate();
+
+        if ($secreto2fa !== null) {
+            $request->session()->forget(['es_admin_seventech', 'es_admin']);
+            $request->session()->put('admin_2fa_pendiente', true);
+            return redirect('/' . self::adminPrefix());
+        }
+
+        $request->session()->put('es_admin_seventech', true);
+        $request->session()->put('es_admin', true);
+        return redirect('/' . self::adminPrefix());
+    }
+
+    public function verificar2fa(Request $request)
+    {
+        if (!$request->session()->get('admin_2fa_pendiente')) {
+            return redirect('/' . self::adminPrefix())->withErrors([
+                'password' => 'Tu verificación en 2 pasos expiró. Ingresa nuevamente tu contraseña.',
+            ]);
+        }
+
+        $codigo = preg_replace('/\s+/', '', (string) $request->input('codigo_2fa', ''));
+        $secreto2fa = $this->obtenerSecreto2faVigente(ConfiguracionEvento::first());
+
+        if (!$secreto2fa || !preg_match('/^\d{6}$/', $codigo)) {
+            return back()->withErrors(['codigo_2fa' => 'Ingresa un código numérico válido de 6 dígitos.']);
+        }
 
         $valido = false;
-        if ($hash !== '') {
-            if ($esBcrypt) {
-                try {
-                    $valido = Hash::check($password, $hash);
-                } catch (\Throwable $e) {
-                    $valido = false;
-                }
-            } elseif (app()->environment(['local', 'testing'])) {
-                // Solo para compatibilidad controlada en local/testing; en producción exige bcrypt
-                $valido = hash_equals($hash, $password);
+        try {
+            $valido = (new Google2FA())->verifyKey($secreto2fa, $codigo, 1);
+        } catch (\Throwable $e) {
+            $valido = false;
+        }
+
+        if (!$valido) {
+            return back()->withErrors(['codigo_2fa' => 'Código 2FA inválido o expirado. Intenta nuevamente.']);
+        }
+
+        $request->session()->regenerate();
+        $request->session()->forget('admin_2fa_pendiente');
+        $request->session()->put('es_admin_seventech', true);
+        $request->session()->put('es_admin', true);
+
+        return redirect('/' . self::adminPrefix());
+    }
+
+    public function preparar2fa(Request $request)
+    {
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
+
+        $secreto = (new Google2FA())->generateSecretKey();
+        $request->session()->put('admin_2fa_setup_secret', $secreto);
+
+        return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
+            ->with('ok', 'Escanea el QR con Google Authenticator e ingresa el primer código de 6 dígitos para activarlo.');
+    }
+
+    public function activar2fa(Request $request)
+    {
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
+
+        $secreto = trim((string) $request->session()->get('admin_2fa_setup_secret', ''));
+        if ($secreto === '') {
+            return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
+                ->withErrors(['codigo_2fa' => 'Genera primero una clave QR temporal para activar 2FA.']);
+        }
+
+        $codigo = preg_replace('/\s+/', '', (string) $request->input('codigo_2fa', ''));
+        $valido = false;
+        if (preg_match('/^\d{6}$/', $codigo)) {
+            try {
+                $valido = (new Google2FA())->verifyKey($secreto, $codigo, 1);
+            } catch (\Throwable $e) {
+                $valido = false;
             }
         }
 
-        if ($valido) {
-            $request->session()->regenerate();
-            $request->session()->put('es_admin_seventech', true);
-            return redirect('/admin');
+        if (!$valido) {
+            return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
+                ->withErrors(['codigo_2fa' => 'El código de 6 dígitos no coincide con el QR generado. Verifica la hora del celular.']);
         }
-        return back()->withErrors(['password' => 'Contraseña de administrador incorrecta.']);
+
+        $config = ConfiguracionEvento::first();
+        if (!$config) {
+            return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
+                ->withErrors(['codigo_2fa' => 'No existe configuración inicial del evento en base de datos.']);
+        }
+
+        $config->update([
+            'admin_2fa_secret' => Crypt::encryptString($secreto),
+        ]);
+        $request->session()->forget('admin_2fa_setup_secret');
+
+        return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
+            ->with('ok', 'Autenticación 2FA con Google Authenticator activada correctamente.');
+    }
+
+    public function desactivar2fa(Request $request)
+    {
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
+
+        $password = (string) $request->input('password', '');
+        if (!$this->validarPasswordAdmin($password)) {
+            return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
+                ->withErrors(['password_2fa' => 'La contraseña maestra ingresada es incorrecta.']);
+        }
+
+        $config = ConfiguracionEvento::first();
+        $secretoActual = $this->obtenerSecreto2faVigente($config);
+        $codigo = preg_replace('/\s+/', '', (string) $request->input('codigo_2fa', ''));
+
+        $valido = false;
+        if ($secretoActual && preg_match('/^\d{6}$/', $codigo)) {
+            try {
+                $valido = (new Google2FA())->verifyKey($secretoActual, $codigo, 1);
+            } catch (\Throwable $e) {
+                $valido = false;
+            }
+        }
+
+        if (!$valido) {
+            return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
+                ->withErrors(['codigo_2fa' => 'Código 2FA actual inválido para confirmar la desactivación.']);
+        }
+
+        $config?->update(['admin_2fa_secret' => null]);
+        $request->session()->forget('admin_2fa_setup_secret');
+
+        $notaEnv = trim((string) config('app.admin_2fa_secret', '')) !== ''
+            ? ' (Nota: existe un ADMIN_2FA_SECRET de respaldo definido en .env).'
+            : '';
+
+        return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
+            ->with('ok', 'Seguridad 2FA desactivada.' . $notaEnv);
     }
 
     public function logout(Request $request)
     {
-        $request->session()->forget('es_admin_seventech');
-        return redirect('/admin');
+        $request->session()->forget([
+            'es_admin_seventech',
+            'es_admin',
+            'admin_2fa_pendiente',
+            'admin_2fa_setup_secret',
+        ]);
+        return redirect('/' . self::adminPrefix());
     }
 
     private function esPartidaBloqueada(?ConfiguracionEvento $config): bool
@@ -176,7 +397,7 @@ class AdminController extends Controller
     // Cambiar estado del juego, tiempo global (minutos) o módulo activo
     public function actualizarConfiguracion(Request $request)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         $config = ConfiguracionEvento::first();
 
@@ -262,7 +483,7 @@ class AdminController extends Controller
     // Modificar cantidad de preguntas, puntos o tiempo de cualquier Etapa/Nivel (Escalabilidad)
     public function actualizarNivel(Request $request, $id)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
             return $this->responderBloqueoPartida($request, 'No puedes modificar etapas mientras la partida está en curso, pausada o en desempate.');
@@ -284,7 +505,7 @@ class AdminController extends Controller
     // Agregar cualquier módulo/categoría nuevo
     public function crearModulo(Request $request)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
             return $this->responderBloqueoPartida($request, 'No puedes crear módulos mientras la partida está en curso, pausada o en desempate.');
@@ -303,7 +524,7 @@ class AdminController extends Controller
     // Agregar nuevas preguntas a cualquier módulo y etapa
     public function crearPregunta(Request $request)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
             return $this->responderBloqueoPartida($request, 'No puedes agregar preguntas mientras la partida está en curso, pausada o en desempate.');
@@ -370,7 +591,7 @@ class AdminController extends Controller
     // Descargar plantilla oficial CSV o JSON para importación masiva de preguntas
     public function descargarPlantillaPreguntas(Request $request, string $formato)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         $formatoLower = strtolower($formato);
         if (!in_array($formatoLower, ['csv', 'json'], true)) {
@@ -440,7 +661,7 @@ class AdminController extends Controller
     // Importar lote de preguntas desde archivo JSON o CSV con deduplicación automática y validación estricta
     public function importarPreguntas(Request $request)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
             return $this->responderBloqueoPartida($request, 'No puedes importar preguntas mientras la partida está en curso, pausada o en desempate.');
@@ -628,7 +849,7 @@ class AdminController extends Controller
     // Activar Ronda de Desempate (Muerte Súbita) entre los equipos punteros
     public function activarDesempate(Request $request)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         $request->validate([
             'equipos_desempate'   => 'nullable|array',
@@ -659,7 +880,7 @@ class AdminController extends Controller
     // Reiniciar puntajes y sortear un nuevo grupo aleatorio de preguntas para la siguiente partida
     public function reiniciarJuego(Request $request)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         $borrarEquipos = $request->boolean('borrar_equipos');
 
@@ -708,7 +929,7 @@ class AdminController extends Controller
     // Generar equipos de prueba con nombres reales para ensayar el flujo completo
     public function generarEquiposPrueba(Request $request)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
         abort_unless(app()->isLocal(), 404); // Simulador solo en entorno local
 
         $equiposDemo = [
@@ -746,7 +967,7 @@ class AdminController extends Controller
     // Simular que todos los equipos avanzan 1 pregunta en vivo
     public function simularAvanceCarrera(Request $request)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
         abort_unless(app()->isLocal(), 404); // Simulador solo en entorno local
 
         $config = ConfiguracionEvento::first();
@@ -870,7 +1091,7 @@ class AdminController extends Controller
     // Editar cualquier pregunta existente en vivo
     public function actualizarPregunta(Request $request, $id)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
             return $this->responderBloqueoPartida($request, 'No puedes editar preguntas mientras la partida está en curso, pausada o en desempate.');
@@ -898,7 +1119,7 @@ class AdminController extends Controller
     // Eliminar una pregunta del banco
     public function eliminarPregunta(Request $request, $id)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
             return $this->responderBloqueoPartida($request, 'No puedes eliminar preguntas mientras la partida está en curso, pausada o en desempate.');
@@ -911,7 +1132,7 @@ class AdminController extends Controller
     // Eliminar un módulo completo
     public function eliminarModulo(Request $request, $id)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         if ($this->esPartidaBloqueada(ConfiguracionEvento::first())) {
             return $this->responderBloqueoPartida($request, 'No puedes eliminar módulos mientras la partida está en curso, pausada o en desempate.');
@@ -927,7 +1148,7 @@ class AdminController extends Controller
     // Eliminar un equipo específico desde el panel de administración
     public function eliminarEquipo(Request $request, $id)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         Equipo::findOrFail($id)->delete();
         return back()->with('ok', 'Equipo eliminado correctamente.');
@@ -935,7 +1156,7 @@ class AdminController extends Controller
     // Guardar los resultados actuales en el Salón de la Fama / Historial de Eventos
     public function guardarHistorialEvento(Request $request)
     {
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
 
         $config = ConfiguracionEvento::with('moduloActivo')->first();
         $equipos = Equipo::with('integrantes')
@@ -975,7 +1196,7 @@ class AdminController extends Controller
 
     public function eliminarHistorialEvento(Request $request, $id)
     {   
-        if (!$request->session()->get('es_admin_seventech')) abort(403);
+        if (!$this->estaAutorizadoAdmin($request)) abort(403);
         HistorialEvento::findOrFail($id)->delete();
         return back()->with('ok', 'Registro eliminado del historial.');
     }
