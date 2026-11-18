@@ -19,23 +19,23 @@ class FlujoCompletoE2ETest extends TestCase
     private function elegirOpcionVisualCorrecta(array $preguntaJson): string
     {
         $modelo = Pregunta::findOrFail($preguntaJson['id']);
-        $textoCorrecto = $modelo->{'opcion_' . $modelo->respuesta_correcta};
+        $textoCorrecto = $modelo->{'opcion_'.$modelo->respuesta_correcta};
 
         $letraVisual = collect(['a', 'b', 'c', 'd'])
-            ->first(fn ($letra) => ($preguntaJson['opcion_' . $letra] ?? null) === $textoCorrecto);
+            ->first(fn ($letra) => ($preguntaJson['opcion_'.$letra] ?? null) === $textoCorrecto);
 
         $this->assertNotNull($letraVisual, "No se encontró el texto correcto en las opciones barajadas de pregunta #{$modelo->id}.");
 
         return $letraVisual;
     }
 
-    public function test_flujo_completo_e2e_torneo_seeder_360_etapas_anticheat_desempate_y_admin(): void
+    public function test_flujo_completo_e2e_torneo_seeder_400_etapas_anticheat_desempate_y_admin(): void
     {
-        // 1. Sembrar banco completo oficial (10 módulos + 360 preguntas + 4 niveles) en seventech_trivia_test
+        // 1. Sembrar banco completo oficial (10 módulos + 400 preguntas + 4 niveles) en seventech_trivia_test
         $this->seed(DatabaseSeeder::class);
 
         $this->assertEquals(10, Modulo::count());
-        $this->assertEquals(360, Pregunta::count());
+        $this->assertEquals(400, Pregunta::count());
         $this->assertEquals(4, Nivel::count());
 
         // 2. Verificar vistas públicas principales
@@ -61,15 +61,15 @@ class FlujoCompletoE2ETest extends TestCase
             'extra_e2e.json',
             json_encode([
                 [
-                    'modulo'             => $moduloBackend->nombre,
-                    'nivel'              => $nivel1->orden_dificultad,
-                    'enunciado'          => '¿Qué comando de Artisan limpia todas las cachés compiladas en Laravel?',
-                    'opcion_a'           => 'php artisan optimize:clear',
-                    'opcion_b'           => 'php artisan cache:boot',
-                    'opcion_c'           => 'php artisan route:seed',
-                    'opcion_d'           => 'php artisan db:drop',
+                    'modulo' => $moduloBackend->nombre,
+                    'nivel' => $nivel1->orden_dificultad,
+                    'enunciado' => '¿Qué comando de Artisan limpia todas las cachés compiladas en Laravel?',
+                    'opcion_a' => 'php artisan optimize:clear',
+                    'opcion_b' => 'php artisan cache:boot',
+                    'opcion_c' => 'php artisan route:seed',
+                    'opcion_d' => 'php artisan db:drop',
                     'respuesta_correcta' => 'a',
-                    'es_amena'           => false,
+                    'es_amena' => false,
                 ],
             ], JSON_UNESCAPED_UNICODE)
         );
@@ -80,7 +80,7 @@ class FlujoCompletoE2ETest extends TestCase
 
         $csvImport = UploadedFile::fake()->createWithContent(
             'extra_e2e.csv',
-            "modulo,nivel,enunciado,opcion_a,opcion_b,opcion_c,opcion_d,respuesta_correcta,es_amena\n" .
+            "modulo,nivel,enunciado,opcion_a,opcion_b,opcion_c,opcion_d,respuesta_correcta,es_amena\n".
             "\"{$moduloBackend->nombre}\",{$nivel1->orden_dificultad},\"¿Qué puerto estándar utiliza HTTPS sobre TLS?\",80,22,443,3306,c,0\n"
         );
 
@@ -88,17 +88,17 @@ class FlujoCompletoE2ETest extends TestCase
             ->post('/admin/preguntas/importar', ['archivo' => $csvImport])
             ->assertSessionHasNoErrors();
 
-        $this->assertEquals(362, Pregunta::count());
+        $this->assertEquals(402, Pregunta::count());
 
         // 4. Registro de 2 equipos desde /api/registrar-equipo
         $this->postJson('/api/registrar-equipo', [
             'nombre_equipo' => 'Escuderia Alpha',
-            'integrantes'   => ['Ana Pérez', 'Luis Gómez'],
+            'integrantes' => ['Ana Pérez', 'Luis Gómez'],
         ])->assertOk()->assertJsonPath('equipo.nombre_equipo', 'Escuderia Alpha');
 
         $this->postJson('/api/registrar-equipo', [
             'nombre_equipo' => 'Escuderia Beta',
-            'integrantes'   => ['Carlos Ruiz', 'Sofía Díaz'],
+            'integrantes' => ['Carlos Ruiz', 'Sofía Díaz'],
         ])->assertOk()->assertJsonPath('equipo.nombre_equipo', 'Escuderia Beta');
 
         $equipoA = Equipo::where('nombre_equipo', 'Escuderia Alpha')->firstOrFail();
@@ -108,11 +108,11 @@ class FlujoCompletoE2ETest extends TestCase
         $config = ConfiguracionEvento::firstOrFail();
         $this->withSession($adminSession)
             ->post('/admin/configuracion', [
-                'estado_juego'           => 'en_curso',
-                'modulo_activo_id'       => '',
+                'estado_juego' => 'en_curso',
+                'modulo_activo_id' => '',
                 'max_integrantes_equipo' => $config->max_integrantes_equipo,
                 'max_equipos_permitidos' => $config->max_equipos_permitidos,
-                'tiempo_total_minutos'   => 15,
+                'tiempo_total_minutos' => 15,
             ])
             ->assertSessionHasNoErrors();
 
@@ -150,7 +150,7 @@ class FlujoCompletoE2ETest extends TestCase
 
                 $this->withSession(['equipo_token' => $equipoB->token_sesion])
                     ->postJson('/api/enviar-respuesta', [
-                        'pregunta_id'    => $pregB['id'],
+                        'pregunta_id' => $pregB['id'],
                         'opcion_elegida' => $opcionVisualB,
                     ])
                     ->assertOk()
@@ -159,7 +159,7 @@ class FlujoCompletoE2ETest extends TestCase
 
             $this->withSession(['equipo_token' => $equipoA->token_sesion])
                 ->postJson('/api/enviar-respuesta', [
-                    'pregunta_id'    => $pregDataA['id'],
+                    'pregunta_id' => $pregDataA['id'],
                     'opcion_elegida' => $opcionVisualA,
                 ])
                 ->assertOk()
@@ -199,7 +199,7 @@ class FlujoCompletoE2ETest extends TestCase
 
             $this->withSession(['equipo_token' => $equipoA->token_sesion])
                 ->postJson('/api/enviar-respuesta', [
-                    'pregunta_id'    => $pregDesA['id'],
+                    'pregunta_id' => $pregDesA['id'],
                     'opcion_elegida' => $visDesA,
                 ])
                 ->assertOk()
@@ -209,7 +209,7 @@ class FlujoCompletoE2ETest extends TestCase
         // 8. Admin finaliza torneo y valida ranking en /api/carrera-en-vivo
         $this->withSession($adminSession)
             ->post('/admin/configuracion', [
-                'estado_juego'           => 'finalizado',
+                'estado_juego' => 'finalizado',
                 'max_integrantes_equipo' => $config->max_integrantes_equipo,
                 'max_equipos_permitidos' => $config->max_equipos_permitidos,
             ])

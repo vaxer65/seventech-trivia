@@ -23,8 +23,8 @@ Sistema web en tiempo real desarrollado para competencias presenciales de tecnol
    - **`/espectador` (Pantalla Gigante):** Pista de carrera 2D en vivo, código QR dinámico con detección automática de IP LAN en entorno local y origen HTTPS real en producción, banner de eventos recientes en vivo, podio animado y confeti multi-ráfaga al finalizar.
    - **`/admin` (Panel de Control):** Autenticación protegida (`ADMIN_PASSWORD_HASH` bcrypt estricto en producción), control de estados (`registro`, `en_curso`, `pausado`, `desempate`, `finalizado`), calculadora inteligente de duración del torneo con semáforo en vivo, gestión de etapas/módulos/preguntas, importador masivo CSV/JSON y monitor de incidentes anti-trampa.
 
-2. **Banco de Preguntas Multitemático (360 Preguntas Originales):**
-   - `DatabaseSeeder` carga **10 módulos tecnológicos** y **360 preguntas verificadas** (110 Etapa 1, 110 Etapa 2, 100 Etapa 3 y 40 Muerte Súbita) con distribución exacta de **25% por opción** (`90 a`, `90 b`, `90 c`, `90 d`) y modo *"Todos los Módulos"* (`modulo_activo_id = null`) activo por defecto.
+2. **Banco de Preguntas Multitemático (400 Preguntas Originales):**
+   - `DatabaseSeeder` carga **10 módulos tecnológicos** y **400 preguntas verificadas** (100 por nivel, 10 por categoría y nivel) con distribución exacta de **25% por opción** (`100 a`, `100 b`, `100 c`, `100 d`) y modo *"Todos los Módulos"* (`modulo_activo_id = null`) activo por defecto.
    - Cada etapa normal entrega exactamente **1 pregunta amena** (`es_amena = true`) en turno determinista y el resto técnicas, sin exponer `respuesta_correcta` ni `es_amena` al frontend.
    - Importador masivo `.csv` y `.json` en `/admin/preguntas/importar` con plantillas descargables (`/admin/preguntas/plantilla/{csv|json}`), validación transaccional y deduplicación automática.
 
@@ -46,7 +46,7 @@ composer install
 cp .env.example .env
 php artisan key:generate
 
-# 3. Ejecutar migraciones y sembrar el banco inicial (10 módulos + 360 preguntas)
+# 3. Ejecutar migraciones y sembrar el banco inicial (10 módulos + 400 preguntas)
 php artisan migrate
 php artisan db:seed
 

@@ -146,7 +146,7 @@ sudo chown -R www-data:www-data storage bootstrap/cache
 sudo chmod -R 775 storage bootstrap/cache
 
 php artisan migrate --force
-php artisan db:seed --force   # Carga 10 módulos + 360 preguntas originales (solo en instalación nueva)
+php artisan db:seed --force   # Carga 10 módulos + 400 preguntas originales (solo en instalación nueva)
 php artisan optimize
 ```
 
@@ -247,7 +247,7 @@ zip -r seventech-trivia-release.zip . \
 
 > Si subes sin ejecutar Composer en el servidor, asegúrate de incluir `vendor/` generado con `composer install --no-dev --optimize-autoloader` para **PHP 8.3** y limpiar caches antes (`php artisan optimize:clear`).
 
-### 9.2. Generación de volcado inicial `.sql` (solo estructura + banco de 360 preguntas)
+### 9.2. Generación de volcado inicial `.sql` (solo estructura + banco de 400 preguntas)
 
 Si el administrador de BD requiere importar un `.sql` inicial en lugar de correr `php artisan migrate && php artisan db:seed`:
 
