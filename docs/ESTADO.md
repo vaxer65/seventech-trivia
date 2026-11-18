@@ -12,7 +12,7 @@
 - **Localización y móvil (PR #1):** catálogo español nativo, filtros y resúmenes administrativos desde `320 px`, cabecera móvil en dos columnas y resumen final sin truncar valores.
 - **Banco canónico (PR #1):** 400 preguntas, 10 por categoría y nivel; 100 por etapa y 100 respuestas correctas por cada letra. Opciones de hasta 20 caracteres, diferencia máxima de 6 caracteres dentro de cada pregunta y comando transaccional `trivia:sync-questions` (`docs/QUESTION_BANK.md`).
 - **Seguridad Admin, 2FA, 60 FPS y Toasts Unificados (Bloques 12–13):** acceso admin oculto en `/`, prefijo privado `ADMIN_ROUTE_PREFIX`, `X-Robots-Tag: noindex, nofollow, noarchive`, Google Authenticator 2FA offline (`admin_2fa_secret` cifrado), cabeceras HTTP globales (`SecurityHeadersMiddleware`), `route:cache` sin closures, gobernador adaptativo 60 FPS, ergonomía iOS/Android y toasts translúcidos (`2000 ms`, máx. `2`, anti-duplicados).
-- **Suite de pruebas unificada:** **En ejecución / verificación final** contra `seventech_trivia_test`:
+- **Suite de pruebas unificada:** **89 tests pasando (16,316 aserciones)** contra `seventech_trivia_test` (incluyendo PR #1 del banco canónico de 400 preguntas + `trivia:sync-questions` y Bloques 12–13):
   - `Tests\Unit\ExampleTest` (1 test)
   - `Tests\Feature\ExampleTest` (1 test)
   - `Tests\Feature\Bloque1SeguridadTest` (10 tests: ocultación de respuesta correcta, rechazo de pregunta no asignada `409`, mismo orden por `semilla_partida`, tiempo medido en servidor, idempotencia `UNIQUE(equipo_id, pregunta_id)`, sesión por cookie sin `equipo_id` en request, límite 2–5 integrantes, `rate limiting` del PIN `429`, protección de `/admin/*` incluyendo `/admin/preguntas/importar`, y regeneración de `semilla_partida`).
