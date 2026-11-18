@@ -4,7 +4,7 @@
 
 - **Rama activa:** `bloque-13-fps-ux-movil` (creada desde `bloque-12-seguridad-admin-2fa`, manteniendo `desarrollo` intacta para PR #1; **Bloques 0 al 13 Completados**).
 - **Entorno en producción objetivo:** **Servidor dedicado / VPS propio** (Ubuntu 24.04 + Nginx + PHP-FPM 8.3 + MySQL 8 + Redis; guía en [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md); se descarta cPanel).
-- **Suite de pruebas:** **59 tests pasando (4,925 aserciones)** contra `seventech_trivia_test`:
+- **Suite de pruebas:** **59 tests pasando (4,920 aserciones)** contra `seventech_trivia_test`:
   - `Tests\Unit\ExampleTest` (1 test)
   - `Tests\Feature\ExampleTest` (1 test)
   - `Tests\Feature\Bloque1SeguridadTest` (10 tests: ocultación de respuesta correcta, rechazo de pregunta no asignada `409`, mismo orden por `semilla_partida`, tiempo medido en servidor, idempotencia `UNIQUE(equipo_id, pregunta_id)`, sesión por cookie sin `equipo_id` en request, límite 2–5 integrantes, `rate limiting` del PIN `429`, protección de `/admin/*` incluyendo `/admin/preguntas/importar`, y regeneración de `semilla_partida`).
