@@ -69,9 +69,12 @@ class Bloque13FpsUxMovilTest extends TestCase
             $resp = $this->get($ruta)->assertOk();
             $resp->assertSee('id="toast-region"', false)
                 ->assertSee('top: calc(1rem + env(safe-area-inset-top, 0px)); right: calc(1rem + env(safe-area-inset-right, 0px));', false)
+                ->assertSee('pointer-events: none;', false)
+                ->assertSee('background: rgba(15, 23, 42, 0.72);', false)
                 ->assertDontSee('--toast-bottom', false)
+                ->assertSee('ui-toast-entrando', false)
                 ->assertSee('ui-toast-saliendo', false)
-                ->assertSee('3500', false)
+                ->assertSee('2000', false)
                 ->assertSee('existentes.length >= 2', false)
                 ->assertSee('dataset.toastMensaje', false)
                 ->assertSee('id="modal-confirmacion-ui"', false)

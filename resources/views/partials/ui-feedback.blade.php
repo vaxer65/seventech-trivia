@@ -39,7 +39,7 @@
 <div id="toast-region"
      role="region"
      aria-label="Notificaciones"
-     style="top: calc(1rem + env(safe-area-inset-top, 0px)); right: calc(1rem + env(safe-area-inset-right, 0px)); max-width: calc(100vw - 2rem); z-index: 9999;"
+     style="top: calc(1rem + env(safe-area-inset-top, 0px)); right: calc(1rem + env(safe-area-inset-right, 0px)); max-width: calc(100vw - 2rem); z-index: 9999; pointer-events: none;"
      class="fixed flex flex-col items-end gap-2.5 pointer-events-none">
 </div>
 <div id="toast-aria-fallback" class="sr-only" aria-live="polite" aria-atomic="true"></div>
@@ -199,7 +199,7 @@
                     toast.hidePopover();
                 }
             } catch (e) {}
-            toast.classList.remove(':popover-open', 'ui-toast-visible', 'ui-toast-saliendo');
+            toast.classList.remove(':popover-open', 'ui-toast-visible', 'ui-toast-entrando', 'ui-toast-saliendo');
             const siguiente = toast.nextElementSibling || toast.previousElementSibling;
             toast.remove();
             reposicionarToasts();
@@ -224,17 +224,18 @@
             }
             if (toast.dataset.cerrando === '1') return;
             toast.dataset.cerrando = '1';
+            toast.classList.remove('ui-toast-entrando');
             toast.classList.add('ui-toast-saliendo');
             setTimeout(() => {
                 finalizarEliminacionToast(toast, triggerControl);
-            }, 300);
+            }, 260);
         }
 
         function programarAutoCierreToast(toast, triggerControl) {
             clearTimeout(toast.__timerAutoCierre);
             toast.__timerAutoCierre = setTimeout(() => {
                 ocultarToastElemento(toast, triggerControl, false);
-            }, 3500);
+            }, 2000);
         }
 
         window.mostrarToast = function (mensaje, tipo = 'success') {
@@ -270,8 +271,8 @@
             toast.dataset.toastMensaje = textoLimpio;
             toast.dataset.toastTipo = tipo;
             toast.setAttribute('popover', 'manual');
-            toast.className = `ui-toast items-center justify-between gap-3 px-4 py-3 text-sm font-semibold ${
-                esError ? 'border-rose-400/75 text-rose-100' : 'border-emerald-400/70 text-emerald-50'
+            toast.className = `ui-toast items-center justify-between gap-2.5 font-semibold ${
+                esError ? 'border-rose-400/50 text-rose-100' : 'border-emerald-400/45 text-emerald-50'
             }`;
 
             const cuerpo = document.createElement('div');
@@ -316,6 +317,11 @@
                 toast.classList.add(':popover-open', 'ui-toast-visible');
             }
             reposicionarToasts();
+
+            requestAnimationFrame(() => {
+                void toast.offsetWidth;
+                toast.classList.add('ui-toast-entrando');
+            });
 
             if (typeof document.ariaNotify === 'function') {
                 document.ariaNotify(textoLimpio);

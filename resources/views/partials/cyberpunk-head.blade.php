@@ -213,31 +213,36 @@
         top: var(--toast-top, calc(1rem + env(safe-area-inset-top, 0px)));
         right: calc(1rem + env(safe-area-inset-right, 0px));
         margin: 0;
+        padding: 0.65rem 0.9rem;
+        font-size: 0.85rem;
         max-width: min(24rem, calc(100vw - 2rem));
         width: max-content;
         z-index: 9999;
-        border-radius: 0.9rem;
-        border: 1px solid rgba(16, 185, 129, 0.55);
-        background: rgba(15, 23, 42, 0.96);
+        border-radius: 0.85rem;
+        border: 1px solid rgba(16, 185, 129, 0.45);
+        background: rgba(15, 23, 42, 0.72);
         color: #f8fafc;
-        box-shadow: 0 12px 28px rgba(2, 6, 23, 0.48);
+        box-shadow: 0 10px 25px -5px rgba(2, 6, 23, 0.45);
         pointer-events: auto;
         opacity: 0;
-        transform: translateY(-8px);
-        transition: opacity 0.3s ease, transform 0.3s ease, display 0.3s, overlay 0.3s;
-        transition-behavior: allow-discrete;
+        transform: translateY(-10px) scale(0.98);
+        transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1), transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .ui-toast[popover]:is(:popover-open, .\:popover-open),
     .ui-toast.ui-toast-visible {
         display: flex;
+    }
+
+    .ui-toast.ui-toast-entrando {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 
     .ui-toast.ui-toast-saliendo {
         opacity: 0 !important;
-        transform: translateY(-8px) !important;
+        transform: translateY(-8px) scale(0.98) !important;
+        transition: opacity 260ms ease, transform 260ms ease !important;
     }
 
     dialog.ui-dialog.ui-dialog-fallback[open] {
