@@ -16,6 +16,11 @@
         font-family: var(--font-main);
         font-weight: 500;
         letter-spacing: 0.02em;
+        min-height: 100dvh;
+        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
     }
 
     h1, h2, h3, button, input, select, textarea {
@@ -205,9 +210,11 @@
     .ui-toast[popover] {
         position: fixed;
         inset: auto;
-        right: max(1rem, env(safe-area-inset-right));
-        bottom: calc(var(--toast-bottom, 1rem) + env(safe-area-inset-bottom));
+        top: var(--toast-top, calc(1rem + env(safe-area-inset-top, 0px)));
+        right: calc(1rem + env(safe-area-inset-right, 0px));
         margin: 0;
+        padding: 0.65rem 0.9rem;
+        font-size: 0.85rem;
         max-width: min(24rem, calc(100vw - 2rem));
         width: max-content;
         max-height: calc((100vh - 4rem - env(safe-area-inset-bottom) - env(safe-area-inset-top)) / 3);
@@ -215,24 +222,53 @@
         overflow-y: auto;
         align-items: flex-start;
         overflow-wrap: anywhere;
-        border-radius: 0.9rem;
-        border: 1px solid rgba(16, 185, 129, 0.55);
-        background: rgba(15, 23, 42, 0.95);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
+        z-index: 9999;
+        border-radius: 0.85rem;
+        border: 1px solid rgba(16, 185, 129, 0.45);
+        background: rgba(15, 23, 42, 0.72);
         color: #f8fafc;
-        box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45), 0 0 20px rgba(16, 185, 129, 0.22);
+        box-shadow: 0 10px 25px -5px rgba(2, 6, 23, 0.45);
         pointer-events: auto;
         opacity: 0;
-        transform: translateY(10px);
-        transition: opacity 0.22s ease, transform 0.22s ease, display 0.22s, overlay 0.22s;
-        transition-behavior: allow-discrete;
+        transform: translateY(-10px) scale(0.98);
+        transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1), transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .ui-toast[popover]:is(:popover-open, .\:popover-open) {
+    .ui-toast[popover]:is(:popover-open, .\:popover-open),
+    .ui-toast.ui-toast-visible {
         display: flex;
+    }
+
+    .ui-toast.ui-toast-entrando {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
+    }
+
+    .ui-toast.ui-toast-saliendo {
+        opacity: 0 !important;
+        transform: translateY(-8px) scale(0.98) !important;
+        transition: opacity 260ms ease, transform 260ms ease !important;
+    }
+
+    dialog.ui-dialog.ui-dialog-fallback[open] {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: block;
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    @media (max-width: 767px) {
+        .neon-card, .neon-border, .card {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            background-color: rgba(15, 23, 42, 0.96);
+        }
+
+        input, select, textarea {
+            font-size: max(16px, 1rem);
+        }
     }
 
     .robot-transition { transition: left 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -296,7 +332,8 @@
                 const esMovil = width < 768;
                 const cantidadNodos = esMovil ? 24 : 55;
                 const cantidadParticulas = esMovil ? 18 : 35;
-                maxLinkDist = esMovil ? 115 : 145;
+                const linkBase = esMovil ? 115 : 145;
+                maxLinkDist = modoAhorroActivo ? Math.max(70, Math.round(linkBase * 0.72)) : linkBase;
 
                 nodos = Array.from({ length: cantidadNodos }, (_, idx) => ({
                     x: Math.random() * width,
@@ -408,8 +445,10 @@
                 }
             }
 
-            const intervaloFrameMs = 28; // ~35 FPS para bajo consumo de CPU/GPU
+            let intervaloFrameMs = 16.6; // Objetivo 60 FPS con gobernador adaptativo
             let ultimoFrameTs = 0;
+            let cuadrosLentosSeguidos = 0;
+            let modoAhorroActivo = false;
 
             function bucle(ts) {
                 if (document.hidden || reducedMotion.matches) {
@@ -418,7 +457,22 @@
                 }
                 if (!ultimoFrameTs || (ts - ultimoFrameTs) >= intervaloFrameMs) {
                     ultimoFrameTs = ts || performance.now();
+                    const inicioRender = performance.now();
                     dibujarFrame(true);
+                    const duracionRender = performance.now() - inicioRender;
+
+                    if (!modoAhorroActivo) {
+                        if (duracionRender > 22) {
+                            cuadrosLentosSeguidos++;
+                            if (cuadrosLentosSeguidos >= 15) {
+                                modoAhorroActivo = true;
+                                intervaloFrameMs = 28; // Degradación suave a ~35 FPS en hardware modesto
+                                maxLinkDist = Math.max(70, Math.round(maxLinkDist * 0.72));
+                            }
+                        } else {
+                            cuadrosLentosSeguidos = 0;
+                        }
+                    }
                 }
                 rafId = window.requestAnimationFrame(bucle);
             }

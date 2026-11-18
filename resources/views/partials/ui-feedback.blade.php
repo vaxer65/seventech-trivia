@@ -39,7 +39,8 @@
 <div id="toast-region"
      role="region"
      aria-label="Notificaciones"
-     class="fixed bottom-4 right-4 z-50 flex flex-col gap-2.5 pointer-events-none">
+     style="top: calc(1rem + env(safe-area-inset-top, 0px)); right: calc(1rem + env(safe-area-inset-right, 0px)); max-width: calc(100vw - 2rem); z-index: 9999; pointer-events: none;"
+     class="fixed flex flex-col items-end gap-2.5 pointer-events-none">
 </div>
 <div id="toast-aria-fallback" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
@@ -64,6 +65,22 @@
         let contadorToasts = 0;
         let resolverConfirmacionActual = null;
         let elementoPrevioFoco = null;
+        const soportaDialogModal = !!(dialog && typeof dialog.showModal === 'function');
+
+        function finalizarCierreDialog(confirmado) {
+            if (!dialog) return;
+            dialog.returnValue = '';
+            dialog.classList.remove('ui-dialog-fallback');
+            dialog.removeAttribute('open');
+            const resolver = resolverConfirmacionActual;
+            resolverConfirmacionActual = null;
+            if (elementoPrevioFoco && typeof elementoPrevioFoco.focus === 'function') {
+                elementoPrevioFoco.focus();
+            }
+            elementoPrevioFoco = null;
+            if (resolver) resolver(confirmado);
+            drenarColaToasts();
+        }
 
         if (dialog && !('closedBy' in HTMLDialogElement.prototype)) {
             let presionFuera = false;
@@ -73,7 +90,10 @@
             };
             dialog.addEventListener('pointerdown', (e) => { presionFuera = estaFuera(e); });
             dialog.addEventListener('pointerup', (e) => {
-                if (presionFuera && estaFuera(e) && dialog.open) dialog.close('cancel');
+                if (presionFuera && estaFuera(e) && dialog.open) {
+                    if (typeof dialog.close === 'function') dialog.close('cancel');
+                    else finalizarCierreDialog(false);
+                }
                 presionFuera = false;
             });
         }
@@ -88,27 +108,36 @@
 
         if (dialog) {
             dialog.addEventListener('close', () => {
-                const confirmado = dialog.returnValue === 'confirm';
-                dialog.returnValue = '';
-                const resolver = resolverConfirmacionActual;
-                resolverConfirmacionActual = null;
-                if (elementoPrevioFoco && typeof elementoPrevioFoco.focus === 'function') {
-                    elementoPrevioFoco.focus();
-                }
-                elementoPrevioFoco = null;
-                if (resolver) resolver(confirmado);
-                drenarColaToasts();
+                finalizarCierreDialog(dialog.returnValue === 'confirm');
             });
+
+            if (!soportaDialogModal) {
+                const formDialog = dialog.querySelector('form');
+                if (formDialog) {
+                    formDialog.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const submitter = e.submitter;
+                        const confirmado = !!(submitter && submitter.value === 'confirm');
+                        finalizarCierreDialog(confirmado);
+                    });
+                }
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && dialog.hasAttribute('open')) {
+                        finalizarCierreDialog(false);
+                    }
+                });
+            }
         }
 
         window.mostrarConfirmacion = function (opciones = {}) {
-            if (!dialog || typeof dialog.showModal !== 'function') {
+            if (!dialog) {
                 return Promise.resolve(false);
             }
             if (dialog.open && resolverConfirmacionActual) {
                 resolverConfirmacionActual(false);
                 resolverConfirmacionActual = null;
-                dialog.close('cancel');
+                if (typeof dialog.close === 'function') dialog.close('cancel');
+                else dialog.removeAttribute('open');
             }
 
             const {
@@ -139,7 +168,17 @@
 
             return new Promise((resolve) => {
                 resolverConfirmacionActual = resolve;
-                dialog.showModal();
+                if (soportaDialogModal) {
+                    try {
+                        dialog.showModal();
+                    } catch (e) {
+                        dialog.classList.add('ui-dialog-fallback');
+                        dialog.setAttribute('open', 'open');
+                    }
+                } else {
+                    dialog.classList.add('ui-dialog-fallback');
+                    dialog.setAttribute('open', 'open');
+                }
                 if (soloAviso) {
                     btnAceptar.focus();
                 } else {
@@ -150,29 +189,24 @@
 
         function reposicionarToasts() {
             if (!toastRegion) return;
-            const activos = Array.from(toastRegion.querySelectorAll('.ui-toast')).reverse();
-            let offset = 16;
+            const activos = Array.from(toastRegion.querySelectorAll('.ui-toast:not(.ui-toast-saliendo)'));
+            let offsetPx = 16;
             activos.forEach((toast) => {
-                toast.style.setProperty('--toast-bottom', `${offset}px`);
-                offset += toast.offsetHeight + 10;
+                toast.style.setProperty('--toast-top', `calc(${offsetPx}px + env(safe-area-inset-top, 0px))`);
+                offsetPx += (toast.offsetHeight || 52) + 10;
             });
         }
         window.addEventListener('resize', reposicionarToasts);
 
-        function ocultarToastElemento(toast, triggerControl) {
-            if (!toast || toast.dataset.cerrando === '1') return;
-            toast.dataset.cerrando = '1';
-            cancelarCierreToasts.get(toast)?.();
+        function finalizarEliminacionToast(toast, triggerControl) {
             observadorToasts?.unobserve(toast);
             const estabaEnfocado = toast.contains(document.activeElement);
             try {
                 if (typeof toast.hidePopover === 'function') {
                     toast.hidePopover();
-                } else {
-                    toast.classList.remove(':popover-open');
                 }
             } catch (e) {}
-
+            toast.classList.remove(':popover-open', 'ui-toast-visible', 'ui-toast-entrando', 'ui-toast-saliendo');
             const siguiente = toast.nextElementSibling || toast.previousElementSibling;
             toast.remove();
             reposicionarToasts();
@@ -188,11 +222,35 @@
             drenarColaToasts();
         }
 
+        function ocultarToastElemento(toast, triggerControl, inmediato = false) {
+            if (!toast) return;
+            clearTimeout(toast.__timerAutoCierre);
+            if (inmediato) {
+                toast.dataset.cerrando = '1';
+                finalizarEliminacionToast(toast, triggerControl);
+                return;
+            }
+            if (toast.dataset.cerrando === '1') return;
+            toast.dataset.cerrando = '1';
+            toast.classList.remove('ui-toast-entrando');
+            toast.classList.add('ui-toast-saliendo');
+            setTimeout(() => {
+                finalizarEliminacionToast(toast, triggerControl);
+            }, 260);
+        }
+
+        function programarAutoCierreToast(toast, triggerControl) {
+            clearTimeout(toast.__timerAutoCierre);
+            toast.__timerAutoCierre = setTimeout(() => {
+                ocultarToastElemento(toast, triggerControl, false);
+            }, 2000);
+        }
+
         window.mostrarToast = function (mensaje, tipo = 'success') {
             if (!toastRegion) return;
             const textoLimpio = String(mensaje || '').trim();
             if (!textoLimpio) return;
-            if ((dialog && dialog.open) || toastRegion.children.length >= maxToastsVisibles) {
+            if (dialog && dialog.open) {
                 colaToastsDiferidos.push({ mensaje: textoLimpio, tipo });
                 return;
             }
@@ -200,12 +258,29 @@
             const esError = tipo === 'error';
 
             const controlOrigen = document.activeElement;
+
+            // Anti-duplicados: si ya existe el mismo mensaje activo, reiniciar su temporizador de 3.5s
+            const existentes = Array.from(toastRegion.querySelectorAll('.ui-toast:not([data-cerrando="1"])'));
+            const duplicado = existentes.find((el) => el.dataset.toastMensaje === textoLimpio && el.dataset.toastTipo === tipo);
+            if (duplicado) {
+                programarAutoCierreToast(duplicado, controlOrigen);
+                return;
+            }
+
+            // Máximo 2 notificaciones visibles al mismo tiempo: descartar la más antigua de inmediato
+            while (existentes.length >= 2) {
+                const masAntigua = existentes.shift();
+                ocultarToastElemento(masAntigua, controlOrigen, true);
+            }
+
             const toastId = `ui-toast-${++contadorToasts}`;
             const toast = document.createElement('div');
             toast.id = toastId;
+            toast.dataset.toastMensaje = textoLimpio;
+            toast.dataset.toastTipo = tipo;
             toast.setAttribute('popover', 'manual');
-            toast.className = `ui-toast items-center justify-between gap-3 px-4 py-3 text-sm font-semibold ${
-                esError ? 'border-rose-400/75 text-rose-100' : 'border-emerald-400/70 text-emerald-50'
+            toast.className = `ui-toast items-center justify-between gap-2.5 font-semibold ${
+                esError ? 'border-rose-400/50 text-rose-100' : 'border-emerald-400/45 text-emerald-50'
             }`;
 
             const cuerpo = document.createElement('div');
@@ -229,11 +304,11 @@
             btnCerrar.setAttribute('popovertarget', toastId);
             btnCerrar.setAttribute('popovertargetaction', 'hide');
             btnCerrar.setAttribute('aria-label', 'Cerrar notificación');
-            btnCerrar.className = 'min-w-[44px] min-h-[44px] rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center shrink-0 transition';
-            btnCerrar.textContent = '✕';
+            btnCerrar.className = 'min-w-[36px] min-h-[36px] rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center shrink-0 transition';
+            btnCerrar.textContent = '×';
             btnCerrar.addEventListener('click', (e) => {
                 e.preventDefault();
-                ocultarToastElemento(toast, controlOrigen);
+                ocultarToastElemento(toast, controlOrigen, false);
             });
 
             toast.appendChild(cuerpo);
@@ -245,13 +320,18 @@
                 try {
                     toast.showPopover();
                 } catch (e) {
-                    toast.classList.add(':popover-open');
+                    toast.classList.add(':popover-open', 'ui-toast-visible');
                 }
             } else {
-                toast.classList.add(':popover-open');
+                toast.classList.add(':popover-open', 'ui-toast-visible');
             }
             reposicionarToasts();
             observadorToasts?.observe(toast);
+
+            requestAnimationFrame(() => {
+                void toast.offsetWidth;
+                toast.classList.add('ui-toast-entrando');
+            });
 
             if (typeof document.ariaNotify === 'function') {
                 document.ariaNotify(textoLimpio);
@@ -260,32 +340,7 @@
                 requestAnimationFrame(() => { toastAriaFallback.textContent = textoLimpio; });
             }
 
-            let timerToast = null;
-            let sobreToastConRaton = false;
-            const permiteHover = window.matchMedia('(hover: hover) and (pointer: fine)');
-            const cancelarCierre = () => clearTimeout(timerToast);
-            const programarCierre = () => {
-                cancelarCierre();
-                if (!toast.isConnected || sobreToastConRaton || toast.contains(document.activeElement)) return;
-                timerToast = setTimeout(() => {
-                    ocultarToastElemento(toast, controlOrigen);
-                }, esError ? 8000 : 4800);
-            };
-            cancelarCierreToasts.set(toast, cancelarCierre);
-            toast.addEventListener('pointerenter', (e) => {
-                if (e.pointerType !== 'mouse' || !permiteHover.matches) return;
-                sobreToastConRaton = true;
-                cancelarCierre();
-            });
-            toast.addEventListener('pointerleave', () => {
-                sobreToastConRaton = false;
-                programarCierre();
-            });
-            toast.addEventListener('focusin', cancelarCierre);
-            toast.addEventListener('focusout', (e) => {
-                if (!toast.contains(e.relatedTarget)) requestAnimationFrame(programarCierre);
-            });
-            programarCierre();
+            programarAutoCierreToast(toast, controlOrigen);
         };
 
         document.addEventListener('submit', async (e) => {

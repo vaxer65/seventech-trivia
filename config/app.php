@@ -75,6 +75,18 @@ return [
     'admin_password_hash' => env('ADMIN_PASSWORD_HASH', ''),
 
     /*
+    | Prefijo de ruta para el panel administrativo (en producción VPS usar URL privada).
+    */
+
+    'admin_route_prefix' => env('ADMIN_ROUTE_PREFIX', 'admin'),
+
+    /*
+    | Secreto Base32 de respaldo en .env para Google Authenticator 2FA (opcional).
+    */
+
+    'admin_2fa_secret' => env('ADMIN_2FA_SECRET', ''),
+
+    /*
     | Proxies confiables detrás de Nginx/Balanceador en VPS (por defecto loopback 127.0.0.1).
     */
 
