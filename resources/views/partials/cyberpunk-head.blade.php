@@ -210,22 +210,21 @@
     .ui-toast[popover] {
         position: fixed;
         inset: auto;
-        right: 1rem;
-        bottom: var(--toast-bottom, 1rem);
+        top: var(--toast-top, calc(1rem + env(safe-area-inset-top, 0px)));
+        right: calc(1rem + env(safe-area-inset-right, 0px));
         margin: 0;
         max-width: min(24rem, calc(100vw - 2rem));
         width: max-content;
+        z-index: 9999;
         border-radius: 0.9rem;
         border: 1px solid rgba(16, 185, 129, 0.55);
-        background: rgba(15, 23, 42, 0.95);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
+        background: rgba(15, 23, 42, 0.96);
         color: #f8fafc;
-        box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45), 0 0 20px rgba(16, 185, 129, 0.22);
+        box-shadow: 0 12px 28px rgba(2, 6, 23, 0.48);
         pointer-events: auto;
         opacity: 0;
-        transform: translateY(10px);
-        transition: opacity 0.22s ease, transform 0.22s ease, display 0.22s, overlay 0.22s;
+        transform: translateY(-8px);
+        transition: opacity 0.3s ease, transform 0.3s ease, display 0.3s, overlay 0.3s;
         transition-behavior: allow-discrete;
     }
 
@@ -234,6 +233,11 @@
         display: flex;
         opacity: 1;
         transform: translateY(0);
+    }
+
+    .ui-toast.ui-toast-saliendo {
+        opacity: 0 !important;
+        transform: translateY(-8px) !important;
     }
 
     dialog.ui-dialog.ui-dialog-fallback[open] {

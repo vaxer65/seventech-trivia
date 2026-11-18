@@ -39,7 +39,8 @@
 <div id="toast-region"
      role="region"
      aria-label="Notificaciones"
-     class="fixed bottom-4 right-4 z-50 flex flex-col gap-2.5 pointer-events-none">
+     style="top: calc(1rem + env(safe-area-inset-top, 0px)); right: calc(1rem + env(safe-area-inset-right, 0px)); max-width: calc(100vw - 2rem); z-index: 9999;"
+     class="fixed flex flex-col items-end gap-2.5 pointer-events-none">
 </div>
 <div id="toast-aria-fallback" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
@@ -183,25 +184,22 @@
 
         function reposicionarToasts() {
             if (!toastRegion) return;
-            const activos = Array.from(toastRegion.querySelectorAll('.ui-toast')).reverse();
+            const activos = Array.from(toastRegion.querySelectorAll('.ui-toast:not(.ui-toast-saliendo)'));
             let offsetRem = 1;
             activos.forEach((toast) => {
-                toast.style.setProperty('--toast-bottom', `${offsetRem}rem`);
-                offsetRem += 4.35;
+                toast.style.setProperty('--toast-top', `calc(${offsetRem}rem + env(safe-area-inset-top, 0px))`);
+                offsetRem += 4.25;
             });
         }
 
-        function ocultarToastElemento(toast, triggerControl) {
-            if (!toast || toast.dataset.cerrando === '1') return;
-            toast.dataset.cerrando = '1';
+        function finalizarEliminacionToast(toast, triggerControl) {
             const estabaEnfocado = toast.contains(document.activeElement);
             try {
                 if (typeof toast.hidePopover === 'function') {
                     toast.hidePopover();
                 }
             } catch (e) {}
-            toast.classList.remove(':popover-open', 'ui-toast-visible');
-
+            toast.classList.remove(':popover-open', 'ui-toast-visible', 'ui-toast-saliendo');
             const siguiente = toast.nextElementSibling || toast.previousElementSibling;
             toast.remove();
             reposicionarToasts();
@@ -216,6 +214,29 @@
             }
         }
 
+        function ocultarToastElemento(toast, triggerControl, inmediato = false) {
+            if (!toast) return;
+            clearTimeout(toast.__timerAutoCierre);
+            if (inmediato) {
+                toast.dataset.cerrando = '1';
+                finalizarEliminacionToast(toast, triggerControl);
+                return;
+            }
+            if (toast.dataset.cerrando === '1') return;
+            toast.dataset.cerrando = '1';
+            toast.classList.add('ui-toast-saliendo');
+            setTimeout(() => {
+                finalizarEliminacionToast(toast, triggerControl);
+            }, 300);
+        }
+
+        function programarAutoCierreToast(toast, triggerControl) {
+            clearTimeout(toast.__timerAutoCierre);
+            toast.__timerAutoCierre = setTimeout(() => {
+                ocultarToastElemento(toast, triggerControl, false);
+            }, 3500);
+        }
+
         window.mostrarToast = function (mensaje, tipo = 'success') {
             if (dialog && dialog.open) {
                 colaToastsDiferidos.push({ mensaje, tipo });
@@ -228,9 +249,26 @@
             if (!textoLimpio) return;
 
             const controlOrigen = document.activeElement;
+
+            // Anti-duplicados: si ya existe el mismo mensaje activo, reiniciar su temporizador de 3.5s
+            const existentes = Array.from(toastRegion.querySelectorAll('.ui-toast:not([data-cerrando="1"])'));
+            const duplicado = existentes.find((el) => el.dataset.toastMensaje === textoLimpio && el.dataset.toastTipo === tipo);
+            if (duplicado) {
+                programarAutoCierreToast(duplicado, controlOrigen);
+                return;
+            }
+
+            // Máximo 2 notificaciones visibles al mismo tiempo: descartar la más antigua de inmediato
+            while (existentes.length >= 2) {
+                const masAntigua = existentes.shift();
+                ocultarToastElemento(masAntigua, controlOrigen, true);
+            }
+
             const toastId = `ui-toast-${++contadorToasts}`;
             const toast = document.createElement('div');
             toast.id = toastId;
+            toast.dataset.toastMensaje = textoLimpio;
+            toast.dataset.toastTipo = tipo;
             toast.setAttribute('popover', 'manual');
             toast.className = `ui-toast items-center justify-between gap-3 px-4 py-3 text-sm font-semibold ${
                 esError ? 'border-rose-400/75 text-rose-100' : 'border-emerald-400/70 text-emerald-50'
@@ -257,10 +295,10 @@
             btnCerrar.setAttribute('popovertargetaction', 'hide');
             btnCerrar.setAttribute('aria-label', 'Cerrar notificación');
             btnCerrar.className = 'min-w-[36px] min-h-[36px] rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center shrink-0 transition';
-            btnCerrar.textContent = '✕';
+            btnCerrar.textContent = '×';
             btnCerrar.addEventListener('click', (e) => {
                 e.preventDefault();
-                ocultarToastElemento(toast, controlOrigen);
+                ocultarToastElemento(toast, controlOrigen, false);
             });
 
             toast.appendChild(cuerpo);
@@ -286,22 +324,7 @@
                 requestAnimationFrame(() => { toastAriaFallback.textContent = textoLimpio; });
             }
 
-            if (!esError) {
-                let timerToast = null;
-                const programarCierre = () => {
-                    clearTimeout(timerToast);
-                    timerToast = setTimeout(() => {
-                        if (!toast.matches(':focus-within') && !toast.matches(':hover')) {
-                            ocultarToastElemento(toast, controlOrigen);
-                        }
-                    }, 4800);
-                };
-                toast.addEventListener('mouseenter', () => clearTimeout(timerToast));
-                toast.addEventListener('mouseleave', programarCierre);
-                toast.addEventListener('focusin', () => clearTimeout(timerToast));
-                toast.addEventListener('focusout', programarCierre);
-                programarCierre();
-            }
+            programarAutoCierreToast(toast, controlOrigen);
         };
 
         document.addEventListener('submit', async (e) => {

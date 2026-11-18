@@ -20,6 +20,7 @@ use BaconQrCode\Writer;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use PragmaRX\Google2FA\Google2FA;
 
@@ -318,6 +319,11 @@ class AdminController extends Controller
                 ->withErrors(['codigo_2fa' => 'No existe configuración inicial del evento en base de datos.']);
         }
 
+        if (!Schema::hasColumn('configuracion_eventos', 'admin_2fa_secret')) {
+            return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
+                ->withErrors(['codigo_2fa' => 'Faltan migraciones por ejecutar (admin_2fa_secret). Ejecuta php artisan migrate.']);
+        }
+
         $config->update([
             'admin_2fa_secret' => Crypt::encryptString($secreto),
         ]);
@@ -353,6 +359,11 @@ class AdminController extends Controller
         if (!$valido) {
             return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
                 ->withErrors(['codigo_2fa' => 'Código 2FA actual inválido para confirmar la desactivación.']);
+        }
+
+        if (!Schema::hasColumn('configuracion_eventos', 'admin_2fa_secret')) {
+            return redirect('/' . self::adminPrefix() . '#seccion-seguridad-2fa')
+                ->withErrors(['codigo_2fa' => 'Faltan migraciones por ejecutar (admin_2fa_secret). Ejecuta php artisan migrate.']);
         }
 
         $config?->update(['admin_2fa_secret' => null]);
