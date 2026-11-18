@@ -16,6 +16,11 @@
         font-family: var(--font-main);
         font-weight: 500;
         letter-spacing: 0.02em;
+        min-height: 100dvh;
+        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
     }
 
     h1, h2, h3, button, input, select, textarea {
@@ -224,10 +229,32 @@
         transition-behavior: allow-discrete;
     }
 
-    .ui-toast[popover]:is(:popover-open, .\:popover-open) {
+    .ui-toast[popover]:is(:popover-open, .\:popover-open),
+    .ui-toast.ui-toast-visible {
         display: flex;
         opacity: 1;
         transform: translateY(0);
+    }
+
+    dialog.ui-dialog.ui-dialog-fallback[open] {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: block;
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    @media (max-width: 767px) {
+        .neon-card, .neon-border, .card {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            background-color: rgba(15, 23, 42, 0.96);
+        }
+
+        input, select, textarea {
+            font-size: max(16px, 1rem);
+        }
     }
 
     .robot-transition { transition: left 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -291,7 +318,8 @@
                 const esMovil = width < 768;
                 const cantidadNodos = esMovil ? 24 : 55;
                 const cantidadParticulas = esMovil ? 18 : 35;
-                maxLinkDist = esMovil ? 115 : 145;
+                const linkBase = esMovil ? 115 : 145;
+                maxLinkDist = modoAhorroActivo ? Math.max(70, Math.round(linkBase * 0.72)) : linkBase;
 
                 nodos = Array.from({ length: cantidadNodos }, (_, idx) => ({
                     x: Math.random() * width,
@@ -403,8 +431,10 @@
                 }
             }
 
-            const intervaloFrameMs = 28; // ~35 FPS para bajo consumo de CPU/GPU
+            let intervaloFrameMs = 16.6; // Objetivo 60 FPS con gobernador adaptativo
             let ultimoFrameTs = 0;
+            let cuadrosLentosSeguidos = 0;
+            let modoAhorroActivo = false;
 
             function bucle(ts) {
                 if (document.hidden || reducedMotion.matches) {
@@ -413,7 +443,22 @@
                 }
                 if (!ultimoFrameTs || (ts - ultimoFrameTs) >= intervaloFrameMs) {
                     ultimoFrameTs = ts || performance.now();
+                    const inicioRender = performance.now();
                     dibujarFrame(true);
+                    const duracionRender = performance.now() - inicioRender;
+
+                    if (!modoAhorroActivo) {
+                        if (duracionRender > 22) {
+                            cuadrosLentosSeguidos++;
+                            if (cuadrosLentosSeguidos >= 15) {
+                                modoAhorroActivo = true;
+                                intervaloFrameMs = 28; // Degradación suave a ~35 FPS en hardware modesto
+                                maxLinkDist = Math.max(70, Math.round(maxLinkDist * 0.72));
+                            }
+                        } else {
+                            cuadrosLentosSeguidos = 0;
+                        }
+                    }
                 }
                 rafId = window.requestAnimationFrame(bucle);
             }

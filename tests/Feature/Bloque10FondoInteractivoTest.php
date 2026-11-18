@@ -77,7 +77,7 @@ class Bloque10FondoInteractivoTest extends TestCase
             ->assertSee("window.addEventListener('mousemove'", false)
             ->assertSee('const cantidadNodos = esMovil ? 24 : 55;', false)
             ->assertSee('const cantidadParticulas = esMovil ? 18 : 35;', false)
-            ->assertSee('const intervaloFrameMs = 28;', false)
+            ->assertSee('let intervaloFrameMs = 16.6;', false)
             ->assertSee('backdrop-filter: blur(8px);', false)
             ->assertDontSee('shadowBlur', false)
             ->assertSee('text-slate-200', false)

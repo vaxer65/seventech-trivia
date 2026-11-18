@@ -2,9 +2,9 @@
 
 ## 1. Estado Actual
 
-- **Rama activa:** `bloque-12-seguridad-admin-2fa` (creada desde `desarrollo`; **Bloques 0 al 12 Completados**, pendiente revisión/merge explícito del usuario).
+- **Rama activa:** `bloque-13-fps-ux-movil` (creada desde `bloque-12-seguridad-admin-2fa`, manteniendo `desarrollo` intacta para PR #1; **Bloques 0 al 13 Completados**).
 - **Entorno en producción objetivo:** **Servidor dedicado / VPS propio** (Ubuntu 24.04 + Nginx + PHP-FPM 8.3 + MySQL 8 + Redis; guía en [`docs/DESPLIEGUE_VPS.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE_VPS.md); se descarta cPanel).
-- **Suite de pruebas:** **56 tests pasando (4,878 aserciones)** contra `seventech_trivia_test`:
+- **Suite de pruebas:** **59 tests pasando (4,925 aserciones)** contra `seventech_trivia_test`:
   - `Tests\Unit\ExampleTest` (1 test)
   - `Tests\Feature\ExampleTest` (1 test)
   - `Tests\Feature\Bloque1SeguridadTest` (10 tests: ocultación de respuesta correcta, rechazo de pregunta no asignada `409`, mismo orden por `semilla_partida`, tiempo medido en servidor, idempotencia `UNIQUE(equipo_id, pregunta_id)`, sesión por cookie sin `equipo_id` en request, límite 2–5 integrantes, `rate limiting` del PIN `429`, protección de `/admin/*` incluyendo `/admin/preguntas/importar`, y regeneración de `semilla_partida`).
@@ -21,10 +21,11 @@
   - `Tests\Feature\FlujoCompletoE2ETest` (1 test integral de punta a punta con `DatabaseSeeder` completo de 360 preguntas y 10 módulos: vistas públicas, descarga de plantillas e importación JSON/CSV en `/admin`, registro de equipos, 3 etapas normales con permutación visual y escudo anti-IA `reportar-salida-pantalla`, Muerte Súbita y ranking final en `/api/carrera-en-vivo`).
   - `Tests\Feature\Bloque11ValidacionPuestoJugadorTest` (2 tests: validación inline con `novalidate` + toast suave en `/jugar` para campos iniciales y dinámicos de Nombre + Apellido, insignias `#header-puesto-equipo` / `#final-puesto-equipo` / `#tiempo-final-texto`, cálculo exacto de `posicion_actual` y `total_equipos` en `GET /api/estado-juego` bajo desempates oficiales y cumplimiento del presupuesto `≤ 7 queries`).
   - `Tests\Feature\Bloque12SeguridadAdmin2faTest` (4 tests: ocultación de acceso admin en `/`, cabecera `X-Robots-Tag: noindex, nofollow, noarchive` en rutas admin incluso ante `403`, prefijo privado dinámico `ADMIN_ROUTE_PREFIX`, cabeceras HTTP globales en `SecurityHeadersMiddleware` + HSTS en HTTPS, y ciclo completo de Google Authenticator 2FA offline con QR SVG cifrado en `configuracion_eventos.admin_2fa_secret`).
+  - `Tests\Feature\Bloque13FpsUxMovilTest` (3 tests: compatibilidad total con `php artisan route:cache` al eliminar closures en `routes/web.php` vía `InicioController` y `AdminController::mostrarLogin()`, gobernador adaptativo de `60 FPS` / `16.6 ms` con degradación a `~35 FPS` y `maxDistSq` en `cyberpunk-head.blade.php`, optimización GPU móvil `@media (max-width: 767px)` + `100dvh` + `safe-area-inset` + `16px` en inputs, e inclusión de `ui-feedback` con fallbacks progresivos en todas las vistas sin `alert`/`confirm` nativos).
 
 ---
 
-## 2. Mapa y Checklist de Bloques (0 a 12)
+## 2. Mapa y Checklist de Bloques (0 a 13)
 
 - [x] **Bloque 0 (`bloque-0-limpieza`) — Completado:** Inventario y limpieza de archivos temporales/no usados, actualización de `.gitignore`, registro de correcciones de producción en `desarrollo`, alineación de [`docs/STACK.md`](file:///home/vaxer/seventech-trivia/docs/STACK.md) y [`docs/DESPLIEGUE.md`](file:///home/vaxer/seventech-trivia/docs/DESPLIEGUE.md), reglas permanentes en [`GEMINI.md`](file:///home/vaxer/seventech-trivia/GEMINI.md) y creación de [`docs/ESTADO.md`](file:///home/vaxer/seventech-trivia/docs/ESTADO.md).
 - [x] **Bloque 1 (`bloque-1-reinicio`) — Completado:** Reinicio 100% atómico en `AdminController::reiniciarJuego()` sin `TRUNCATE` (`query()->delete()`), orden estricto de locks (`ConfiguracionEvento::lockForUpdate()` antes que `Equipo`), renovación garantizada de `semilla_partida`, blindaje contra peticiones en vuelo en `ConcursanteController` y preservación del Salón de la Fama (`historial_eventos`).
@@ -39,6 +40,7 @@
 - [x] **Bloque 10 (`bloque-10-fondo-interactivo`) — Completado:** Reemplazo del fondo gris plateado por fondo oscuro profundo (`radial-gradient(circle at 50% 20%, #0d1629 0%, #060913 70%, #04060d 100%)`) y motor nativo `<canvas id="canvas-fondo-interactivo">` en [`partials/cyberpunk-head.blade.php`](file:///home/vaxer/seventech-trivia/resources/views/partials/cyberpunk-head.blade.php) con partículas luminosas ambientales en flujo suave (esmeralda, cian, violeta) + constelación geométrica reactiva al puntero (`mousemove`, radio `~160px`, densidad adaptativa `24/18` en móvil y `55/35` en escritorio), DPR limitado a `1.5`, pausa automática en `document.hidden`, soporte estático bajo `prefers-reduced-motion: reduce`, capas `relative z-10` y textos externos de alto contraste (`text-slate-200`/`text-slate-300`) en las 4 vistas.
 - [x] **Bloque 11 (`bloque-11-validacion-puesto-jugador`) — Completado:** Validación inline debajo de cada campo + `window.mostrarToast` con `novalidate` en `/jugar` (regla de Nombre + Apellido incluso en integrantes dinámicos) y cálculo en 1 sola SQL query de `posicion_actual` / `total_equipos` en `GET /api/estado-juego` (`#header-puesto-equipo`, `#final-puesto-equipo`, `#tiempo-final-texto`).
 - [x] **Bloque 12 (`bloque-12-seguridad-admin-2fa`) — Completado:** Ocultación del enlace `/admin` en [`inicio.blade.php`](file:///home/vaxer/seventech-trivia/resources/views/inicio.blade.php), prefijo privado configurable `ADMIN_ROUTE_PREFIX` con cabecera `X-Robots-Tag: noindex, nofollow, noarchive`, autenticación offline de doble factor Google Authenticator (`pragmarx/google2fa` + QR SVG local con `bacon/bacon-qr-code`, secreto cifrado en `configuracion_eventos.admin_2fa_secret` con `Crypt` y flujo en 2 pasos `admin_2fa_pendiente`) y cabeceras HTTP globales en [`SecurityHeadersMiddleware.php`](file:///home/vaxer/seventech-trivia/app/Http/Middleware/SecurityHeadersMiddleware.php).
+- [x] **Bloque 13 (`bloque-13-fps-ux-movil`) — Completado:** Eliminación de closures en [`routes/web.php`](file:///home/vaxer/seventech-trivia/routes/web.php) (`InicioController::index()` + `AdminController::mostrarLogin()`) habilitando `php artisan route:cache`, gobernador adaptativo de `60 FPS` (`16.6 ms` -> `28 ms` si `duracionRender > 22 ms` por 15 cuadros), desactivación de `backdrop-filter` en `@media (max-width: 767px)`, ergonomía iOS/Android (`100dvh`, `safe-area-inset-*`, `max(16px, 1rem)`) y fallback progresivo de `popover` / `<dialog>` en [`ui-feedback.blade.php`](file:///home/vaxer/seventech-trivia/resources/views/partials/ui-feedback.blade.php) en las 4 vistas.
 
 ---
 
@@ -117,4 +119,4 @@ git status
 
 ## 8. Próximo Paso
 
-- **Bloque 12 (`bloque-12-seguridad-admin-2fa`) implementado y verificado (`56 tests / 4,878 aserciones`) sin tocar `database/seeders/` ni vistas de concursante/espectador para cero conflictos al fusionar PR #1 (`bloque-13-balanced-bank`).** Listo para revisión y orden de integración hacia `desarrollo` / `main`.
+- **Bloque 13 (`bloque-13-fps-ux-movil`) implementado sobre `bloque-12-seguridad-admin-2fa`, manteniendo intacta `desarrollo` y sin tocar `database/seeders/` para cero conflictos al fusionar PR #1 (`bloque-13-balanced-bank`).** Listo para revisión e integración explícita del usuario.

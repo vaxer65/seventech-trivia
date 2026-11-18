@@ -853,14 +853,16 @@
         </section>
         @endif
 
-        @include('partials.ui-feedback')
-
         <script>
-            @if(session('ok'))
-                window.mostrarToast(@json(session('ok')), 'success');
-            @endif
-            @if($errors->any())
-                window.mostrarToast(@json($errors->first()), 'error');
+            @if(session('ok') || $errors->any())
+                window.addEventListener('DOMContentLoaded', () => {
+                    @if(session('ok'))
+                        window.mostrarToast(@json(session('ok')), 'success');
+                    @endif
+                    @if($errors->any())
+                        window.mostrarToast(@json($errors->first()), 'error');
+                    @endif
+                });
             @endif
 
             function debounceAdmin(fn, wait = 500) {
@@ -1080,6 +1082,8 @@
             recalcularDuracionTorneo();
         </script>
     @endif
+
+    @include('partials.ui-feedback')
 
 </body>
 </html>

@@ -60,6 +60,22 @@
         let contadorToasts = 0;
         let resolverConfirmacionActual = null;
         let elementoPrevioFoco = null;
+        const soportaDialogModal = !!(dialog && typeof dialog.showModal === 'function');
+
+        function finalizarCierreDialog(confirmado) {
+            if (!dialog) return;
+            dialog.returnValue = '';
+            dialog.classList.remove('ui-dialog-fallback');
+            dialog.removeAttribute('open');
+            const resolver = resolverConfirmacionActual;
+            resolverConfirmacionActual = null;
+            if (elementoPrevioFoco && typeof elementoPrevioFoco.focus === 'function') {
+                elementoPrevioFoco.focus();
+            }
+            elementoPrevioFoco = null;
+            if (resolver) resolver(confirmado);
+            drenarColaToasts();
+        }
 
         if (dialog && !('closedBy' in HTMLDialogElement.prototype)) {
             let presionFuera = false;
@@ -69,7 +85,10 @@
             };
             dialog.addEventListener('pointerdown', (e) => { presionFuera = estaFuera(e); });
             dialog.addEventListener('pointerup', (e) => {
-                if (presionFuera && estaFuera(e) && dialog.open) dialog.close('cancel');
+                if (presionFuera && estaFuera(e) && dialog.open) {
+                    if (typeof dialog.close === 'function') dialog.close('cancel');
+                    else finalizarCierreDialog(false);
+                }
                 presionFuera = false;
             });
         }
@@ -83,27 +102,36 @@
 
         if (dialog) {
             dialog.addEventListener('close', () => {
-                const confirmado = dialog.returnValue === 'confirm';
-                dialog.returnValue = '';
-                const resolver = resolverConfirmacionActual;
-                resolverConfirmacionActual = null;
-                if (elementoPrevioFoco && typeof elementoPrevioFoco.focus === 'function') {
-                    elementoPrevioFoco.focus();
-                }
-                elementoPrevioFoco = null;
-                if (resolver) resolver(confirmado);
-                drenarColaToasts();
+                finalizarCierreDialog(dialog.returnValue === 'confirm');
             });
+
+            if (!soportaDialogModal) {
+                const formDialog = dialog.querySelector('form');
+                if (formDialog) {
+                    formDialog.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const submitter = e.submitter;
+                        const confirmado = !!(submitter && submitter.value === 'confirm');
+                        finalizarCierreDialog(confirmado);
+                    });
+                }
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && dialog.hasAttribute('open')) {
+                        finalizarCierreDialog(false);
+                    }
+                });
+            }
         }
 
         window.mostrarConfirmacion = function (opciones = {}) {
-            if (!dialog || typeof dialog.showModal !== 'function') {
+            if (!dialog) {
                 return Promise.resolve(false);
             }
             if (dialog.open && resolverConfirmacionActual) {
                 resolverConfirmacionActual(false);
                 resolverConfirmacionActual = null;
-                dialog.close('cancel');
+                if (typeof dialog.close === 'function') dialog.close('cancel');
+                else dialog.removeAttribute('open');
             }
 
             const {
@@ -134,7 +162,17 @@
 
             return new Promise((resolve) => {
                 resolverConfirmacionActual = resolve;
-                dialog.showModal();
+                if (soportaDialogModal) {
+                    try {
+                        dialog.showModal();
+                    } catch (e) {
+                        dialog.classList.add('ui-dialog-fallback');
+                        dialog.setAttribute('open', 'open');
+                    }
+                } else {
+                    dialog.classList.add('ui-dialog-fallback');
+                    dialog.setAttribute('open', 'open');
+                }
                 if (soloAviso) {
                     btnAceptar.focus();
                 } else {
@@ -160,10 +198,9 @@
             try {
                 if (typeof toast.hidePopover === 'function') {
                     toast.hidePopover();
-                } else {
-                    toast.classList.remove(':popover-open');
                 }
             } catch (e) {}
+            toast.classList.remove(':popover-open', 'ui-toast-visible');
 
             const siguiente = toast.nextElementSibling || toast.previousElementSibling;
             toast.remove();
@@ -235,10 +272,10 @@
                 try {
                     toast.showPopover();
                 } catch (e) {
-                    toast.classList.add(':popover-open');
+                    toast.classList.add(':popover-open', 'ui-toast-visible');
                 }
             } else {
-                toast.classList.add(':popover-open');
+                toast.classList.add(':popover-open', 'ui-toast-visible');
             }
             reposicionarToasts();
 

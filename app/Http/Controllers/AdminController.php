@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Models\ConfiguracionEvento;
 use App\Models\Modulo;
@@ -209,6 +210,11 @@ class AdminController extends Controller
             'semaforo_texto'         => $semaforoTexto,
             'semaforo_detalle'       => $semaforoDetalle,
         ];
+    }
+
+    public function mostrarLogin(Request $request): RedirectResponse
+    {
+        return redirect('/' . self::adminPrefix());
     }
 
     public function login(Request $request)

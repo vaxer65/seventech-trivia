@@ -1,14 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\InicioController;
 use App\Http\Controllers\ConcursanteController;
 use App\Http\Controllers\EspectadorController;
 use App\Http\Controllers\AdminController;
 
-Route::get('/', function () {
-    $historial = \App\Models\HistorialEvento::latest()->take(6)->get();
-    return view('inicio', compact('historial'));
-})->name('inicio');
+Route::get('/', [InicioController::class, 'index'])->name('inicio');
 
 // ==========================================
 // 1. ROL CONCURSANTE (Optimizado para Wi-Fi compartido en Auditorio)
@@ -55,7 +53,7 @@ app()->instance('seventech.booted_admin_prefix', $adminPrefix);
 
 Route::prefix($adminPrefix)->middleware('admin.noindex')->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('admin.index');
-    Route::get('/login', fn () => redirect('/' . AdminController::adminPrefix()));
+    Route::get('/login', [AdminController::class, 'mostrarLogin']);
     Route::post('/login', [AdminController::class, 'login'])->middleware('throttle:admin-login')->name('admin.login');
     Route::post('/2fa/verificar', [AdminController::class, 'verificar2fa'])->middleware('throttle:admin-login')->name('admin.2fa.verificar');
     Route::post('/logout', [AdminController::class, 'logout'])->name('admin.logout');

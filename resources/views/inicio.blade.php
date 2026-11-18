@@ -101,6 +101,8 @@
         @endif
     </main>
 
+    @include('partials.ui-feedback')
+
     <footer class="text-center text-xs text-slate-300 font-bold py-4 relative z-10">
         SEVEN TECH COMMUNITY • AUDITORIO CENI UEB 2026
     </footer>
